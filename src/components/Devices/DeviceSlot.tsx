@@ -1,5 +1,4 @@
 // src/components/Devices/DeviceSlot.tsx
-
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -10,10 +9,8 @@ import {
   MenuItem,
   IconButton,
   Stack,
-  Tooltip,
   Switch,
   Chip,
-  CircularProgress,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -21,7 +18,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import CircleIcon from "@mui/icons-material/Circle";
 
 import { deviceApi } from "@/api/deviceApi";
@@ -30,38 +26,35 @@ import { useAuth } from "@/hooks/useAuth";
 interface DeviceSlotProps {
   raspberryId: number;
   device?: any;
+  slotIndex: number;
+  parentOnline: boolean;   // 🔥 DODAŁEM TO
   onSaved: () => void;
 }
 
-export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
+export function DeviceSlot({ raspberryId, device, slotIndex, parentOnline, onSaved }: DeviceSlotProps) {
   const { token } = useAuth();
 
   const [editing, setEditing] = useState(!device);
   const [saving, setSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  const online = device?.online ?? false;
-  const hasLiveState = device?.is_on !== undefined;
+  const online = parentOnline && (device?.online ?? false);  
+  // 🔥 jeśli Raspberry offline → device też offline
 
-  // 🔥 JEDYNY stan, który zmieniamy dynamicznie na live
   const [manualState, setManualState] = useState(
     device?.is_on ?? device?.manual_state ?? false
   );
 
-  // 🔥 Aktualizacja z heartbeat (TYLKO jeśli is_on się zmienia)
   useEffect(() => {
-    if (device?.is_on !== undefined) {
-      setManualState(device.is_on);
-    }
+    if (device?.is_on !== undefined) setManualState(device.is_on);
   }, [device?.is_on]);
 
-  // 🔥 Formularz zależy tylko od pól, a nie całego obiektu device
   const [form, setForm] = useState({
     name: device?.name || "",
     rated_power_w: device?.rated_power_w || "",
     mode: device?.mode || "MANUAL",
-    gpio_pin: device?.gpio_pin || "",
-    power_threshold_w: device?.power_threshold_w || "",
+    device_number: device?.device_number || slotIndex,
+    threshold_w: device?.threshold_w || null,
   });
 
   useEffect(() => {
@@ -69,41 +62,39 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
       name: device?.name || "",
       rated_power_w: device?.rated_power_w || "",
       mode: device?.mode || "MANUAL",
-      gpio_pin: device?.gpio_pin || "",
-      power_threshold_w: device?.power_threshold_w || "",
+      device_number: device?.device_number || slotIndex,
+      threshold_w: device?.threshold_w || null
     });
-
-    // ❗ NIE resetujemy tutaj manualState, bo to powodowało pętlę!
-  }, [device?.name, device?.rated_power_w, device?.mode, device?.gpio_pin, device?.power_threshold_w]);
-
-  const resetForm = () => {
-    setForm({
-      name: "",
-      rated_power_w: "",
-      mode: "MANUAL",
-      gpio_pin: "",
-      power_threshold_w: "",
-    });
-  };
+  }, [
+    device?.name,
+    device?.rated_power_w,
+    device?.mode,
+    device?.device_number,
+    device?.threshold_w,
+    slotIndex,
+  ]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     if (!token) return;
+    setSaving(true);
 
     try {
-      setSaving(true);
       if (device) {
         await deviceApi.updateDevice(token, device.id, form);
       } else {
-        await deviceApi.createDevice(token, { ...form, raspberry_id: raspberryId });
-        resetForm();
+        await deviceApi.createDevice(token, {
+          ...form,
+          raspberry_id: raspberryId,
+        });
       }
+
       onSaved();
       setEditing(false);
     } catch (err) {
-      console.error("❌ Błąd zapisu urządzenia:", err);
+      console.error("Failed to save device:", err);
     } finally {
       setSaving(false);
     }
@@ -111,14 +102,14 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
 
   const handleDelete = async () => {
     if (!token || !device) return;
-    if (!confirm(`Czy na pewno chcesz usunąć urządzenie "${device.name}"?`)) return;
+    if (!confirm(`Do you really want to delete device "${device.name}"?`)) return;
 
+    setSaving(true);
     try {
-      setSaving(true);
       await deviceApi.deleteDevice(token, device.id);
       onSaved();
     } catch (err) {
-      console.error("❌ Błąd usuwania urządzenia:", err);
+      console.error("Failed to delete device:", err);
     } finally {
       setSaving(false);
     }
@@ -127,89 +118,133 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
   const handleManualToggle = async (checked: boolean) => {
     if (!token || !device) return;
     setIsToggling(true);
-
     try {
       const response = await deviceApi.setManualState(token, device.id, checked);
-
-      if (response.status === 200 || response.status === 201) {
-        const ackOk = response.data?.ack?.ok ?? true;
-        if (ackOk) {
-          setManualState(checked);
-        }
-      }
-    } catch (err) {
-      console.error("❌ Błąd zmiany stanu ręcznego:", err);
+      if (response.data?.ack?.ok ?? true) setManualState(checked);
     } finally {
       setIsToggling(false);
     }
   };
 
-  // --- Widok pustego slotu ---
+  /* -----------------------
+   *  UI BLOCK: Raspberry offline
+   * ---------------------- */
+  const locked = !parentOnline;
+
+  /* -----------------------
+   * EMPTY SLOT (ADD)
+   * ---------------------- */
   if (!device && !editing) {
     return (
       <Card
         sx={{
           border: "2px dashed #aaa",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          textAlign: "center",
           py: 3,
-          cursor: "pointer",
-          "&:hover": { backgroundColor: "#f9f9f9" },
+          opacity: locked ? 0.4 : 1,
+          cursor: locked ? "not-allowed" : "pointer",
+          "&:hover": locked ? {} : { background: "#f0f0f0" },
         }}
-        onClick={() => setEditing(true)}
+        onClick={() => !locked && setEditing(true)}
       >
-        <CardContent sx={{ textAlign: "center" }}>
+        <CardContent>
           <AddIcon fontSize="large" />
-          <Typography variant="body2">Dodaj urządzenie</Typography>
+          <Typography>Dodaj urządzenie (slot {slotIndex})</Typography>
+          {locked && (
+            <Typography color="error" variant="caption">
+              Raspberry offline
+            </Typography>
+          )}
         </CardContent>
       </Card>
     );
   }
 
-  // --- Widok edycji ---
+  /* -----------------------
+   * EDIT MODE
+   * ---------------------- */
   if (editing) {
     return (
-      <Card sx={{ p: 1 }}>
+      <Card sx={{ p: 1, opacity: locked ? 0.5 : 1 }}>
         <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack direction="row" justifyContent="space-between">
             <Typography variant="subtitle1">
               {device ? "Edytuj urządzenie" : "Nowe urządzenie"}
             </Typography>
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Zapisz">
-                <IconButton color="primary" onClick={handleSave} disabled={saving || !form.name}>
-                  <SaveIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Anuluj">
-                <IconButton color="inherit" onClick={() => setEditing(false)}>
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+
+            <Stack direction="row">
+              <IconButton onClick={handleSave} disabled={saving || !form.name || locked}>
+                <SaveIcon color="primary" />
+              </IconButton>
+
+              <IconButton onClick={() => setEditing(false)}>
+                <CloseIcon />
+              </IconButton>
             </Stack>
           </Stack>
 
-          <Stack spacing={1.5} mt={1.5}>
-            <TextField label="Nazwa" fullWidth size="small" name="name" value={form.name} onChange={handleChange} />
-            <TextField label="GPIO pin" fullWidth size="small" name="gpio_pin" type="number" value={form.gpio_pin} onChange={handleChange} />
-            <TextField label="Moc poboru (W)" fullWidth size="small" name="rated_power_w" type="number" value={form.rated_power_w} onChange={handleChange} />
+          {locked && (
+            <Typography color="error" variant="caption">
+              Raspberry jest offline — zapis i edycja zablokowane
+            </Typography>
+          )}
 
-            <TextField select label="Tryb pracy" fullWidth size="small" name="mode" value={form.mode} onChange={handleChange}>
+          <Stack spacing={2} mt={2}>
+            <TextField
+              label="Nazwa"
+              fullWidth
+              size="small"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              disabled={locked}
+            />
+
+            <TextField
+              label="Moc poboru (W)"
+              fullWidth
+              size="small"
+              name="rated_power_w"
+              type="number"
+              value={form.rated_power_w}
+              onChange={handleChange}
+              disabled={locked}
+            />
+
+            <TextField
+              select
+              label="Tryb pracy"
+              fullWidth
+              size="small"
+              name="mode"
+              value={form.mode}
+              onChange={handleChange}
+              disabled={locked}
+            >
               <MenuItem value="MANUAL">Ręczny</MenuItem>
-              <MenuItem value="AUTO_POWER">Auto (moc PV)</MenuItem>
+              <MenuItem value="AUTO_POWER">Auto moc PV</MenuItem>
               <MenuItem value="SCHEDULE">Harmonogram</MenuItem>
             </TextField>
 
+            <TextField
+              label="Slot / Numer urządzenia"
+              fullWidth
+              size="small"
+              name="device_number"
+              value={form.device_number}
+              InputProps={{ readOnly: true }}
+            />
+
             {form.mode === "AUTO_POWER" && (
               <TextField
-                label="Próg mocy produkcji (W)"
+                label="Próg mocy PV (W)"
                 fullWidth
                 size="small"
-                name="power_threshold_w"
+                name="threshold_w"
                 type="number"
-                value={form.power_threshold_w}
+                value={form.threshold_w}
                 onChange={handleChange}
+                disabled={locked}
               />
             )}
           </Stack>
@@ -218,84 +253,62 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     );
   }
 
-  // --- Widok urządzenia ---
+  /* -----------------------
+   * DEVICE VIEW
+   * ---------------------- */
   return (
-    <Card>
+    <Card sx={{ opacity: locked ? 0.5 : 1 }}>
       <CardContent>
-        {/* HEADER */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack direction="row" justifyContent="space-between">
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="subtitle1">{device.name}</Typography>
-
-            <Tooltip title={online ? "Online" : "Offline"}>
-              <CircleIcon sx={{ fontSize: 12, color: online ? "green" : "grey" }} />
-            </Tooltip>
+            <Typography>{device.name}</Typography>
+            <CircleIcon sx={{ fontSize: 12, color: online ? "green" : "grey" }} />
           </Stack>
 
           <Stack direction="row" spacing={1}>
-            <Tooltip title="Edytuj">
-              <IconButton color="primary" onClick={() => setEditing(true)}>
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Usuń">
-              <IconButton color="error" onClick={handleDelete}>
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
+            <IconButton onClick={() => !locked && setEditing(true)} disabled={locked}>
+              <EditIcon color="primary" />
+            </IconButton>
+
+            <IconButton onClick={handleDelete} disabled={locked}>
+              <DeleteIcon color="error" />
+            </IconButton>
           </Stack>
         </Stack>
 
-        {/* INFO */}
-        <Typography variant="body2" color="text.secondary">
-          GPIO: {device.gpio_pin ?? "—"} | Moc: {device.rated_power_w ?? "n/d"} W
-        </Typography>
+        <Typography variant="body2">Slot: {device.device_number}</Typography>
+        <Typography variant="body2">Moc: {device.rated_power_w ?? "n/d"} W</Typography>
+        <Typography variant="body2">Tryb: {device.mode}</Typography>
 
-        <Typography variant="body2" color="text.secondary">
-          Tryb: {device.mode}
-        </Typography>
-
-        {/* STATE SECTION */}
-        <Box mt={1.5} display="flex" alignItems="center" justifyContent="space-between">
+        <Box mt={1}>
           {!online ? (
-            <Chip label="Stan niedostępny" color="default" size="small" />
-
+            <Chip label="Offline" size="small" />
           ) : device.mode === "MANUAL" ? (
-            !hasLiveState ? (
-              <Chip label="Oczekiwanie na dane..." size="small" />
-            ) : (
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Typography variant="body2">Sterowanie:</Typography>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Switch
-                    checked={manualState}
-                    onChange={(e) => handleManualToggle(e.target.checked)}
-                    color="primary"
-                    disabled={isToggling}
-                  />
-                  {isToggling && (
-                    <CircularProgress size={20} thickness={5} color="primary" />
-                  )}
-                </Stack>
-
-                <Chip
-                  label={manualState ? "Włączony" : "Wyłączony"}
-                  color={manualState ? "success" : "default"}
-                  size="small"
-                />
-              </Stack>
-            )
-          ) : (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <PowerSettingsNewIcon
-                sx={{ fontSize: 18, color: hasLiveState && device.is_on ? "green" : "grey" }}
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Switch
+                checked={manualState}
+                onChange={(e) => handleManualToggle(e.target.checked)}
+                disabled={isToggling || locked}
               />
-              <Typography variant="body2" color="text.secondary">
-                {hasLiveState ? (device.is_on ? "Włączony" : "Wyłączony") : "—"}
-              </Typography>
+
+              <Chip
+                label={manualState ? "Włączony" : "Wyłączony"}
+                color={manualState ? "success" : "default"}
+                size="small"
+              />
             </Stack>
+          ) : (
+            <Typography variant="body2">
+              Stan: {device.is_on ? "Włączony" : "Wyłączony"}
+            </Typography>
           )}
         </Box>
+
+        {locked && (
+          <Typography color="error" variant="caption">
+            Raspberry offline — sterowanie niedostępne
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );

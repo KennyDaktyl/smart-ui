@@ -1,9 +1,9 @@
 export interface HeartbeatPayload {
     uuid: string;
     status: string;
-    timestamp?: number;
+    sent_at?: string;
+    gpio_count?: number;
+    device_count?: number;
     gpio?: Record<number, number>;
     devices?: Array<{ device_id: string; pin: number; is_on: boolean }>;
-    free_slots?: number;
 }
-  

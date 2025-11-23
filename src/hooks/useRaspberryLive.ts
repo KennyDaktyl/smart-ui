@@ -1,88 +1,128 @@
-// src/hooks/useRaspberryLive.ts
+import { HeartbeatPayload } from "@/types/heartbeat";
 import { useEffect, useRef } from "react";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8765";
 
-interface HeartbeatPayload {
-  uuid: string;
-  status: string;
-  timestamp?: number;
-  gpio?: Record<number, number>;
-  devices?: Array<{ device_id: string; pin: number; is_on: boolean }>;
-  free_slots?: number;
-}
-
-export function useRaspberryLive(onUpdate: (data: HeartbeatPayload) => void) {
+export function useRaspberryLive(
+  uuids: string[],
+  onUpdate: (data: HeartbeatPayload) => void
+) {
   const wsRef = useRef<WebSocket | null>(null);
   const lastSeenRef = useRef<Record<string, number>>({});
+  const subscribedRef = useRef<string[]>([]);   // zapamiętuje co już subskrybowaliśmy
+  const connectedOnce = useRef(false);          // blokuje wielokrotne otwarcie WS
 
+  /* ---------------------------------------------------------
+   * 1️⃣  Otwórz WebSocket tylko raz przy pierwszym renderze
+   * --------------------------------------------------------- */
   useEffect(() => {
+    if (connectedOnce.current) return;
+    connectedOnce.current = true;
+
     let reconnectTimeout: number;
-    let ws: WebSocket;
 
     const connect = () => {
-      ws = new WebSocket(WS_URL);
+      console.log("🔌 Opening WebSocket connection…");
+
+      const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connected for Raspberry heartbeats");
+        console.log("✅ WebSocket connected");
+
+        // wyślij suby po połączeniu
+        if (subscribedRef.current.length > 0) {
+          ws.send(JSON.stringify({
+            action: "subscribe_many",
+            uuids: subscribedRef.current
+          }));
+          console.log("🔄 Re-subscribed to:", subscribedRef.current);
+        }
       };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          console.log("📨 WS message:", msg);
 
           if (msg.type === "raspberry_heartbeat") {
             const data: HeartbeatPayload = msg.data;
 
-            // zapisz timestamp ostatniego kontaktu
+            if (!subscribedRef.current.includes(data.uuid)) {
+              console.log(`⛔ Ignoring heartbeat for non-subscribed UUID: ${data.uuid}`);
+              return;
+            }
+
             lastSeenRef.current[data.uuid] = Date.now();
 
-            console.log("💓 Heartbeat full payload:", data);
-
-            // 🔥 TERAZ WYSYŁAMY CAŁE DANE
             onUpdate(data);
           }
         } catch (err) {
-          console.error("❌ WebSocket parse error (raspberry):", err, event.data);
+          console.error("❌ WS parse error", err);
         }
       };
 
       ws.onclose = () => {
-        console.warn("🔌 WebSocket closed, reconnecting in 5s...");
-        reconnectTimeout = window.setTimeout(connect, 5000);
+        console.warn("🟥 WS closed — reconnect in 3s");
+        reconnectTimeout = window.setTimeout(connect, 3000);
       };
 
       ws.onerror = (err) => {
-        console.error("⚠️ WebSocket error:", err);
+        console.error("🔥 WS error:", err);
         ws.close();
       };
     };
 
     connect();
 
-    // watchdog offline
-    const interval = setInterval(() => {
-      const now = Date.now();
-      for (const [uuid, ts] of Object.entries(lastSeenRef.current)) {
-        if (now - ts > 60000) {
-          console.warn(`🔴 ${uuid} marked offline (no heartbeat >60s)`);
+  const interval = setInterval(() => {
+    const now = Date.now();
 
-          onUpdate({
-            uuid,
-            status: "offline",
-          });
+    for (const [uuid, ts] of Object.entries(lastSeenRef.current)) {
+      if (now - ts > 12_000) {
+        console.warn(`🔴 ${uuid} offline (no heartbeat > 12s)`);
 
-          delete lastSeenRef.current[uuid];
-        }
+        onUpdate({
+          uuid,
+          status: "offline",
+          sent_at: undefined
+        });
+
+        delete lastSeenRef.current[uuid];
       }
-    }, 30000);
+    }
+  }, 3000);
+
 
     return () => {
-      clearTimeout(reconnectTimeout);
+      window.clearTimeout(reconnectTimeout);
       clearInterval(interval);
-      ws.close();
+      wsRef.current?.close();
     };
   }, [onUpdate]);
+
+  /* ---------------------------------------------------------
+   * 2️⃣  Wyślij subskrypcje tylko wtedy gdy zmienią się UUID-y
+   * --------------------------------------------------------- */
+  useEffect(() => {
+    if (!uuids || uuids.length === 0) return;
+
+    const sorted = [...uuids].sort(); // stabilne porównanie
+
+    // jeśli tablica się nie zmieniła → nic nie rób
+    if (JSON.stringify(subscribedRef.current) === JSON.stringify(sorted)) {
+      return;
+    }
+
+    subscribedRef.current = sorted;
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        action: "subscribe_many",
+        uuids: sorted
+      }));
+
+      console.log("📡 Updated WS subscriptions:", sorted);
+    }
+
+  }, [uuids]);
 }

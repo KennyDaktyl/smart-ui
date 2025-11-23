@@ -84,20 +84,46 @@ export function RaspberryCard({ rpi, live, gpioLive, onUpdated }: RaspberryCardP
 
   // --------------------------- ONLINE STATUS ---------------------------
   useEffect(() => {
-    if (!gpioLive && !live) return;
+    setIsOnline(rpi.is_online);
+    if (rpi.last_seen) setLastSeen(rpi.last_seen);
 
-    setIsOnline(true);
-    setLastSeen(new Date().toISOString());
-  }, [gpioLive, live]);
+    // 🔥 Jeśli raspberry zmieniło się na offline → wyłącz wszystkie urządzenia
+    if (!rpi.is_online) {
+      setDevices((prev) =>
+        prev.map((dev) => ({
+          ...dev,
+          online: false,
+          is_on: false,
+          live_pin: null,
+        }))
+      );
+    }
+
+  }, [rpi.is_online, rpi.last_seen]);
 
   // --------------------------- LIVE UPDATE DEVICES ---------------------------
   useEffect(() => {
-    if (!live || live.length === 0) return;
+    // Jeśli RPI offline → ignoruj live
+    if (!isOnline) return;
 
+    // Jeśli live = [] → oznacza RPI online ale brak heartbeat → też reset
+    if (!live || live.length === 0) {
+      setDevices((prev) =>
+        prev.map((dev) => ({
+          ...dev,
+          online: false,
+          is_on: false,
+          live_pin: null,
+        }))
+      );
+      return;
+    }
+
+    // RPI online i są dane — aktualizuj urządzenia
     setDevices((prev) =>
       prev.map((dev) => {
         const l = live.find((d: any) => Number(d.device_id) === dev.id);
-        if (!l) return dev;
+        if (!l) return { ...dev, online: false };
 
         return {
           ...dev,
@@ -107,7 +133,7 @@ export function RaspberryCard({ rpi, live, gpioLive, onUpdated }: RaspberryCardP
         };
       })
     );
-  }, [live]);
+  }, [live, isOnline]);
 
   // --------------------------- ASSIGN INVERTER ---------------------------
   const handleAssign = async (invId: number) => {
@@ -154,11 +180,8 @@ export function RaspberryCard({ rpi, live, gpioLive, onUpdated }: RaspberryCardP
           </Typography>
         )}
 
-        <Typography variant="body2">Firmware: {rpi.firmware_version || "n/d"}</Typography>
+        <Typography variant="body2">Software: {rpi.software_version || "n/d"}</Typography>
         <Typography variant="body2">Maks. urządzeń: {rpi.max_devices ?? "n/d"}</Typography>
-        <Typography variant="body2" gutterBottom>
-          GPIO: {rpi.gpio_pins?.join(", ") || "—"}
-        </Typography>
 
         {/* --- ASSIGN INVERTER --- */}
         <Box mt={2}>
@@ -195,8 +218,10 @@ export function RaspberryCard({ rpi, live, gpioLive, onUpdated }: RaspberryCardP
             {Array.from({ length: rpi.max_devices }).map((_, idx) => (
               <DeviceSlot
                 key={idx}
+                slotIndex={idx + 1}
                 raspberryId={rpi.id}
                 device={devices[idx]}
+                parentOnline={isOnline}
                 onSaved={loadDevices}
               />
             ))}
