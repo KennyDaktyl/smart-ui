@@ -1,3 +1,4 @@
+// src/pages/user/DevicesPage.tsx
 import { useCallback, useEffect, useState } from "react";
 import {
   Box,
@@ -10,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { raspberryApi } from "@/api/raspberryApi";
 import { RaspberryCard } from "@/components/Devices/RaspberryCard";
 import { useRaspberryLive } from "@/hooks/useRaspberryLive"; // 🔹 nowy hook
+import { HeartbeatPayload } from "@/types/heartbeat";
 
 export default function DevicesPage() {
   const { token } = useAuth();
@@ -17,18 +19,22 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const handleHeartbeat = useCallback(
-    ({ uuid, status }: { uuid: string; status: string }) => {
-      setRaspberries((prev) =>
-        prev.map((rpi) =>
-          rpi.uuid === uuid
-            ? { ...rpi, is_online: status === "online", last_seen: new Date().toISOString() }
-            : rpi
-        )
-      );
-    },
-    [] // 👈 stabilna funkcja, nie zmienia się przy każdym renderze
-  );
+  const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
+    setRaspberries(prev =>
+      prev.map(rpi =>
+        rpi.uuid === hb.uuid
+          ? {
+              ...rpi,
+              is_online: hb.status === "online",
+              last_seen: new Date().toISOString(),
+              gpio: hb.gpio,
+              devices_live: hb.devices,
+              free_slots: hb.free_slots,
+            }
+          : rpi
+      )
+    );
+  }, []);
   
   useRaspberryLive(handleHeartbeat);
 
@@ -67,7 +73,11 @@ export default function DevicesPage() {
         {raspberries.length > 0 ? (
           raspberries.map((rpi) => (
             <Grid key={rpi.uuid} size={{ xs: 12, md: 6, lg: 4 }}>
-              <RaspberryCard rpi={rpi} />
+              <RaspberryCard 
+                rpi={rpi} 
+                live={rpi.devices_live}
+                gpioLive={rpi.gpio}
+              />
             </Grid>
           ))
         ) : (

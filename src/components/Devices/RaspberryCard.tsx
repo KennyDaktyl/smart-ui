@@ -1,3 +1,4 @@
+// src/components/Devices/RaspberryCard.tsx
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -14,6 +15,7 @@ import {
   Divider,
   Stack,
 } from "@mui/material";
+
 import CircleIcon from "@mui/icons-material/Circle";
 import { useAuth } from "@/hooks/useAuth";
 import { raspberryApi } from "@/api/raspberryApi";
@@ -23,11 +25,14 @@ import { DeviceSlot } from "./DeviceSlot";
 
 interface RaspberryCardProps {
   rpi: any;
-  onUpdated?: () => void; 
+  live?: any[];
+  gpioLive?: any;
+  onUpdated?: () => void;
 }
 
-export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
+export function RaspberryCard({ rpi, live, gpioLive, onUpdated }: RaspberryCardProps) {
   const { token } = useAuth();
+
   const [availableInverters, setAvailableInverters] = useState<any[]>([]);
   const [selected, setSelected] = useState<number | "">(rpi.inverter_id || "");
   const [loading, setLoading] = useState(false);
@@ -37,7 +42,11 @@ export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
   const [devices, setDevices] = useState<any[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(true);
 
-  // 🔹 Pobranie inwerterów
+  // 👉 lokalne stany zamiast mutować props!!!
+  const [isOnline, setIsOnline] = useState(rpi.is_online);
+  const [lastSeen, setLastSeen] = useState(rpi.last_seen);
+
+  // --------------------------- LOAD INVERTERS ---------------------------
   useEffect(() => {
     const fetchInverters = async () => {
       if (!token) return;
@@ -56,7 +65,7 @@ export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
     fetchInverters();
   }, [token]);
 
-  // 🔹 Pobranie urządzeń Raspberry
+  // --------------------------- LOAD DEVICES ---------------------------
   const loadDevices = async () => {
     if (!token) return;
     try {
@@ -73,7 +82,34 @@ export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
     loadDevices();
   }, [rpi.id, token]);
 
-  // 🔹 Przypisanie inwertera
+  // --------------------------- ONLINE STATUS ---------------------------
+  useEffect(() => {
+    if (!gpioLive && !live) return;
+
+    setIsOnline(true);
+    setLastSeen(new Date().toISOString());
+  }, [gpioLive, live]);
+
+  // --------------------------- LIVE UPDATE DEVICES ---------------------------
+  useEffect(() => {
+    if (!live || live.length === 0) return;
+
+    setDevices((prev) =>
+      prev.map((dev) => {
+        const l = live.find((d: any) => Number(d.device_id) === dev.id);
+        if (!l) return dev;
+
+        return {
+          ...dev,
+          is_on: l.is_on,
+          online: true,
+          live_pin: l.pin,
+        };
+      })
+    );
+  }, [live]);
+
+  // --------------------------- ASSIGN INVERTER ---------------------------
   const handleAssign = async (invId: number) => {
     if (!token) return;
     setLoading(true);
@@ -96,30 +132,35 @@ export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
           {rpi.name}
           <CircleIcon
             sx={{
-              color: rpi.is_online ? "success.main" : "error.main",
+              color: isOnline ? "success.main" : "grey",
               fontSize: 14,
             }}
           />
         </Typography>
+
         <Typography variant="body2" color="text.secondary">
-          {rpi.is_online ? "Online" : "Offline"}
+          {isOnline ? "Online" : "Offline"}
         </Typography>
-        {rpi.last_seen && (
+
+        {lastSeen && (
           <Typography variant="caption" color="text.secondary">
-            ostatni kontakt: {new Date(rpi.last_seen).toLocaleTimeString()}
+            ostatni kontakt: {new Date(lastSeen).toLocaleTimeString()}
           </Typography>
         )}
-        {rpi.description && (<Typography color="text.secondary" gutterBottom>
+
+        {rpi.description && (
+          <Typography color="text.secondary" gutterBottom>
             {rpi.description || "Brak opisu"}
           </Typography>
         )}
+
         <Typography variant="body2">Firmware: {rpi.firmware_version || "n/d"}</Typography>
         <Typography variant="body2">Maks. urządzeń: {rpi.max_devices ?? "n/d"}</Typography>
         <Typography variant="body2" gutterBottom>
           GPIO: {rpi.gpio_pins?.join(", ") || "—"}
         </Typography>
 
-        {/* --- Przypisany inwerter --- */}
+        {/* --- ASSIGN INVERTER --- */}
         <Box mt={2}>
           <FormControl fullWidth size="small">
             <InputLabel>Przypisany inwerter</InputLabel>
@@ -135,17 +176,12 @@ export function RaspberryCard({ rpi, onUpdated }: RaspberryCardProps) {
                 </MenuItem>
               ))}
             </Select>
-            {(loading || fetching) && (
-              <Box textAlign="center" mt={1}>
-                <CircularProgress size={20} />
-              </Box>
-            )}
           </FormControl>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* --- Urządzenia Raspberry --- */}
+        {/* --- DEVICES LIST --- */}
         <Typography variant="subtitle1" gutterBottom>
           Podłączone urządzenia:
         </Typography>

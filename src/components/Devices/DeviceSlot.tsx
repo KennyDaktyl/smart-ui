@@ -1,3 +1,5 @@
+// src/components/Devices/DeviceSlot.tsx
+
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -13,6 +15,7 @@ import {
   Chip,
   CircularProgress,
 } from "@mui/material";
+
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -20,6 +23,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import CircleIcon from "@mui/icons-material/Circle";
+
 import { deviceApi } from "@/api/deviceApi";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -35,8 +39,23 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
   const [editing, setEditing] = useState(!device);
   const [saving, setSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const [manualState, setManualState] = useState(device?.manual_state ?? false);
 
+  const online = device?.online ?? false;
+  const hasLiveState = device?.is_on !== undefined;
+
+  // 🔥 JEDYNY stan, który zmieniamy dynamicznie na live
+  const [manualState, setManualState] = useState(
+    device?.is_on ?? device?.manual_state ?? false
+  );
+
+  // 🔥 Aktualizacja z heartbeat (TYLKO jeśli is_on się zmienia)
+  useEffect(() => {
+    if (device?.is_on !== undefined) {
+      setManualState(device.is_on);
+    }
+  }, [device?.is_on]);
+
+  // 🔥 Formularz zależy tylko od pól, a nie całego obiektu device
   const [form, setForm] = useState({
     name: device?.name || "",
     rated_power_w: device?.rated_power_w || "",
@@ -45,7 +64,6 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     power_threshold_w: device?.power_threshold_w || "",
   });
 
-  // 🔹 Synchronizuj stan formularza z device (np. po zmianie lub re-renderze listy)
   useEffect(() => {
     setForm({
       name: device?.name || "",
@@ -54,10 +72,10 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
       gpio_pin: device?.gpio_pin || "",
       power_threshold_w: device?.power_threshold_w || "",
     });
-    setManualState(device?.manual_state ?? false);
-  }, [device]);
 
-  // 🔹 Reset formularza po zapisie nowego urządzenia
+    // ❗ NIE resetujemy tutaj manualState, bo to powodowało pętlę!
+  }, [device?.name, device?.rated_power_w, device?.mode, device?.gpio_pin, device?.power_threshold_w]);
+
   const resetForm = () => {
     setForm({
       name: "",
@@ -73,18 +91,16 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
 
   const handleSave = async () => {
     if (!token) return;
+
     try {
       setSaving(true);
       if (device) {
         await deviceApi.updateDevice(token, device.id, form);
       } else {
-        await deviceApi.createDevice(token, {
-          ...form,
-          raspberry_id: raspberryId,
-        });
-        resetForm(); // 🔹 wyczyść formularz po dodaniu
+        await deviceApi.createDevice(token, { ...form, raspberry_id: raspberryId });
+        resetForm();
       }
-      onSaved(); // odśwież listę
+      onSaved();
       setEditing(false);
     } catch (err) {
       console.error("❌ Błąd zapisu urządzenia:", err);
@@ -96,6 +112,7 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
   const handleDelete = async () => {
     if (!token || !device) return;
     if (!confirm(`Czy na pewno chcesz usunąć urządzenie "${device.name}"?`)) return;
+
     try {
       setSaving(true);
       await deviceApi.deleteDevice(token, device.id);
@@ -107,19 +124,17 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     }
   };
 
-  // 🔹 Zmiana stanu manualnego (on/off)
   const handleManualToggle = async (checked: boolean) => {
     if (!token || !device) return;
     setIsToggling(true);
 
     try {
       const response = await deviceApi.setManualState(token, device.id, checked);
+
       if (response.status === 200 || response.status === 201) {
         const ackOk = response.data?.ack?.ok ?? true;
         if (ackOk) {
           setManualState(checked);
-        } else {
-          console.warn("⚠️ Raspberry nie potwierdziło wykonania komendy");
         }
       }
     } catch (err) {
@@ -129,7 +144,7 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     }
   };
 
-  // 🔹 Widok pustego slotu (dodawanie)
+  // --- Widok pustego slotu ---
   if (!device && !editing) {
     return (
       <Card
@@ -140,7 +155,6 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
           justifyContent: "center",
           py: 3,
           cursor: "pointer",
-          transition: "0.2s",
           "&:hover": { backgroundColor: "#f9f9f9" },
         }}
         onClick={() => setEditing(true)}
@@ -153,7 +167,7 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     );
   }
 
-  // 🔹 Widok edycji
+  // --- Widok edycji ---
   if (editing) {
     return (
       <Card sx={{ p: 1 }}>
@@ -184,7 +198,7 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
             <TextField select label="Tryb pracy" fullWidth size="small" name="mode" value={form.mode} onChange={handleChange}>
               <MenuItem value="MANUAL">Ręczny</MenuItem>
               <MenuItem value="AUTO_POWER">Auto (moc PV)</MenuItem>
-              <MenuItem value="SCHEDULE">Harmonogram (wkrótce)</MenuItem>
+              <MenuItem value="SCHEDULE">Harmonogram</MenuItem>
             </TextField>
 
             {form.mode === "AUTO_POWER" && (
@@ -196,14 +210,7 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
                 type="number"
                 value={form.power_threshold_w}
                 onChange={handleChange}
-                helperText="Urządzenie włączy się, gdy moc PV przekroczy ten próg"
               />
-            )}
-
-            {form.mode === "SCHEDULE" && (
-              <Typography variant="body2" color="text.secondary">
-                ⚙️ Ustawienia harmonogramu będą dostępne w przyszłej wersji.
-              </Typography>
             )}
           </Stack>
         </CardContent>
@@ -211,18 +218,15 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
     );
   }
 
-  // 🔹 Widok podglądu urządzenia
-  const online = device?.online ?? false;
-  const isOn = form.mode === "MANUAL" ? manualState : device?.is_on ?? false;
-
+  // --- Widok urządzenia ---
   return (
     <Card>
       <CardContent>
+        {/* HEADER */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="subtitle1">{device.name}</Typography>
 
-            {/* 🔹 Status online/offline */}
             <Tooltip title={online ? "Online" : "Offline"}>
               <CircleIcon sx={{ fontSize: 12, color: online ? "green" : "grey" }} />
             </Tooltip>
@@ -242,35 +246,52 @@ export function DeviceSlot({ raspberryId, device, onSaved }: DeviceSlotProps) {
           </Stack>
         </Stack>
 
+        {/* INFO */}
         <Typography variant="body2" color="text.secondary">
           GPIO: {device.gpio_pin ?? "—"} | Moc: {device.rated_power_w ?? "n/d"} W
         </Typography>
 
         <Typography variant="body2" color="text.secondary">
-          Tryb: {device.mode === "MANUAL" ? "Ręczny" : device.mode === "AUTO_POWER" ? "Auto (moc PV)" : "Harmonogram"}
+          Tryb: {device.mode}
         </Typography>
 
-        {/* 🔹 Sekcja stanu urządzenia */}
+        {/* STATE SECTION */}
         <Box mt={1.5} display="flex" alignItems="center" justifyContent="space-between">
-          {device.mode === "MANUAL" ? (
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Typography variant="body2">Sterowanie:</Typography>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={manualState}
-                  onChange={(e) => handleManualToggle(e.target.checked)}
-                  color="primary"
-                  disabled={isToggling}
+          {!online ? (
+            <Chip label="Stan niedostępny" color="default" size="small" />
+
+          ) : device.mode === "MANUAL" ? (
+            !hasLiveState ? (
+              <Chip label="Oczekiwanie na dane..." size="small" />
+            ) : (
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Typography variant="body2">Sterowanie:</Typography>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Switch
+                    checked={manualState}
+                    onChange={(e) => handleManualToggle(e.target.checked)}
+                    color="primary"
+                    disabled={isToggling}
+                  />
+                  {isToggling && (
+                    <CircularProgress size={20} thickness={5} color="primary" />
+                  )}
+                </Stack>
+
+                <Chip
+                  label={manualState ? "Włączony" : "Wyłączony"}
+                  color={manualState ? "success" : "default"}
+                  size="small"
                 />
-                {isToggling && <CircularProgress size={20} thickness={5} color="primary" />}
               </Stack>
-              <Chip label={manualState ? "Włączony" : "Wyłączony"} color={manualState ? "success" : "default"} size="small" />
-            </Stack>
+            )
           ) : (
             <Stack direction="row" spacing={1} alignItems="center">
-              <PowerSettingsNewIcon sx={{ fontSize: 18, color: isOn ? "green" : "grey" }} />
+              <PowerSettingsNewIcon
+                sx={{ fontSize: 18, color: hasLiveState && device.is_on ? "green" : "grey" }}
+              />
               <Typography variant="body2" color="text.secondary">
-                {isOn ? "Włączony" : "Wyłączony"}
+                {hasLiveState ? (device.is_on ? "Włączony" : "Wyłączony") : "—"}
               </Typography>
             </Stack>
           )}
