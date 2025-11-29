@@ -1,2 +1,4 @@
 .env.production
 node_modules/
+.env
+dist/

@@ -1,0 +1,16 @@
+services:
+  frontend:
+    build: .
+    container_name: smart_energy_frontend
+    working_dir: /app
+    command: ["pnpm", "dev", "--port", "5456", "--host"]
+    ports:
+      - "5456:5456"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5456
+    restart: always
