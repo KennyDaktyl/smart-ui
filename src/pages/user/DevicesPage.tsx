@@ -36,22 +36,29 @@ export default function DevicesPage() {
    * 1️⃣ Obsługa heartbeat — tylko statusy live!
    * ----------------------------------------------------- */
   const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.rpi.uuid === hb.uuid
-          ? {
-              ...item,
-              liveInitialized: true,
-              is_online: hb.status === "online",
-              last_seen: hb.sent_at ?? item.last_seen,
-
-              // statusy live urządzeń
-              live: hb.status === "online" ? hb.devices || [] : [],
-            }
-          : item
-      )
-    );
+    console.log("📡 Heartbeat received:", hb);
+  
+    setItems((prev) => {
+      const before = prev.map((i) => i.rpi.uuid);
+      console.log("📋 Existing UUIDs:", before);
+  
+      const updated = prev.map((item) => {
+        if (item.rpi.uuid === hb.uuid) {
+          return {
+            ...item,
+            liveInitialized: true,
+            is_online: hb.status === "online",
+            last_seen: hb.sent_at ?? item.last_seen,
+            live: hb.status === "online" ? hb.devices || [] : [],
+          };
+        }
+        return item;
+      });
+  
+      return updated;
+    });
   }, []);
+  
 
   useRaspberryLive(uuids, handleHeartbeat);
 

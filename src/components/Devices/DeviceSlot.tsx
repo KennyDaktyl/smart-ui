@@ -31,7 +31,8 @@ export function DeviceSlot({
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
 
-  const locked = !online; // jeśli RPi offline → blokuj edycję
+  const locked = !online;
+
 
   /* ------------------------------------------------------------
    * SAVE / DELETE / TOGGLE
@@ -126,10 +127,6 @@ export function DeviceSlot({
       />
     );
   }
-
-  /* ------------------------------------------------------------
-   * 3️⃣ DEVICE VIEW (Z AWSZE WYŚWIETLANY)
-   * ------------------------------------------------------------ */
 
   const statusBlock = liveInitialized ? (
     <DeviceView
