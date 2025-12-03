@@ -7,8 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { raspberryApi } from "@/api/raspberryApi";
 import { deviceApi } from "@/api/deviceApi";
 
-import { useRaspberryLive } from "@/hooks/useRaspberryLive";
 import { HeartbeatPayload } from "@/types/heartbeat";
+import { useRaspberryListLive } from "@/hooks/useRaspberryListLive";
 
 import { RaspberryCard } from "@/components/Devices/RaspberryCard";
 import { DeviceList } from "@/components/Devices/DeviceList";
@@ -29,61 +29,60 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /** wyciągamy tylko uuid dla WebSocket */
-  const uuids = useMemo(() => items.map((i) => i.rpi.uuid), [items]);
+  /* ============================================================
+   * UUIDs do subskrypcji – aktywne dopiero po załadowaniu
+   * ========================================================== */
+  const uuids = useMemo(() => {
+    if (loading) return [];
+    return items.map((i) => i.rpi.uuid);
+  }, [loading, items]);
 
-  /* -----------------------------------------------------
-   * 1️⃣ Obsługa heartbeat — tylko statusy live!
-   * ----------------------------------------------------- */
+  /* ============================================================
+   * Heartbeat handler
+   * ========================================================== */
   const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
-    console.log("📡 Heartbeat received:", hb);
-  
-    setItems((prev) => {
-      const before = prev.map((i) => i.rpi.uuid);
-      console.log("📋 Existing UUIDs:", before);
-  
-      const updated = prev.map((item) => {
-        if (item.rpi.uuid === hb.uuid) {
-          return {
-            ...item,
-            liveInitialized: true,
-            is_online: hb.status === "online",
-            last_seen: hb.sent_at ?? item.last_seen,
-            live: hb.status === "online" ? hb.devices || [] : [],
-          };
-        }
-        return item;
-      });
-  
-      return updated;
-    });
+    console.log("📡 Heartbeat:", hb);
+
+    setItems((prev) =>
+      prev.map((item) =>
+        item.rpi.uuid === hb.uuid
+          ? {
+              ...item,
+              liveInitialized: true,
+              is_online: hb.status === "online",
+              last_seen: hb.sent_at ?? item.last_seen,
+              live: hb.status === "online" ? (hb.devices ?? []) : [],
+            }
+          : item
+      )
+    );
   }, []);
-  
 
-  useRaspberryLive(uuids, handleHeartbeat);
+  /* ============================================================
+   * WS SUBSCRIPTION – tylko gdy mamy poprawne UUID
+   * ========================================================== */
+  useRaspberryListLive(uuids, handleHeartbeat);
 
-  /* -----------------------------------------------------
-   * 2️⃣ Ładowanie Raspberry → a potem urządzeń
-   * ----------------------------------------------------- */
+  /* ============================================================
+   * Load RPI + Devices
+   * ========================================================== */
   const load = async () => {
     if (!token) return;
+
     try {
       const res = await raspberryApi.getMyRaspberries(token);
-
       const raspberries = res.data;
 
-      // równoległe pobrania devices dla każdego rpi
       const deviceRequests = raspberries.map((r: any) =>
         deviceApi.getRaspberryDevices(token, r.id)
       );
-
       const responses = await Promise.all(deviceRequests);
 
       const merged: RaspberryWithDevices[] = raspberries.map(
-        (rpi: any, index: number) => ({
+        (rpi: any, idx: number) => ({
           rpi,
-          devices: responses[index].data,
-          live: [], // heartbeat dopiero przyjdzie
+          devices: responses[idx].data,
+          live: [],
           liveInitialized: false,
           is_online: false,
           last_seen: null,
@@ -103,9 +102,9 @@ export default function DevicesPage() {
     load();
   }, [token]);
 
-  /* -----------------------------------------------------
-   * 3️⃣ EKRAN ŁADOWANIA
-   * ----------------------------------------------------- */
+  /* ============================================================
+   * Loading screen
+   * ========================================================== */
   if (loading)
     return (
       <Box
@@ -118,9 +117,9 @@ export default function DevicesPage() {
       </Box>
     );
 
-  /* -----------------------------------------------------
-   * 4️⃣ RENDER
-   * ----------------------------------------------------- */
+  /* ============================================================
+   * Render
+   * ========================================================== */
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>
@@ -133,7 +132,6 @@ export default function DevicesPage() {
         {items.length > 0 ? (
           items.map((item) => (
             <Grid key={item.rpi.uuid} size={{ xs: 12, md: 6, lg: 4 }}>
-              {/* 👍 RaspberryCard pokazuje tylko info o RPi */}
               <RaspberryCard
                 rpi={item.rpi}
                 isOnline={item.is_online}
@@ -141,12 +139,12 @@ export default function DevicesPage() {
                 liveInitialized={item.liveInitialized}
               />
 
-              {/* 👍 osobna lista urządzeń */}
               <DeviceList
                 devices={item.devices}
                 live={item.live}
                 liveInitialized={item.liveInitialized}
                 raspberryId={item.rpi.id}
+                onRefresh={load}
               />
             </Grid>
           ))

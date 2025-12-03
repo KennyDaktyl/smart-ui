@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Card,
   CardContent,
-  Typography,
   IconButton,
   Stack,
   TextField,
@@ -12,13 +11,8 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 
-interface DeviceFormData {
-  name: string;
-  rated_power_kw: string | number;
-  mode: string;
-  device_number: number;
-  threshold_kw: string | number;
-}
+import { DeviceFormData } from "@/types/device";
+import { DeviceMode } from "@/types/enums";
 
 interface DeviceFormProps {
   initialData: DeviceFormData;
@@ -35,13 +29,9 @@ export function DeviceForm({
   onCancel,
   onSubmit,
 }: DeviceFormProps) {
-  
   const [form, setForm] = useState<DeviceFormData>(initialData);
 
-  const [errors, setErrors] = useState<{ 
-    rated_power_kw: string; 
-    threshold_kw: string; 
-  }>({
+  const [errors, setErrors] = useState<Record<string, string>>({
     rated_power_kw: "",
     threshold_kw: "",
   });
@@ -49,49 +39,61 @@ export function DeviceForm({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    setForm((prev: DeviceFormData) => ({
+    setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value === "" ? "" : value,
     }));
 
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validate = () => {
-    let valid = true;
-    const newErrors = {
+    let isValid = true;
+    const newErrors: Record<string, string> = {
       rated_power_kw: "",
       threshold_kw: "",
     };
 
-    if (!form.rated_power_kw || Number(form.rated_power_kw) <= 0) {
+    if (form.rated_power_kw === "" || Number(form.rated_power_kw) <= 0) {
       newErrors.rated_power_kw = "Pole 'Moc (kW)' jest wymagane.";
-      valid = false;
+      isValid = false;
     }
 
-    if (form.mode === "AUTO_POWER") {
-      if (!form.threshold_kw || Number(form.threshold_kw) <= 0) {
-        newErrors.threshold_kw =
-          "Pole 'Próg mocy PV (kW)' jest wymagane.";
-        valid = false;
+    if (form.mode === DeviceMode.AUTO_POWER) {
+      if (form.threshold_kw === "" || Number(form.threshold_kw) <= 0) {
+        newErrors.threshold_kw = "Pole 'Próg mocy PV (kW)' jest wymagane.";
+        isValid = false;
       }
     }
 
     setErrors(newErrors);
-    return valid;
+    return isValid;
   };
 
-  const handleSave = () => {
-    if (validate()) onSubmit(form);
+  const handleSubmitForm = (e?: React.FormEvent) => {
+    e?.preventDefault();
+
+    if (!validate()) return;
+
+    const normalized: DeviceFormData = {
+      ...form,
+      rated_power_kw:
+        form.rated_power_kw === "" ? 0 : Number(form.rated_power_kw),
+      threshold_kw:
+        form.mode === DeviceMode.AUTO_POWER
+          ? (form.threshold_kw === "" ? "" : Number(form.threshold_kw))
+          : "",
+    };
+
+    onSubmit(normalized);
   };
 
   return (
     <Card sx={{ p: 1, opacity: locked ? 0.5 : 1 }}>
       <CardContent>
-
         <Stack direction="row" justifyContent="space-between">
-          <Stack direction="row">
-            <IconButton onClick={handleSave} disabled={saving || locked}>
+          <Stack direction="row" alignItems="center">
+            <IconButton onClick={handleSubmitForm} disabled={saving || locked}>
               <SaveIcon color="primary" />
             </IconButton>
 
@@ -104,9 +106,9 @@ export function DeviceForm({
         <Stack spacing={2} mt={2}>
           <TextField
             label="Nazwa"
+            name="name"
             fullWidth
             size="small"
-            name="name"
             value={form.name}
             onChange={handleChange}
             disabled={locked}
@@ -114,10 +116,10 @@ export function DeviceForm({
 
           <TextField
             label="Moc (kW)"
-            fullWidth
-            size="small"
             name="rated_power_kw"
             type="number"
+            fullWidth
+            size="small"
             value={form.rated_power_kw}
             onChange={handleChange}
             disabled={locked}
@@ -128,25 +130,25 @@ export function DeviceForm({
           <TextField
             select
             label="Tryb pracy"
+            name="mode"
             fullWidth
             size="small"
-            name="mode"
             value={form.mode}
             onChange={handleChange}
             disabled={locked}
           >
-            <MenuItem value="MANUAL">Ręczny</MenuItem>
-            <MenuItem value="AUTO_POWER">Auto moc PV</MenuItem>
-            <MenuItem value="SCHEDULE">Harmonogram</MenuItem>
+            <MenuItem value={DeviceMode.MANUAL}>Ręczny</MenuItem>
+            <MenuItem value={DeviceMode.AUTO_POWER}>Auto moc PV</MenuItem>
+            <MenuItem value={DeviceMode.SCHEDULE}>Harmonogram</MenuItem>
           </TextField>
 
-          {form.mode === "AUTO_POWER" && (
+          {form.mode === DeviceMode.AUTO_POWER && (
             <TextField
               label="Próg mocy PV (kW)"
-              fullWidth
-              size="small"
               name="threshold_kw"
               type="number"
+              fullWidth
+              size="small"
               value={form.threshold_kw}
               onChange={handleChange}
               disabled={locked}
@@ -157,13 +159,16 @@ export function DeviceForm({
 
           <TextField
             label="Slot"
+            name="device_number"
             fullWidth
             size="small"
-            name="device_number"
             value={form.device_number}
-            InputProps={{ readOnly: true }}
+            slotProps={{
+              input: {
+                readOnly: true,
+              },
+            }}
           />
-
         </Stack>
       </CardContent>
     </Card>

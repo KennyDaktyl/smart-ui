@@ -19,9 +19,12 @@ export default function App() {
     return <div>Ładowanie danych użytkownika...</div>;
   }
 
+  const isPublic = !auth?.token;
+
   return (
     <>
-    <AppHeader />
+      {!isPublic && <AppHeader />}
+
       <Routes>
         {/* publiczne strony */}
         <Route path="/login" element={<LoginPage />} />
@@ -60,6 +63,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/huawei"
           element={
@@ -68,6 +72,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/account"
           element={
@@ -76,7 +81,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* panel admina */}
+
         <Route
           path="/admin"
           element={
@@ -86,7 +91,6 @@ export default function App() {
           }
         />
 
-        {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

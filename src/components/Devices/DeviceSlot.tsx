@@ -1,20 +1,31 @@
 import { useState, useCallback } from "react";
-import { Box, Stack, CircularProgress, Typography } from "@mui/material";
+import {
+  Paper,
+  Stack,
+  Typography,
+  IconButton,
+  CircularProgress,
+  Switch,
+} from "@mui/material";
+
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 
 import { deviceApi } from "@/api/deviceApi";
 import { useAuth } from "@/hooks/useAuth";
 
 import { EmptySlot } from "./EmptySlot";
 import { DeviceForm } from "./DeviceForm";
-import { DeviceView } from "./DeviceView";
 
 interface DeviceSlotProps {
   raspberryId: number;
   device?: any;
   slotIndex: number;
-  online: boolean;        // status z heartbeat
-  isOn: boolean;          // stan ON/OFF z heartbeat
+  online: boolean;
+  isOn: boolean;
   liveInitialized: boolean;
+  onRefresh: () => void;
 }
 
 export function DeviceSlot({
@@ -24,19 +35,20 @@ export function DeviceSlot({
   online,
   isOn,
   liveInitialized,
+  onRefresh,
 }: DeviceSlotProps) {
   const { token } = useAuth();
 
-  const [editing, setEditing] = useState(!device);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [localIsOn, setLocalIsOn] = useState<boolean | null>(null);
 
-  const locked = !online;
+  const locked = false;
 
-
-  /* ------------------------------------------------------------
-   * SAVE / DELETE / TOGGLE
-   * ------------------------------------------------------------ */
+  /* ----------------------------------------------------------------------------
+   * HELPERS & ACTION HANDLERS
+   * --------------------------------------------------------------------------*/
 
   const buildPayload = (form: any) => ({
     name: form.name,
@@ -50,36 +62,37 @@ export function DeviceSlot({
   const handleSave = useCallback(
     async (form: any) => {
       if (!token) return;
-
       setSaving(true);
-      const payload = buildPayload(form);
 
       try {
+        const payload = buildPayload(form);
+
         if (device) {
           await deviceApi.updateDevice(token, device.id, payload);
         } else {
           await deviceApi.createDevice(token, payload);
         }
-        window.location.reload();
+
+        onRefresh();
+        setEditing(false);
       } catch (err) {
         console.error("Failed to save device:", err);
       } finally {
         setSaving(false);
       }
     },
-    [token, device, raspberryId]
+    [token, device, raspberryId, onRefresh]
   );
 
   const handleDelete = async () => {
     if (!token || !device) return;
 
-    if (!confirm(`Czy na pewno chcesz usunąć urządzenie "${device.name}"?`))
-      return;
+    if (!confirm(`Czy na pewno chcesz usunąć urządzenie "${device.name}"?`)) return;
 
     setSaving(true);
     try {
       await deviceApi.deleteDevice(token, device.id);
-      window.location.reload();
+      onRefresh();
     } catch (err) {
       console.error("Failed to delete device:", err);
     } finally {
@@ -91,8 +104,14 @@ export function DeviceSlot({
     if (!token || !device) return;
 
     setToggling(true);
+
     try {
       await deviceApi.setManualState(token, device.id, checked);
+
+      if (device.mode === "MANUAL") {
+        setLocalIsOn(checked); // NATYCHMIASTOWY UI UPDATE
+      }
+
     } catch (err) {
       console.error("Failed to toggle device:", err);
     } finally {
@@ -100,24 +119,22 @@ export function DeviceSlot({
     }
   };
 
-  /* ------------------------------------------------------------
-   * 1️⃣ PUSTY SLOT
-   * ------------------------------------------------------------ */
+  /* ----------------------------------------------------------------------------
+   * EARLY RETURNS
+   * --------------------------------------------------------------------------*/
+
   if (!device && !editing) {
     return <EmptySlot slotIndex={slotIndex} onAdd={() => setEditing(true)} />;
   }
 
-  /* ------------------------------------------------------------
-   * 2️⃣ FORMULARZ EDYCJI
-   * ------------------------------------------------------------ */
   if (editing) {
     return (
       <DeviceForm
         initialData={{
-          name: device?.name || "",
-          rated_power_kw: device?.rated_power_kw || "",
-          mode: device?.mode || "MANUAL",
-          threshold_kw: device?.threshold_kw || "",
+          name: device?.name ?? "",
+          rated_power_kw: device?.rated_power_kw ?? "",
+          mode: device?.mode ?? "MANUAL",
+          threshold_kw: device?.threshold_kw ?? "",
           device_number: slotIndex,
         }}
         saving={saving}
@@ -128,32 +145,58 @@ export function DeviceSlot({
     );
   }
 
-  const statusBlock = liveInitialized ? (
-    <DeviceView
-      device={device}
-      online={online}
-      isOn={isOn}
-      slotIndex={slotIndex}
-      toggling={toggling}
-      onEdit={() => setEditing(true)}
-      onDelete={handleDelete}
-      onToggle={handleToggle}
-      locked={locked}
-    />
-  ) : (
-    // 🔥 UI statyczne + spinner statusu
-    <Box
+  /* ----------------------------------------------------------------------------
+   * NOW SAFE → DEVICE EXISTS BELOW THIS LINE  
+   * --------------------------------------------------------------------------*/
+
+  const requiresHeartbeat = device.mode !== "MANUAL";
+
+  const waitingForState = !liveInitialized;
+
+  const effectiveOnline = liveInitialized ? online : false;
+
+  const effectiveIsOn = requiresHeartbeat
+    ? (liveInitialized ? isOn : false)
+    : (localIsOn !== null ? localIsOn : (liveInitialized ? isOn : false));
+
+  /* ----------------------------------------------------------------------------
+   * VIEW MODE
+   * --------------------------------------------------------------------------*/
+
+  return (
+    <Paper
+      elevation={3}
       sx={{
         p: 2,
         borderRadius: 2,
-        border: "1px solid #ddd",
-        bgcolor: "#fafafa",
+        border: "1px solid #e0e0e0",
       }}
     >
-      <Typography fontWeight={600}>{device.name}</Typography>
-      <Typography variant="body2">Slot: {slotIndex}</Typography>
-      <Typography variant="body2">Moc: {device.rated_power_kw} kW</Typography>
-      <Typography variant="body2">Tryb: {device.mode}</Typography>
+      {/* HEADER */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" fontWeight={600}>
+          {device.name}
+        </Typography>
+
+        <Stack direction="row" spacing={1}>
+          <IconButton onClick={() => setEditing(true)} size="small">
+            <EditIcon fontSize="small" />
+          </IconButton>
+
+          <IconButton onClick={handleDelete} size="small" color="error">
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Stack>
+
+      {/* INFO */}
+      <Typography variant="body2" color="text.secondary">
+        Slot: {slotIndex}
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary">
+        Moc: {device.rated_power_kw} kW
+      </Typography>
 
       {device.mode === "AUTO_POWER" && (
         <Typography variant="body2" sx={{ mt: 1 }}>
@@ -161,14 +204,54 @@ export function DeviceSlot({
         </Typography>
       )}
 
-      <Stack direction="row" spacing={1} alignItems="center" mt={2}>
-        <CircularProgress size={16} />
-        <Typography variant="body2" color="text.secondary">
-          Oczekiwanie na status urządzenia…
-        </Typography>
-      </Stack>
-    </Box>
-  );
+      {/* STATUS + TOGGLE */}
+      <Stack direction="row" spacing={2} alignItems="center" mt={2}>
+        {waitingForState ? (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <CircularProgress size={16} />
+            <Typography variant="body2" color="text.secondary">
+              Oczekiwanie na status…
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            color={effectiveOnline ? "green" : "red"}
+          >
+            {effectiveOnline ? "Online" : "Offline"}
+          </Typography>
+        )}
 
-  return statusBlock;
+        {/* TRYB AUTO → BRAK SWITCHA, TYLKO STAN INFORMACYJNY */}
+        {device.mode !== "MANUAL" ? (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <PowerSettingsNewIcon
+              fontSize="small"
+              color={effectiveIsOn ? "success" : "disabled"}
+            />
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                px: 1.2,
+                py: 0.5,
+                bgcolor: effectiveIsOn ? "#c8f7c5" : "#eee",
+                borderRadius: 2,
+              }}
+            >
+              ⚡ {effectiveIsOn ? "Włączony" : "Wyłączony"}
+            </Typography>
+          </Stack>
+        ) : (
+          <Switch
+            checked={effectiveIsOn}
+            disabled={!effectiveOnline || toggling}
+            onChange={(e) => handleToggle(e.target.checked)}
+          />
+        )}
+        </Stack>
+      </Paper>
+    );
 }

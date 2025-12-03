@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { Stack } from "@mui/material";
 import { DeviceSlot } from "./DeviceSlot";
 
 interface DeviceListProps {
@@ -6,6 +6,7 @@ interface DeviceListProps {
   live: any[];             // live z heartbeata
   liveInitialized: boolean;
   raspberryId: number;
+  onRefresh: () => void;
 }
 
 export function DeviceList({
@@ -13,58 +14,60 @@ export function DeviceList({
   live,
   liveInitialized,
   raspberryId,
+  onRefresh
 }: DeviceListProps) {
 
-  /* ------------------------------------------------------------
-   * 1️⃣ Spinner do momentu pierwszego heartbeat
-   * ------------------------------------------------------------ */
-  if (!liveInitialized) {
-    return (
-      <Box mt={2} textAlign="center">
-        <CircularProgress size={22} />
-        <Typography variant="caption" color="text.secondary">
-          Oczekiwanie na dane online urządzeń...
-        </Typography>
-      </Box>
-    );
-  }
+   console.log("📦 DEVICES (from API):", devices);
+  console.log("⚡ LIVE DEVICES (from heartbeat):", live);
+  console.log("📡 liveInitialized:", liveInitialized);
 
   /* ------------------------------------------------------------
-   * 2️⃣ Merging danych statycznych i live
+   * MERGE: dane API + live heartbeat
    * ------------------------------------------------------------ */
   const mergedDevices = devices.map((dev) => {
-    const liveData = live.find((l) => Number(l.device_id) === dev.id);
+    const liveData =
+  live.find(l => Number(l.device_id) === Number(dev.id)) ||
+  null;
 
     return {
       ...dev,
-      online: !!liveData,
-      is_on: liveData?.is_on ?? false,
-      live_pin: liveData?.pin ?? null,
+      online: liveInitialized ? !!liveData : false,
+      is_on: liveInitialized ? (liveData?.is_on ?? false) : false,
+      waitingForState: !liveInitialized,  // ⭐ nowy sygnał
     };
   });
 
-  const maxSlots = devices.length > 0 
-    ? Math.max(...devices.map((d) => d.device_number)) 
-    : 1;
+  /* ------------------------------------------------------------
+   * Liczba slotów = max device_number
+   * ------------------------------------------------------------ */
+  const maxSlots =
+    devices.length > 0
+      ? Math.max(...devices.map((d) => d.device_number))
+      : 1;
 
   /* ------------------------------------------------------------
-   * 3️⃣ RENDER
+   * RENDER SLOTÓW
    * ------------------------------------------------------------ */
+
   return (
     <Stack spacing={2} mt={2}>
-      {Array.from({ length: maxSlots }).map((_, index) => {
-        const slotNumber = index + 1;
-        const device = mergedDevices.find((d) => d.device_number === slotNumber);
+      {Array.from({ length: maxSlots }).map((_, idx) => {
+        const slotNumber = idx + 1;
+
+        const dev = mergedDevices.find(
+          (d) => d.device_number === slotNumber
+        );
 
         return (
           <DeviceSlot
             key={slotNumber}
             raspberryId={raspberryId}
-            device={device}
+            device={dev}
             slotIndex={slotNumber}
-            online={device?.online ?? false}
-            isOn={device?.is_on ?? false}
+            online={dev?.online ?? false}
+            isOn={dev?.is_on ?? false}
             liveInitialized={liveInitialized}
+            onRefresh={onRefresh}              // ⭐ NAJWAŻNIEJSZE
           />
         );
       })}
