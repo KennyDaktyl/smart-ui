@@ -1,4 +1,3 @@
-// src/components/Devices/RaspberryCard.tsx
 import {
   Box,
   Typography,
@@ -16,7 +15,7 @@ import CircleIcon from "@mui/icons-material/Circle";
 import MemoryIcon from "@mui/icons-material/Memory";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { raspberryApi } from "@/api/raspberryApi";
 import { inverterApi } from "@/api/inverterApi";
@@ -48,9 +47,12 @@ export function RaspberryCard({
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const [powerError, setPowerError] = useState<string | null>(null);
 
-  /** 🌐 Flagi: czy dostaliśmy WS update? czy dane REST są przeterminowane? */
-  const [wsArrived, setWsArrived] = useState(false);
-  const [isStale, setIsStale] = useState(false);
+  /** ⭐ WATCHDOG 180 SEKUND */
+  const [countdown, setCountdown] = useState(180);
+  const [hasWs, setHasWs] = useState(false); // czy WS już przyszło?
+  const [stale, setStale] = useState(false);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const assignedInverter = availableInverters.find(
     (i) => i.id === rpi.inverter_id
@@ -59,69 +61,83 @@ export function RaspberryCard({
   const serial = assignedInverter?.serial_number;
 
   /** ----------------------------------------------------------
-   * 1️⃣ WebSocket subskrypcja — jeśli przyjdzie update → nie jesteśmy stale
+   * 1️⃣ Start 180-sekundowego licznika od razu po wejściu
+   * --------------------------------------------------------*/
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setCountdown((cur) => {
+        if (cur <= 1) {
+          // zero → dane przeterminowane
+          if (!hasWs) {
+            // WS JESZCZE NIE PRZYSZEDŁ
+            return 0;
+          }
+
+          // WS przyszło kiedyś, ale kolejny update nie dotarł
+          setStale(true);
+          return 0;
+        }
+        return cur - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [hasWs]);
+
+  /** ----------------------------------------------------------
+   * 2️⃣ WebSocket update → reset licznika i oznaczenie, że WS działa
    * --------------------------------------------------------*/
   useInverterLive(serial, (data) => {
-    setWsArrived(true); // WS działa → nawet jeśli moc = 0, dane są aktualne
-    console.log("📶 Inverter live data:", data);
+    setHasWs(true);
+    setStale(false);
+    setCountdown(180); // restart watchdog’a
+
     if (data.status === "failed") {
       setPower(null);
       setPowerError(data.error_message || "Power unavailable");
-    } else {
-      setPower(data.active_power);
-      setPowerError(null);
+      return;
     }
 
-    if (data.timestamp) {
-      setTimestamp(data.timestamp);
-      setIsStale(false); // mamy świeżą dane z WS
-    }
+    setPower(data.active_power);
+    setPowerError(null);
+
+    if (data.timestamp) setTimestamp(data.timestamp);
   });
 
   /** ----------------------------------------------------------
-   * 2️⃣ Pobierz stan inicjalny z REST
+   * 3️⃣ Pierwszy REST load (tylko po to, by czymś wypełnić ekran)
    * --------------------------------------------------------*/
   useEffect(() => {
-    const loadInitialPower = async () => {
+    const loadInitial = async () => {
       if (!token || !assignedInverter) return;
 
       try {
         const res = await inverterApi.getDeviceProduction(token, assignedInverter.id);
-
-        const restPower = res.data?.active_power ?? null;
-        const restTimestamp = res.data?.timestamp ?? null;
-
-        setPower(restPower);
-        setTimestamp(restTimestamp);
-
-        // sprawdzamy świeżość danych
-        if (restTimestamp) {
-          const ageSec =
-            (Date.now() - new Date(restTimestamp).getTime()) / 1000;
-
-          if (ageSec > 180) {
-            // starsze niż 3 minuty
-            setIsStale(true);
-          }
-        }
+        setPower(res.data?.active_power ?? null);
+        setTimestamp(res.data?.timestamp ?? null);
       } catch {
         setPowerError("Power unavailable");
       }
     };
 
-    loadInitialPower();
+    loadInitial();
   }, [token, assignedInverter?.id]);
 
   /** ----------------------------------------------------------
-   * 3️⃣ Jeśli WS zacznie działać → wyłącz warning stale
+   * Format timestamp
    * --------------------------------------------------------*/
-  useEffect(() => {
-    if (wsArrived) setIsStale(false);
-  }, [wsArrived]);
+  const formattedDateTime =
+    timestamp &&
+    new Date(timestamp).toLocaleString("pl-PL", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+    });
 
-  /** ----------------------------------------------------------
-   * 4️⃣ Przypisywanie inwertera
-   * --------------------------------------------------------*/
   const handleAssign = async (invId: number) => {
     if (!token) return;
 
@@ -140,20 +156,8 @@ export function RaspberryCard({
   };
 
   /** ----------------------------------------------------------
-   * Format czasu
+   * RENDER
    * --------------------------------------------------------*/
-  const formattedDateTime =
-    timestamp &&
-    new Date(timestamp).toLocaleString("pl-PL", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-
   return (
     <Box sx={{ p: 2, borderRadius: 2, border: "1px solid #ddd" }}>
       {/* Header */}
@@ -206,29 +210,38 @@ export function RaspberryCard({
         </Stack>
       </Stack>
 
-      {/* ⚡ POWER */}
+      {/* POWER */}
       {serial && (
         <Box sx={{ mt: 2 }}>
           {powerError ? (
             <Alert severity="error" sx={{ p: 1 }}>
               ❌ {powerError}
             </Alert>
-          ) : isStale ? (
-            <Alert severity="warning" sx={{ p: 1 }}>
-              ⚠️ Dane o mocy mogą być nieaktualne (ostatnia aktualizacja {formattedDateTime})
+          ) : !hasWs ? (
+            <Alert severity="info" sx={{ p: 1, display: "flex", gap: 1 }}>
+              <CircularProgress size={16} />
+              Czekam na pierwsze dane… ({countdown}s)
             </Alert>
-          ) : power !== null ? (
-            <Alert severity="success" sx={{ p: 1 }}>
-              ⚡ Moc inwertera: <strong>{power.toFixed(2)} W</strong>
+          ) : stale ? (
+            <Alert severity="warning" sx={{ p: 1 }}>
+              ⚠️ Dane o mocy są nieaktualne!
               {formattedDateTime && (
                 <Typography variant="body2" color="text.secondary">
-                  🕒 {formattedDateTime}
+                  ostatnia wartość: {formattedDateTime}
                 </Typography>
               )}
             </Alert>
           ) : (
-            <Alert severity="info" sx={{ p: 1 }}>
-              🔌 Oczekiwanie na dane…
+            <Alert severity="success" sx={{ p: 1 }}>
+              ⚡ Moc inwertera: <strong>{power?.toFixed(2)} W</strong>
+              <Typography variant="body2" color="text.secondary">
+                Kolejna oczekiwana aktualizacja za {countdown}s
+              </Typography>
+              {formattedDateTime && (
+                <Typography variant="body2" color="text.secondary">
+                  Ostatnia aktualizacja: {formattedDateTime}
+                </Typography>
+              )}
             </Alert>
           )}
         </Box>
