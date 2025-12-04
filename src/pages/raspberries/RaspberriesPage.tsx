@@ -1,16 +1,15 @@
-// src/pages/DevicesPage.tsx
+// src/pages/RaspberriesPage.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Typography, Alert, CircularProgress } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 
 import { useAuth } from "@/hooks/useAuth";
-import { raspberryApi } from "@/api/raspberryApi";
-import { deviceApi } from "@/api/deviceApi";
+import { userApi } from "@/api/userApi";
 
 import { HeartbeatPayload } from "@/types/heartbeat";
 import { useRaspberryListLive } from "@/hooks/useRaspberryListLive";
 
-import { RaspberryCard } from "@/components/Devices/RaspberryCard";
+import { RaspberryCard } from "@/components/Raspberries/RaspberryCard";
 import { DeviceList } from "@/components/Devices/DeviceList";
 
 interface RaspberryWithDevices {
@@ -22,15 +21,16 @@ interface RaspberryWithDevices {
   last_seen?: string | null;
 }
 
-export default function DevicesPage() {
+export default function RaspberriesPage() {
   const { token } = useAuth();
 
   const [items, setItems] = useState<RaspberryWithDevices[]>([]);
+  const [availableInverters, setAvailableInverters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   /* ============================================================
-   * UUIDs do subskrypcji – aktywne dopiero po załadowaniu
+   * UUIDs do subskrypcji WS
    * ========================================================== */
   const uuids = useMemo(() => {
     if (loading) return [];
@@ -51,7 +51,7 @@ export default function DevicesPage() {
               liveInitialized: true,
               is_online: hb.status === "online",
               last_seen: hb.sent_at ?? item.last_seen,
-              live: hb.status === "online" ? (hb.devices ?? []) : [],
+              live: hb.status === "online" ? hb.devices ?? [] : [],
             }
           : item
       )
@@ -59,35 +59,50 @@ export default function DevicesPage() {
   }, []);
 
   /* ============================================================
-   * WS SUBSCRIPTION – tylko gdy mamy poprawne UUID
+   * Subskrypcja WebSocketów
    * ========================================================== */
   useRaspberryListLive(uuids, handleHeartbeat);
 
   /* ============================================================
-   * Load RPI + Devices
+   * Ładowanie instalacji → inwertery → raspberries → devices
    * ========================================================== */
   const load = async () => {
     if (!token) return;
 
     try {
-      const res = await raspberryApi.getMyRaspberries(token);
-      const raspberries = res.data;
+      const res = await userApi.getUserInstallations(token);
+      const installations = res.data.installations;
 
-      const deviceRequests = raspberries.map((r: any) =>
-        deviceApi.getRaspberryDevices(token, r.id)
-      );
-      const responses = await Promise.all(deviceRequests);
+      // ============================================
+      // 1️⃣ Zbieramy inwertery (raz dla wszystkich Raspberry)
+      // ============================================
+      const invs = installations.flatMap((i: any) => i.inverters);
+      setAvailableInverters(invs);
 
-      const merged: RaspberryWithDevices[] = raspberries.map(
-        (rpi: any, idx: number) => ({
-          rpi,
-          devices: responses[idx].data,
-          live: [],
-          liveInitialized: false,
-          is_online: false,
-          last_seen: null,
-        })
+      // ============================================
+      // 2️⃣ Flatten: installation → inverter → raspberry
+      // ============================================
+      const raspberriesFlat = installations.flatMap((inst: any) =>
+        inst.inverters.flatMap((inv: any) =>
+          (inv.raspberries ?? []).map((rpi: any) => ({
+            ...rpi,
+            inverter: inv,
+            installation: inst,
+          }))
+        )
       );
+
+      // ============================================
+      // 3️⃣ Przygotowanie struktury do UI
+      // ============================================
+      const merged: RaspberryWithDevices[] = raspberriesFlat.map((rpi: any) => ({
+        rpi,
+        devices: rpi.devices || [],
+        live: [],
+        liveInitialized: false,
+        is_online: false,
+        last_seen: null,
+      }));
 
       setItems(merged);
     } catch (err) {
@@ -107,12 +122,7 @@ export default function DevicesPage() {
    * ========================================================== */
   if (loading)
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height="80vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
         <CircularProgress />
       </Box>
     );
@@ -137,6 +147,7 @@ export default function DevicesPage() {
                 isOnline={item.is_online}
                 lastSeen={item.last_seen}
                 liveInitialized={item.liveInitialized}
+                availableInverters={availableInverters}
               />
 
               <DeviceList

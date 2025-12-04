@@ -31,7 +31,7 @@ export default function AppHeader() {
   const menuItems = token
     ? [
         { label: "Moje instalacje", path: "/dashboard" },
-        { label: "Moje urządzenia", path: "/devices" },
+        { label: "Moje urządzenia", path: "/raspberries" },
         { label: "API Huawei", path: "/huawei" },
         { label: "Moje konto", path: "/account" },
         { label: "Wyloguj", action: handleLogout },

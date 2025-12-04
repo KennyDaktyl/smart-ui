@@ -13,8 +13,7 @@ export function useInverterLive(serial: string, onUpdate: (data: any) => void) {
     wsManager.subscribeInverter(serial, handler);
 
     return () => {
-      wsManager.unsubscribeInverter(serial);
+      wsManager.unsubscribeInverter(serial, handler);
     };
-
   }, [serial]);
 }

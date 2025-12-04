@@ -1,24 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
-import { HeartbeatPayload } from "@/types/heartbeat";
 
 export function useRaspberryListLive(
   uuids: string[],
-  onUpdate: (hb: HeartbeatPayload) => void
+  onUpdate: (data: any) => void
 ) {
+  const cbRef = useRef(onUpdate);
+  cbRef.current = onUpdate;
+
   useEffect(() => {
-    // Brak urządzeń – nic nie subskrybujemy
     if (!uuids || uuids.length === 0) return;
 
-    // Subskrypcja dla każdego uuid
-    uuids.forEach((uuid) => {
-      wsManager.subscribeRaspberry(uuid, onUpdate);
-    });
+    const handler = (hb: any) => cbRef.current(hb);
+
+    uuids.forEach((id) => wsManager.subscribeRaspberry(id, handler));
 
     return () => {
-      uuids.forEach((uuid) => {
-        wsManager.unsubscribeRaspberry(uuid);
-      });
+      uuids.forEach((id) => wsManager.unsubscribeRaspberry(id, handler));
     };
-  }, [JSON.stringify(uuids), onUpdate]);
+  }, [uuids]);
 }

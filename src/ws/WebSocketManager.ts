@@ -1,5 +1,3 @@
-// src/ws/WebSocketManager.ts
-
 type RaspberryCallback = (data: any) => void;
 type InverterCallback = (data: any) => void;
 
@@ -11,12 +9,11 @@ class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectTimeout: number | null = null;
 
-  private raspberrySubs = new Map<string, RaspberryCallback>();
-  private inverterSubs = new Map<string, InverterCallback>();
+  private raspberrySubs = new Map<string, Set<RaspberryCallback>>();
+  private inverterSubs = new Map<string, Set<InverterCallback>>();
 
   private isConnected = false;
 
-  // ⭐ kolejka wiadomości które mają zostać wysłane po otwarciu
   private pendingMessages: any[] = [];
 
   private constructor() {
@@ -31,18 +28,12 @@ class WebSocketManager {
   }
 
   private connect() {
-    console.log("🌐 [WSManager] Attempting connection:", WS_URL);
-
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
-      console.log("🟢 [WSManager] WS OPEN");
-
       this.isConnected = true;
 
-      // send queue
       for (const msg of this.pendingMessages) {
-        console.log("➡️ Sending queued:", msg);
         this.ws?.send(JSON.stringify(msg));
       }
       this.pendingMessages = [];
@@ -50,16 +41,10 @@ class WebSocketManager {
       this.resubscribeAll();
     };
 
-    this.ws.onerror = (err) => {
-      console.error("🔥 [WSManager] WebSocket ERROR:", err);
-    };
-
-    this.ws.onclose = (ev) => {
-      console.warn("🔴 [WSManager] WS CLOSED", ev.code, ev.reason);
+    this.ws.onclose = () => {
       this.isConnected = false;
 
       this.reconnectTimeout = window.setTimeout(() => {
-        console.log("♻️ Reconnecting...");
         this.connect();
       }, 3000);
     };
@@ -69,53 +54,46 @@ class WebSocketManager {
     };
   }
 
-
   private handleMessage(event: MessageEvent) {
-
     let msg: any;
     try {
       msg = JSON.parse(event.data);
     } catch {
-      console.error("❌ WS parse error");
       return;
     }
 
-    // -----------------------
-    // 1️⃣ RASPBERRY HEARTBEAT
-    // -----------------------
+    // Raspberry heartbeat
     if (msg.type === "raspberry_heartbeat") {
       const hb = msg.data;
-      const cb = this.raspberrySubs.get(hb.uuid);
-      if (cb) cb(hb);
+      const set = this.raspberrySubs.get(hb.uuid);
+      if (set) set.forEach((cb) => cb(hb));
       return;
     }
 
-    // -----------------------
-    // 2️⃣ INVERTER UPDATE (brak msg.type!)
-    // -----------------------
+    // Inverter update
     if (msg.serial_number && msg.active_power !== undefined) {
-      const cb = this.inverterSubs.get(msg.serial_number);
-      if (cb) cb(msg);
+      const set = this.inverterSubs.get(msg.serial_number);
+      if (set) set.forEach((cb) => cb(msg));
       return;
     }
-
-    console.warn("⚠️ Unknown WS message:", msg);
   }
 
   private send(data: any) {
     if (this.ws && this.isConnected) {
       this.ws.send(JSON.stringify(data));
     } else {
-      console.log("⏳ WS not ready → queue", data);
       this.pendingMessages.push(data);
     }
   }
 
   // ============================================================
-  // RASPBERRY SUBSCRIPTIONS
+  // Raspberry subscriptions
   // ============================================================
   public subscribeRaspberry(uuid: string, cb: RaspberryCallback) {
-    this.raspberrySubs.set(uuid, cb);
+    if (!this.raspberrySubs.has(uuid)) {
+      this.raspberrySubs.set(uuid, new Set());
+    }
+    this.raspberrySubs.get(uuid)!.add(cb);
 
     this.send({
       action: "subscribe_many",
@@ -123,8 +101,15 @@ class WebSocketManager {
     });
   }
 
-  public unsubscribeRaspberry(uuid: string) {
-    this.raspberrySubs.delete(uuid);
+  public unsubscribeRaspberry(uuid: string, cb: RaspberryCallback) {
+    const set = this.raspberrySubs.get(uuid);
+    if (!set) return;
+
+    set.delete(cb);
+
+    if (set.size === 0) {
+      this.raspberrySubs.delete(uuid);
+    }
 
     this.send({
       action: "subscribe_many",
@@ -133,10 +118,14 @@ class WebSocketManager {
   }
 
   // ============================================================
-  // INVERTER SUBSCRIPTIONS
+  // Inverter subscriptions — FIXED
   // ============================================================
   public subscribeInverter(serial: string, cb: InverterCallback) {
-    this.inverterSubs.set(serial, cb);
+    if (!this.inverterSubs.has(serial)) {
+      this.inverterSubs.set(serial, new Set());
+    }
+
+    this.inverterSubs.get(serial)!.add(cb);
 
     this.send({
       action: "subscribe_inverter",
@@ -144,30 +133,34 @@ class WebSocketManager {
     });
   }
 
-  public unsubscribeInverter(serial: string) {
-    this.inverterSubs.delete(serial);
+  public unsubscribeInverter(serial: string, cb: InverterCallback) {
+    const set = this.inverterSubs.get(serial);
+    if (!set) return;
 
-    this.send({
-      action: "unsubscribe_inverter",
-      serial
-    });
-  }
+    set.delete(cb);
 
-  // ============================================================
-  // RESUBSCRIBE AFTER RECONNECT
-  // ============================================================
-  private resubscribeAll() {
-    if (this.raspberrySubs.size > 0) {
+    if (set.size === 0) {
+      this.inverterSubs.delete(serial);
+
       this.send({
-        action: "subscribe_many",
-        uuids: Array.from(this.raspberrySubs.keys()),
+        action: "unsubscribe_inverter",
+        serial
       });
     }
+  }
 
+  private resubscribeAll() {
+    // raspberries
+    this.send({
+      action: "subscribe_many",
+      uuids: Array.from(this.raspberrySubs.keys()),
+    });
+
+    // inverters
     for (const serial of this.inverterSubs.keys()) {
       this.send({
         action: "subscribe_inverter",
-        serial,
+        serial
       });
     }
   }

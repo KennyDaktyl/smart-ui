@@ -5,12 +5,12 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import MyInstallationsPage from "./pages/user/MyInstallationsPage";
+import MyInstallationsPage from "./pages/inverters/Inverters";
 import UsersListPage from "./pages/admin/UsersListPage";
 import AppHeader from "./components/Layout/AppHeader";
-import DevicesPage from "./pages/user/DevicesPage";
 import HuaweiPage from "./pages/user/HuaweiPage";
 import AccountPage from "./pages/user/AccountPage";
+import RaspberriesPage from "./pages/raspberries/RaspberriesPage";
 
 export default function App() {
   const auth = useContext(AuthContext);
@@ -26,17 +26,15 @@ export default function App() {
       {!isPublic && <AppHeader />}
 
       <Routes>
-        {/* publiczne strony */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* przekierowanie główne */}
         <Route
           path="/"
           element={
             auth?.token ? (
               <Navigate
-                to={auth?.user?.role === "ADMIN" ? "/admin" : "/dashboard"}
+                to={auth?.user?.role === "admin" ? "/admin" : "/dashboard"}
                 replace
               />
             ) : (
@@ -56,10 +54,10 @@ export default function App() {
         />
 
         <Route
-          path="/devices"
+          path="/raspberries"
           element={
             <ProtectedRoute>
-              <DevicesPage />
+              <RaspberriesPage />
             </ProtectedRoute>
           }
         />

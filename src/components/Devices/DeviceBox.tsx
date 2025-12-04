@@ -1,6 +1,15 @@
-import { Box, Stack, Typography, CircularProgress, Switch, IconButton } from "@mui/material";
+import {
+  Box,
+  Stack,
+  Typography,
+  CircularProgress,
+  Switch,
+  IconButton,
+} from "@mui/material";
+
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 
 interface DeviceBoxProps {
   device: any;
@@ -9,9 +18,11 @@ interface DeviceBoxProps {
   waitingForState: boolean;
   slotIndex: number;
   toggling: boolean;
+
   onEdit: () => void;
   onDelete: () => void;
   onToggle: (checked: boolean) => void;
+
   locked: boolean;
 }
 
@@ -27,6 +38,7 @@ export function DeviceBox({
   onToggle,
   locked,
 }: DeviceBoxProps) {
+  const autoMode = device.mode !== "MANUAL";
 
   return (
     <Box
@@ -37,22 +49,28 @@ export function DeviceBox({
         bgcolor: "#fff",
       }}
     >
-      <Typography variant="h6" fontWeight={600}>
-        {device.name}
-        <Stack direction="row" spacing={1} mt={2}>
-        <IconButton onClick={onEdit}>
-          <EditIcon />
-        </IconButton>
+      {/* HEADER */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" fontWeight={600}>
+          {device.name}
+        </Typography>
 
-        <IconButton onClick={onDelete}>
-          <DeleteIcon />
-        </IconButton>
+        <Stack direction="row" spacing={1}>
+          <IconButton onClick={onEdit} size="small">
+            <EditIcon fontSize="small" />
+          </IconButton>
+
+          <IconButton onClick={onDelete} size="small" color="error">
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
       </Stack>
-      </Typography>
-      
+
+      {/* INFO */}
       <Typography variant="body2" color="text.secondary">
         Slot: {slotIndex}
       </Typography>
+
       <Typography variant="body2" color="text.secondary">
         Moc: {device.rated_power_kw} kW
       </Typography>
@@ -63,6 +81,7 @@ export function DeviceBox({
         </Typography>
       )}
 
+      {/* STATUS */}
       <Stack direction="row" alignItems="center" spacing={2} mt={2}>
         {waitingForState ? (
           <Stack direction="row" spacing={1} alignItems="center">
@@ -74,25 +93,50 @@ export function DeviceBox({
         ) : (
           <Typography
             variant="body2"
-            color={online ? "green" : "red"}
             fontWeight={600}
+            color={online ? "green" : "red"}
           >
             {online ? "Online" : "Offline"}
           </Typography>
         )}
 
-        {waitingForState ? (
-          <CircularProgress size={18} />
+        {/* =============================================== */}
+        {/* MANUAL — SWITCH */}
+        {/* =============================================== */}
+        {!autoMode ? (
+          waitingForState ? (
+            <CircularProgress size={18} />
+          ) : (
+            <Switch
+              checked={isOn}
+              disabled={!online || toggling || locked}
+              onChange={(e) => onToggle(e.target.checked)}
+            />
+          )
         ) : (
-          <Switch
-            checked={isOn}
-            onChange={(e) => onToggle(e.target.checked)}
-            disabled={!online || toggling || locked}
-          />
+          /* =============================================== */
+          /* AUTO MODE — IKONKA + STAN                      */
+          /* =============================================== */
+          <Stack direction="row" spacing={1} alignItems="center">
+            <PowerSettingsNewIcon
+              fontSize="small"
+              color={isOn ? "success" : "disabled"}
+            />
+
+            <Typography
+              variant="body2"
+              sx={{
+                px: 1.2,
+                py: 0.5,
+                bgcolor: isOn ? "#c8f7c5" : "#eee",
+                borderRadius: 2,
+              }}
+            >
+              ⚡ {isOn ? "Włączony" : "Wyłączony"}
+            </Typography>
+          </Stack>
         )}
       </Stack>
-
-      
     </Box>
   );
 }
