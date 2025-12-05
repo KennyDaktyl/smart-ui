@@ -1,12 +1,15 @@
-// src/components/Devices/DeviceList.tsx
-
 import { useMemo } from "react";
 import { Stack } from "@mui/material";
+
 import { DeviceSlot } from "./DeviceSlot";
+import { mergeLiveDeviceData } from "../utils/mergeLiveDeviceData";
+import { getMaxDeviceSlots } from "../utils/getMaxDeviceSlots";
+import { DeviceSlotWrapper } from "../atoms/DeviceSlotWrapper";
+import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
 
 interface DeviceListProps {
-  devices: any[];      // dane z API
-  live: any[];         // dane z heartbeat
+  devices: any[];
+  live: any[];
   liveInitialized: boolean;
   raspberryId: number;
   onRefresh: () => void;
@@ -20,49 +23,32 @@ export function DeviceList({
   onRefresh,
 }: DeviceListProps) {
   
-  /* ------------------------------------------------------------
-   * MERGE danych API + heartbeat — zoptymalizowany
-   * ------------------------------------------------------------ */
   const mergedDevices = useMemo(() => {
-    return devices.map((dev) => {
-      const liveData = live.find((l) => Number(l.device_id) === Number(dev.id));
-
-      return {
-        ...dev,
-        online: liveInitialized ? !!liveData : false,
-        is_on: liveInitialized ? liveData?.is_on ?? false : false,
-        waitingForState: !liveInitialized,
-      };
-    });
+    return mergeLiveDeviceData(devices, live, liveInitialized);
   }, [devices, live, liveInitialized]);
 
-  /* ------------------------------------------------------------
-   * Liczba slotów = max device_number
-   * ------------------------------------------------------------ */
-  const maxSlots = useMemo(() => {
-    if (devices.length === 0) return 1;
-    return Math.max(...devices.map((d) => d.device_number));
-  }, [devices]);
+  const maxSlots = useMemo(() => getMaxDeviceSlots(devices), [devices]);
 
-  /* ------------------------------------------------------------
-   * RENDER SLOTÓW
-   * ------------------------------------------------------------ */
   return (
     <Stack spacing={2} mt={2}>
       {Array.from({ length: maxSlots }).map((_, idx) => {
-        const slotNumber = idx + 1;
-
-        const dev = mergedDevices.find((d) => d.device_number === slotNumber);
+        const slotIndex = idx + 1;
+        const device = mergedDevices.find((d) => d.device_number === slotIndex);
 
         return (
-          <DeviceSlot
-            key={slotNumber}
-            raspberryId={raspberryId}
-            device={dev}
-            slotIndex={slotNumber}
-            liveInitialized={liveInitialized}
-            onRefresh={onRefresh}
-          />
+          <DeviceSlotWrapper key={slotIndex}>
+            {device ? (
+              <DeviceSlot
+                raspberryId={raspberryId}
+                device={device}
+                slotIndex={slotIndex}
+                liveInitialized={liveInitialized}
+                onRefresh={onRefresh}
+              />
+            ) : (
+              <EmptyDeviceSlot slotIndex={slotIndex} />
+            )}
+          </DeviceSlotWrapper>
         );
       })}
     </Stack>

@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Card, CardContent, Typography } from "@mui/material";
 import { Inverter } from "@/features/installations/hooks/installation";
 import { InverterPower } from "@/features/inverters/components/InverterPower";
 
@@ -18,13 +18,11 @@ export function InverterCard({ inverter }: Props) {
           Serial: {inverter.serial_number}
         </Typography>
 
-        {/* 🔥 TU WSTRZYKAMY NASZ UNIWERSALNY KOMPONENT */}
         <InverterPower
           inverterId={inverter.id}
           serial={inverter.serial_number}
         />
 
-        {/* Możesz tu dodać Raspberries jeśli chcesz */}
       </CardContent>
     </Card>
   );

@@ -1,12 +1,7 @@
-// src/components/Devices/DeviceSlot.tsx
-
-import { useState, useCallback, useMemo } from "react";
-import { deviceApi } from "@/api/deviceApi";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-
-import { EmptySlot } from "./EmptySlot";
 import { DeviceForm } from "./DeviceForm";
-import { DeviceBox } from "./DeviceBox"; // <-- nowy stabilny box
+import { DeviceBox } from "./DeviceBox";
+import { useDeviceSlot } from "../hooks/useDeviceSlot";
+import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
 
 interface DeviceSlotProps {
   raspberryId: number;
@@ -16,118 +11,27 @@ interface DeviceSlotProps {
   onRefresh: () => void;
 }
 
-export function DeviceSlot({
-  raspberryId,
-  device,
-  slotIndex,
-  liveInitialized,
-  onRefresh,
-}: DeviceSlotProps) {
-  const { token } = useAuth();
+export function DeviceSlot(props: DeviceSlotProps) {
+  const {
+    editing,
+    saving,
+    toggling,
+    locked,
+    effectiveOnline,
+    effectiveIsOn,
+    waitingForState,
+    setEditing,
+    handleSave,
+    handleDelete,
+    handleToggle,
+  } = useDeviceSlot(props);
 
-  // HOOKI MUSZĄ BYĆ ZAWSZE PIERWSZE
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [toggling, setToggling] = useState(false);
-  const [localIsOn, setLocalIsOn] = useState<boolean | null>(null);
+  const { device, slotIndex } = props;
 
-  const locked = false;
-
-  /* ------------------------------------------------------------
-   * OBLICZENIA (hooki + memo)
-   * ------------------------------------------------------------ */
-
-  const requiresHeartbeat = device?.mode !== "MANUAL";
-
-  const effectiveOnline = liveInitialized ? device?.online ?? false : false;
-
-  const effectiveIsOn = useMemo(() => {
-    if (!device) return false;
-
-    if (requiresHeartbeat) {
-      return liveInitialized ? device.is_on : false;
-    }
-    return localIsOn !== null ? localIsOn : device.is_on;
-  }, [device, requiresHeartbeat, liveInitialized, localIsOn]);
-
-  const waitingForState = !liveInitialized;
-
-  /* ------------------------------------------------------------
-   * HANDLERY
-   * ------------------------------------------------------------ */
-
-  const handleSave = useCallback(
-    async (form: any) => {
-      if (!token) return;
-
-      setSaving(true);
-      try {
-        const payload = {
-          name: form.name,
-          rated_power_kw: Number(form.rated_power_kw),
-          mode: form.mode,
-          device_number: slotIndex,
-          threshold_kw: form.threshold_kw ? Number(form.threshold_kw) : null,
-          raspberry_id: raspberryId,
-        };
-
-        if (device) {
-          await deviceApi.updateDevice(token, device.id, payload);
-        } else {
-          await deviceApi.createDevice(token, payload);
-        }
-
-        onRefresh();
-        setEditing(false);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [token, device, raspberryId, slotIndex, onRefresh]
-  );
-
-  const handleDelete = useCallback(async () => {
-    if (!token || !device) return;
-    if (!confirm(`Czy usunąć urządzenie "${device.name}"?`)) return;
-
-    setSaving(true);
-    try {
-      await deviceApi.deleteDevice(token, device.id);
-      onRefresh();
-    } finally {
-      setSaving(false);
-    }
-  }, [token, device, onRefresh]);
-
-  const handleToggle = useCallback(
-    async (checked: boolean) => {
-      if (!token || !device) return;
-
-      setToggling(true);
-
-      try {
-        await deviceApi.setManualState(token, device.id, checked);
-
-        if (device.mode === "MANUAL") {
-          setLocalIsOn(checked); // UI instant update
-        }
-      } finally {
-        setToggling(false);
-      }
-    },
-    [token, device]
-  );
-
-  /* ------------------------------------------------------------
-   * RENDER WARUNKOWY – BEZ HOOKÓW NIŻEJ
-   * ------------------------------------------------------------ */
-
-  // 1) SLOT PUSTY
   if (!device && !editing) {
-    return <EmptySlot slotIndex={slotIndex} onAdd={() => setEditing(true)} />;
+    return <EmptyDeviceSlot slotIndex={slotIndex} onAdd={() => setEditing(true)} />;
   }
 
-  // 2) FORMULARZ
   if (editing) {
     return (
       <DeviceForm
@@ -146,7 +50,6 @@ export function DeviceSlot({
     );
   }
 
-  // 3) BOX WIDOKU URZĄDZENIA
   return (
     <DeviceBox
       device={device}
@@ -155,11 +58,10 @@ export function DeviceSlot({
       waitingForState={waitingForState}
       slotIndex={slotIndex}
       toggling={toggling}
-
+      locked={locked}
       onEdit={() => setEditing(true)}
       onDelete={handleDelete}
       onToggle={handleToggle}
-      locked={locked}
     />
   );
 }

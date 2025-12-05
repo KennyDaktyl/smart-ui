@@ -1,5 +1,11 @@
-import { Box, Alert, Typography, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import { useInverterPower } from "../hooks/useInverterPower";
+
+import { PowerErrorAlert } from "./atoms/PowerErrorAlert";
+import { PowerLoadingAlert } from "./atoms/PowerLoadingAlert";
+import { PowerStaleAlert } from "./atoms/PowerStaleAlert";
+import { PowerWaitingAlert } from "./atoms/PowerWaitingAlert";
+import { PowerSuccessAlert } from "./atoms/PowerSuccessAlert";
 
 interface Props {
   inverterId: number;
@@ -15,12 +21,9 @@ export function InverterPower({ inverterId, serial }: Props) {
     stale,
     countdown,
     loadingInitial,
-  } = useInverterPower({
-    inverterId,
-    serial,
-  });
+  } = useInverterPower({ inverterId, serial });
 
-  const formatted =
+  const formattedTimestamp =
     timestamp &&
     new Date(timestamp).toLocaleString("pl-PL", {
       hour: "2-digit",
@@ -32,46 +35,22 @@ export function InverterPower({ inverterId, serial }: Props) {
 
   return (
     <Box mt={2}>
-      {error ? (
-  
-        <Alert severity="error">❌ {error}</Alert>
-  
-      ) : loadingInitial ? (
-  
-        <Alert severity="info" sx={{ display:"flex", gap:1 }}>
-          <CircularProgress size={16} /> Pobieram dane…
-        </Alert>
-  
-      ) : stale ? (
-  
-        <Alert severity="warning">
-          ⚠️ Dane o mocy są nieaktualne!
-          {formatted && (
-            <Typography variant="body2">ostatnia wartość: {formatted}</Typography>
-          )}
-        </Alert>
-  
-      ) : !hasWs && power == null ? (
-  
-        <Alert severity="info" sx={{ display:"flex", gap:1 }}>
-          <CircularProgress size={16} />
-          Czekam na pierwsze dane… ({countdown}s)
-        </Alert>
-  
-      ) : (
-  
-        <Alert severity="success">
-          ⚡ Moc: <strong>{(power ?? 0).toFixed(2)} W</strong>
-          <Typography variant="body2">
-            kolejna aktualizacja za {countdown}s
-          </Typography>
-          {formatted && (
-            <Typography variant="body2">
-              Ostatnia aktualizacja: {formatted}
-            </Typography>
-          )}
-        </Alert>
-  
+      {error && <PowerErrorAlert message={error} />}
+
+      {loadingInitial && <PowerLoadingAlert />}
+
+      {stale && <PowerStaleAlert timestamp={formattedTimestamp} />}
+
+      {!loadingInitial && !hasWs && power == null && (
+        <PowerWaitingAlert countdown={countdown} />
+      )}
+
+      {!error && !loadingInitial && !stale && (hasWs || power != null) && (
+        <PowerSuccessAlert
+          power={power ?? 0}
+          timestamp={formattedTimestamp}
+          countdown={countdown}
+        />
       )}
     </Box>
   );
