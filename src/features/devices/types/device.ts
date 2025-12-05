@@ -1,4 +1,4 @@
-import { DeviceMode } from "./enums";
+import { DeviceMode } from "@/shared/enums/deviceMode";
 
 export interface ApiDevice {
     id: number;

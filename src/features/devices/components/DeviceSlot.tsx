@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { deviceApi } from "@/api/deviceApi";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 import { EmptySlot } from "./EmptySlot";
 import { DeviceForm } from "./DeviceForm";

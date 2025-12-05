@@ -11,8 +11,8 @@ import {
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { DeviceFormData } from "@/types/device";
-import { DeviceMode } from "@/types/enums";
+import { DeviceFormData } from "@/features/devices/types/device";
+import { DeviceMode } from "@/shared/enums/deviceMode";
 
 interface DeviceFormProps {
   initialData: DeviceFormData;

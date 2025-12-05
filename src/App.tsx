@@ -1,13 +1,13 @@
 import { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
-import ProtectedRoute from "./components/common/ProtectedRoute";
+import ProtectedRoute from "./features/common/ProtectedRoute";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import MyInstallationsPage from "./pages/inverters/Inverters";
+import MyInstallationsPage from "./pages/installations/InstallationsPage";
 import UsersListPage from "./pages/admin/UsersListPage";
-import AppHeader from "./components/Layout/AppHeader";
+import AppHeader from "./layout/AppHeader";
 import HuaweiPage from "./pages/user/HuaweiPage";
 import AccountPage from "./pages/user/AccountPage";
 import RaspberriesPage from "./pages/raspberries/RaspberriesPage";

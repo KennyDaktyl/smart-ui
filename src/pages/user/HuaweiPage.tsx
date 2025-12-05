@@ -12,8 +12,8 @@ import {
 import { inverterApi } from "@/api/inverterApi";
 import { installationApi } from "@/api/installationApi";
 import { userApi } from "@/api/userApi";
-import { useAuth } from "@/hooks/useAuth";
-import HuaweiCredentialsForm from "@/components/user/HuaweiCredentialsForm";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import HuaweiCredentialsForm from "@/features/users/components/HuaweiCredentialsForm";
 
 export default function HuaweiPage() {
   const { token, user, refreshUser } = useAuth();

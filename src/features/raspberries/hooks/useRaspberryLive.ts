@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
-import { HeartbeatPayload } from "@/types/heartbeat";
+import { HeartbeatPayload } from "@/shared/types/heartbeat";
 
 export function useRaspberryLive(uuid: string, onUpdate: (hb: HeartbeatPayload) => void) {
 
@@ -10,7 +10,8 @@ export function useRaspberryLive(uuid: string, onUpdate: (hb: HeartbeatPayload) 
     wsManager.subscribeRaspberry(uuid, onUpdate);
 
     return () => {
-      wsManager.unsubscribeRaspberry(uuid);
+      wsManager.unsubscribeRaspberry(uuid, onUpdate);
+
     };
   }, [uuid, onUpdate]);
 }

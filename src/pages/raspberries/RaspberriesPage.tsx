@@ -3,23 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Typography, Alert, CircularProgress } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { userApi } from "@/api/userApi";
 
-import { HeartbeatPayload } from "@/types/heartbeat";
-import { useRaspberryListLive } from "@/hooks/useRaspberryListLive";
+import { HeartbeatPayload } from "@/shared/types/heartbeat";
+import { useRaspberryListLive } from "@/features/raspberries/hooks/useRaspberryListLive";
 
-import { RaspberryCard } from "@/components/Raspberries/RaspberryCard";
-import { DeviceList } from "@/components/Devices/DeviceList";
+import { RaspberryCard } from "@/features/raspberries/components/RaspberryCard";
+import { RaspberryWithDevices } from "@/features/raspberries/types/raspberries";
+import { DeviceList } from "@/features/devices/components/DeviceList";
 
-interface RaspberryWithDevices {
-  rpi: any;
-  devices: any[];
-  live: any[];
-  liveInitialized: boolean;
-  is_online: boolean;
-  last_seen?: string | null;
-}
 
 export default function RaspberriesPage() {
   const { token } = useAuth();
@@ -29,17 +22,11 @@ export default function RaspberriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ============================================================
-   * UUIDs do subskrypcji WS
-   * ========================================================== */
   const uuids = useMemo(() => {
     if (loading) return [];
     return items.map((i) => i.rpi.uuid);
   }, [loading, items]);
 
-  /* ============================================================
-   * Heartbeat handler
-   * ========================================================== */
   const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
     console.log("📡 Heartbeat:", hb);
 
@@ -58,14 +45,8 @@ export default function RaspberriesPage() {
     );
   }, []);
 
-  /* ============================================================
-   * Subskrypcja WebSocketów
-   * ========================================================== */
   useRaspberryListLive(uuids, handleHeartbeat);
 
-  /* ============================================================
-   * Ładowanie instalacji → inwertery → raspberries → devices
-   * ========================================================== */
   const load = async () => {
     if (!token) return;
 
@@ -73,15 +54,9 @@ export default function RaspberriesPage() {
       const res = await userApi.getUserInstallations(token);
       const installations = res.data.installations;
 
-      // ============================================
-      // 1️⃣ Zbieramy inwertery (raz dla wszystkich Raspberry)
-      // ============================================
       const invs = installations.flatMap((i: any) => i.inverters);
       setAvailableInverters(invs);
 
-      // ============================================
-      // 2️⃣ Flatten: installation → inverter → raspberry
-      // ============================================
       const raspberriesFlat = installations.flatMap((inst: any) =>
         inst.inverters.flatMap((inv: any) =>
           (inv.raspberries ?? []).map((rpi: any) => ({
@@ -92,9 +67,6 @@ export default function RaspberriesPage() {
         )
       );
 
-      // ============================================
-      // 3️⃣ Przygotowanie struktury do UI
-      // ============================================
       const merged: RaspberryWithDevices[] = raspberriesFlat.map((rpi: any) => ({
         rpi,
         devices: rpi.devices || [],
@@ -106,7 +78,7 @@ export default function RaspberriesPage() {
 
       setItems(merged);
     } catch (err) {
-      console.error("❌ Failed to load raspberries:", err);
+      console.error("Failed to load raspberries:", err);
       setError("Nie udało się pobrać urządzeń.");
     } finally {
       setLoading(false);
@@ -117,9 +89,6 @@ export default function RaspberriesPage() {
     load();
   }, [token]);
 
-  /* ============================================================
-   * Loading screen
-   * ========================================================== */
   if (loading)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
@@ -127,9 +96,6 @@ export default function RaspberriesPage() {
       </Box>
     );
 
-  /* ============================================================
-   * Render
-   * ========================================================== */
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>

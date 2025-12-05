@@ -1,4 +1,4 @@
-import { ApiDevice } from "./device";
+import { ApiDevice } from "../../features/devices/types/device";
 
 export interface HeartbeatPayload {
     uuid: string;

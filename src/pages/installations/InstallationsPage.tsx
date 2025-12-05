@@ -8,11 +8,11 @@ import {
   Alert,
 } from "@mui/material";
 import { userApi } from "@/api/userApi";
-import { useAuth } from "@/hooks/useAuth";
-import { Installation, Inverter } from "@/types/installation";
-import { InverterCard } from "@/components/Installations/InverterCard";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { Installation, Inverter } from "@/features/installations/hooks/installation";
+import { InverterCard } from "@/features/inverters/components/InverterCard";
 
-export default function MyInstallationsPage() {
+export default function InstallationsPage() {
   const { token, user, loading } = useAuth();
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [fetching, setFetching] = useState(true);

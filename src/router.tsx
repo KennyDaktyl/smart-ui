@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
 import RegisterPage from "./pages/auth/RegisterPage";
 import LoginPage from "./pages/auth/LoginPage";
-import ProtectedRoute from "./components/common/ProtectedRoute";
-import MyInstallationsPage from "./pages/inverters/Inverters";
+import ProtectedRoute from "./features/common/ProtectedRoute";
+import MyInstallationsPage from "./pages/installations/InstallationsPage";
 import UsersListPage from "./pages/admin/UsersListPage";
 import { AuthContextProps } from "./context/AuthContext";
 import RaspberriesPage from "./pages/raspberries/RaspberriesPage";

@@ -1,5 +1,5 @@
 import { Box, Typography, Paper } from "@mui/material";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export default function AccountPage() {
   const { user } = useAuth();
