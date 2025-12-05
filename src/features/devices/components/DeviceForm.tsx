@@ -32,6 +32,7 @@ export function DeviceForm({
   const [form, setForm] = useState<DeviceFormData>(initialData);
 
   const [errors, setErrors] = useState<Record<string, string>>({
+    name: "",
     rated_power_kw: "",
     threshold_kw: "",
   });
@@ -49,10 +50,17 @@ export function DeviceForm({
 
   const validate = () => {
     let isValid = true;
+
     const newErrors: Record<string, string> = {
+      name: "",
       rated_power_kw: "",
       threshold_kw: "",
     };
+
+    if (!form.name || form.name.trim().length === 0) {
+      newErrors.name = "Pole 'Nazwa' jest wymagane.";
+      isValid = false;
+    }
 
     if (form.rated_power_kw === "" || Number(form.rated_power_kw) <= 0) {
       newErrors.rated_power_kw = "Pole 'Moc (kW)' jest wymagane.";
@@ -104,6 +112,8 @@ export function DeviceForm({
         </Stack>
 
         <Stack spacing={2} mt={2}>
+
+          {/* --- NAZWA REQUIRED --- */}
           <TextField
             label="Nazwa"
             name="name"
@@ -112,6 +122,8 @@ export function DeviceForm({
             value={form.name}
             onChange={handleChange}
             disabled={locked}
+            error={!!errors.name}
+            helperText={errors.name}
           />
 
           <TextField
@@ -169,6 +181,7 @@ export function DeviceForm({
               },
             }}
           />
+
         </Stack>
       </CardContent>
     </Card>
