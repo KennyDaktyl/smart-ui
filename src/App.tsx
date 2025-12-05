@@ -29,7 +29,15 @@ export default function App() {
       {!isPublic && <AppHeader />}
       {!isPublic && <Toolbar />}
 
-      <Box sx={{ px: { xs: 1, sm: 2 }, pb: 4 }}>
+      <Box
+        sx={{
+          px: { xs: 1.5, sm: 3 },
+          pb: 5,
+          maxWidth: 1280,
+          mx: "auto",
+          width: "100%",
+        }}
+      >
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

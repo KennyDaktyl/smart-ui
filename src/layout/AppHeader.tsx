@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import FlashOnIcon from "@mui/icons-material/FlashOn";
 
 export default function AppHeader() {
   const { token, logout } = useAuth();
@@ -92,10 +93,32 @@ export default function AppHeader() {
           <Typography
             variant="h6"
             component="div"
-            sx={{ flexGrow: 1, cursor: "pointer" }}
+            sx={{
+              flexGrow: 1,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
             onClick={() => navigate("/")}
           >
+            <FlashOnIcon fontSize="small" />
             {t("common.brand")}
+            <Box
+              component="span"
+              sx={{
+                ml: 1,
+                px: 1,
+                py: 0.25,
+                borderRadius: 10,
+                fontSize: 12,
+                fontWeight: 700,
+                bgcolor: "rgba(211,47,47,0.18)",
+                color: "#d32f2f",
+              }}
+            >
+              Huawei
+            </Box>
           </Typography>
 
           <Box

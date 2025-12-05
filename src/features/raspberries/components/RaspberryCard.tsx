@@ -53,7 +53,16 @@ export function RaspberryCard({
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
 
   return (
-    <Box sx={{ p: 2, borderRadius: 2, border: "1px solid #ddd" }}>
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        border: "1px solid rgba(15,139,111,0.15)",
+        background: "linear-gradient(135deg, #ffffff 0%, #f5fbf7 100%)",
+        boxShadow: "0 16px 32px rgba(0,0,0,0.16)",
+        color: "#0d1b2a",
+      }}
+    >
       <RaspberryHeader
         name={rpi.name}
         isOnline={isOnline}

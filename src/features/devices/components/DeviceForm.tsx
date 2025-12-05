@@ -99,7 +99,15 @@ export function DeviceForm({
   };
 
   return (
-    <Card sx={{ p: 1, opacity: locked ? 0.5 : 1 }}>
+    <Card
+      sx={{
+        p: 1,
+        opacity: locked ? 0.5 : 1,
+        bgcolor: "linear-gradient(160deg, #ffffff 0%, #f3faf5 100%)",
+        border: "1px solid rgba(15,139,111,0.14)",
+        color: "#0d1b2a",
+      }}
+    >
       <CardContent>
         <Stack direction="row" justifyContent="space-between">
           <Stack direction="row" alignItems="center">

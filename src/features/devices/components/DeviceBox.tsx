@@ -47,8 +47,10 @@ export function DeviceBox({
       sx={{
         p: 2,
         borderRadius: 2,
-        border: "1px solid #ddd",
-        bgcolor: "#fff",
+        border: "1px solid rgba(15,139,111,0.15)",
+        bgcolor: "linear-gradient(135deg, #ffffff 0%, #f5fbf7 100%)",
+        boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
+        color: "#0d1b2a",
       }}
     >
       {/* HEADER */}
@@ -68,27 +70,25 @@ export function DeviceBox({
         </Stack>
       </Stack>
 
-      {/* INFO */}
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ color: "#405166" }}>
         {t("devices.slotLabel", { slot: slotIndex })}
       </Typography>
 
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ color: "#405166" }}>
         {t("devices.powerLabel", { power: device.rated_power_kw })}
       </Typography>
 
       {device.mode === "AUTO_POWER" && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: "#405166" }}>
           {t("devices.thresholdLabel", { threshold: device.threshold_kw })}
         </Typography>
       )}
 
-      {/* STATUS */}
       <Stack direction="row" alignItems="center" spacing={2} mt={2}>
         {waitingForState ? (
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={18} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: "#405166" }}>
               {t("devices.waiting")}
             </Typography>
           </Stack>
