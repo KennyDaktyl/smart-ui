@@ -13,6 +13,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import { DeviceFormData } from "@/features/devices/types/device";
 import { DeviceMode } from "@/shared/enums/deviceMode";
+import { useTranslation } from "react-i18next";
 
 interface DeviceFormProps {
   initialData: DeviceFormData;
@@ -30,6 +31,7 @@ export function DeviceForm({
   onSubmit,
 }: DeviceFormProps) {
   const [form, setForm] = useState<DeviceFormData>(initialData);
+  const { t } = useTranslation();
 
   const [errors, setErrors] = useState<Record<string, string>>({
     name: "",
@@ -58,18 +60,18 @@ export function DeviceForm({
     };
 
     if (!form.name || form.name.trim().length === 0) {
-      newErrors.name = "Pole 'Nazwa' jest wymagane.";
+      newErrors.name = t("devices.form.errors.nameRequired");
       isValid = false;
     }
 
     if (form.rated_power_kw === "" || Number(form.rated_power_kw) <= 0) {
-      newErrors.rated_power_kw = "Pole 'Moc (kW)' jest wymagane.";
+      newErrors.rated_power_kw = t("devices.form.errors.powerRequired");
       isValid = false;
     }
 
     if (form.mode === DeviceMode.AUTO_POWER) {
       if (form.threshold_kw === "" || Number(form.threshold_kw) <= 0) {
-        newErrors.threshold_kw = "Pole 'Próg mocy PV (kW)' jest wymagane.";
+        newErrors.threshold_kw = t("devices.form.errors.thresholdRequired");
         isValid = false;
       }
     }
@@ -115,7 +117,7 @@ export function DeviceForm({
 
           {/* --- NAZWA REQUIRED --- */}
           <TextField
-            label="Nazwa"
+            label={t("devices.form.nameLabel")}
             name="name"
             fullWidth
             size="small"
@@ -127,7 +129,7 @@ export function DeviceForm({
           />
 
           <TextField
-            label="Moc (kW)"
+            label={t("devices.form.powerLabel")}
             name="rated_power_kw"
             type="number"
             fullWidth
@@ -141,7 +143,7 @@ export function DeviceForm({
 
           <TextField
             select
-            label="Tryb pracy"
+            label={t("devices.form.modeLabel")}
             name="mode"
             fullWidth
             size="small"
@@ -149,14 +151,14 @@ export function DeviceForm({
             onChange={handleChange}
             disabled={locked}
           >
-            <MenuItem value={DeviceMode.MANUAL}>Ręczny</MenuItem>
-            <MenuItem value={DeviceMode.AUTO_POWER}>Auto moc PV</MenuItem>
-            <MenuItem value={DeviceMode.SCHEDULE}>Harmonogram</MenuItem>
+            <MenuItem value={DeviceMode.MANUAL}>{t("devices.form.modes.manual")}</MenuItem>
+            <MenuItem value={DeviceMode.AUTO_POWER}>{t("devices.form.modes.autoPower")}</MenuItem>
+            <MenuItem value={DeviceMode.SCHEDULE}>{t("devices.form.modes.schedule")}</MenuItem>
           </TextField>
 
           {form.mode === DeviceMode.AUTO_POWER && (
             <TextField
-              label="Próg mocy PV (kW)"
+              label={t("devices.form.thresholdLabel")}
               name="threshold_kw"
               type="number"
               fullWidth
@@ -170,7 +172,7 @@ export function DeviceForm({
           )}
 
           <TextField
-            label="Slot"
+            label={t("devices.form.slotLabel")}
             name="device_number"
             fullWidth
             size="small"

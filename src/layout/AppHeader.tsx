@@ -15,11 +15,14 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function AppHeader() {
-  const { token, user, logout } = useAuth();
+  const { token, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
@@ -30,21 +33,21 @@ export default function AppHeader() {
 
   const menuItems = token
     ? [
-        { label: "Moje instalacje", path: "/dashboard" },
-        { label: "Moje urządzenia", path: "/raspberries" },
-        { label: "API Huawei", path: "/huawei" },
-        { label: "Moje konto", path: "/account" },
-        { label: "Wyloguj", action: handleLogout },
+        { label: t("header.menu.installations"), path: "/dashboard" },
+        { label: t("header.menu.raspberries"), path: "/raspberries" },
+        { label: t("header.menu.huawei"), path: "/huawei" },
+        { label: t("header.menu.account"), path: "/account" },
+        { label: t("header.menu.logout"), action: handleLogout },
       ]
     : [
-        { label: "Zaloguj", path: "/login" },
-        { label: "Zarejestruj", path: "/register" },
+        { label: t("header.menu.login"), path: "/login" },
+        { label: t("header.menu.register"), path: "/register" },
       ];
 
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: "center", p: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        ⚡ Smart Energy
+        {t("common.brand")}
       </Typography>
       <List>
         {menuItems.map((item) => (
@@ -60,12 +63,20 @@ export default function AppHeader() {
           </ListItem>
         ))}
       </List>
+      <Box
+        mt={2}
+        display="flex"
+        justifyContent="center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <LanguageSwitcher />
+      </Box>
     </Box>
   );
 
   return (
     <>
-      <AppBar position="static" color="primary" sx={{ mb: 3 }}>
+      <AppBar position="fixed" color="primary" sx={{ mb: 3 }}>
         <Toolbar>
           {token && (
             <IconButton
@@ -84,10 +95,15 @@ export default function AppHeader() {
             sx={{ flexGrow: 1, cursor: "pointer" }}
             onClick={() => navigate("/")}
           >
-            ⚡ Smart Energy
+            {t("common.brand")}
           </Typography>
 
-          <Box sx={{ display: { xs: "none", sm: "block" } }}>
+          <Box
+            sx={{
+              display: { xs: "none", sm: "flex" },
+              alignItems: "center",
+            }}
+          >
             {menuItems.map((item) => (
               <Button
                 key={item.label}
@@ -101,6 +117,9 @@ export default function AppHeader() {
                 {item.label}
               </Button>
             ))}
+            <Box ml={2}>
+              <LanguageSwitcher />
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>

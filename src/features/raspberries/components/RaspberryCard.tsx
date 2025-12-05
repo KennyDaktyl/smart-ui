@@ -2,6 +2,7 @@ import { Box, Snackbar, Alert, Typography } from "@mui/material";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { raspberryApi } from "@/api/raspberryApi";
+import { useTranslation } from "react-i18next";
 
 import { RaspberryHeader } from "./atoms/RaspberryHeader";
 import { RaspberryInfo } from "./atoms/RaspberryInfo";
@@ -24,6 +25,7 @@ export function RaspberryCard({
   availableInverters,
 }: RaspberryCardProps) {
   const { token } = useAuth();
+  const { t, i18n } = useTranslation();
 
   const [selected, setSelected] = useState<number | "">(rpi.inverter_id || "");
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,8 @@ export function RaspberryCard({
     }
   };
 
+  const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
+
   return (
     <Box sx={{ p: 2, borderRadius: 2, border: "1px solid #ddd" }}>
       <RaspberryHeader
@@ -58,7 +62,9 @@ export function RaspberryCard({
 
       {liveInitialized && lastSeen && (
         <Typography variant="caption" color="text.secondary">
-          Ostatni kontakt: {new Date(lastSeen).toLocaleTimeString()}
+          {t("raspberries.lastContact", {
+            time: new Date(lastSeen).toLocaleTimeString(locale),
+          })}
         </Typography>
       )}
 
@@ -84,7 +90,7 @@ export function RaspberryCard({
         onClose={() => setSuccess(false)}
       >
         <Alert severity="success" onClose={() => setSuccess(false)}>
-          Inwerter przypisany!
+          {t("raspberries.assigned")}
         </Alert>
       </Snackbar>
     </Box>

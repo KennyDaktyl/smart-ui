@@ -10,6 +10,7 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import { useTranslation } from "react-i18next";
 
 interface DeviceBoxProps {
   device: any;
@@ -38,6 +39,7 @@ export function DeviceBox({
   onToggle,
   locked,
 }: DeviceBoxProps) {
+  const { t } = useTranslation();
   const autoMode = device.mode !== "MANUAL";
 
   return (
@@ -68,16 +70,16 @@ export function DeviceBox({
 
       {/* INFO */}
       <Typography variant="body2" color="text.secondary">
-        Slot: {slotIndex}
+        {t("devices.slotLabel", { slot: slotIndex })}
       </Typography>
 
       <Typography variant="body2" color="text.secondary">
-        Moc: {device.rated_power_kw} kW
+        {t("devices.powerLabel", { power: device.rated_power_kw })}
       </Typography>
 
       {device.mode === "AUTO_POWER" && (
         <Typography variant="body2" color="text.secondary">
-          Próg PV: {device.threshold_kw} kW
+          {t("devices.thresholdLabel", { threshold: device.threshold_kw })}
         </Typography>
       )}
 
@@ -87,7 +89,7 @@ export function DeviceBox({
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={18} />
             <Typography variant="body2" color="text.secondary">
-              Oczekiwanie na status…
+              {t("devices.waiting")}
             </Typography>
           </Stack>
         ) : (
@@ -96,7 +98,7 @@ export function DeviceBox({
             fontWeight={600}
             color={online ? "green" : "red"}
           >
-            {online ? "Online" : "Offline"}
+            {online ? t("common.online") : t("common.offline")}
           </Typography>
         )}
 
@@ -132,7 +134,7 @@ export function DeviceBox({
                 borderRadius: 2,
               }}
             >
-              ⚡ {isOn ? "Włączony" : "Wyłączony"}
+              ⚡ {isOn ? t("devices.autoOn") : t("devices.autoOff")}
             </Typography>
           </Stack>
         )}

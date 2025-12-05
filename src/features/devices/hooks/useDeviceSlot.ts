@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { deviceApi } from "@/api/deviceApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 interface UseDeviceSlotParams {
   device?: any;
@@ -18,6 +19,7 @@ export function useDeviceSlot({
   onRefresh,
 }: UseDeviceSlotParams) {
   const { token } = useAuth();
+  const { t } = useTranslation();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,7 +74,7 @@ export function useDeviceSlot({
 
   const handleDelete = useCallback(async () => {
     if (!token || !device) return;
-    if (!confirm(`Czy usunąć urządzenie "${device.name}"?`)) return;
+    if (!confirm(t("devices.deleteConfirm", { name: device.name }))) return;
 
     setSaving(true);
     try {
@@ -81,7 +83,7 @@ export function useDeviceSlot({
     } finally {
       setSaving(false);
     }
-  }, [token, device, onRefresh]);
+  }, [token, device, onRefresh, t]);
 
   const handleToggle = useCallback(
     async (checked: boolean) => {

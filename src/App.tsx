@@ -2,6 +2,8 @@ import { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import ProtectedRoute from "./features/common/ProtectedRoute";
+import { Box, Toolbar } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -14,9 +16,10 @@ import RaspberriesPage from "./pages/raspberries/RaspberriesPage";
 
 export default function App() {
   const auth = useContext(AuthContext);
+  const { t } = useTranslation();
 
   if (auth?.loading) {
-    return <div>Ładowanie danych użytkownika...</div>;
+    return <div>{t("common.loadingUser")}</div>;
   }
 
   const isPublic = !auth?.token;
@@ -24,73 +27,75 @@ export default function App() {
   return (
     <>
       {!isPublic && <AppHeader />}
+      {!isPublic && <Toolbar />}
 
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+      <Box sx={{ px: { xs: 1, sm: 2 }, pb: 4 }}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-        <Route
-          path="/"
-          element={
-            auth?.token ? (
-              <Navigate
-                to={auth?.user?.role === "admin" ? "/admin" : "/dashboard"}
-                replace
-              />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+          <Route
+            path="/"
+            element={
+              auth?.token ? (
+                <Navigate
+                  to={auth?.user?.role === "admin" ? "/admin" : "/dashboard"}
+                  replace
+                />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
 
-        {/* dashboard użytkownika */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <MyInstallationsPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <MyInstallationsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/raspberries"
-          element={
-            <ProtectedRoute>
-              <RaspberriesPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/raspberries"
+            element={
+              <ProtectedRoute>
+                <RaspberriesPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/huawei"
-          element={
-            <ProtectedRoute>
-              <HuaweiPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/huawei"
+            element={
+              <ProtectedRoute>
+                <HuaweiPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <UsersListPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <UsersListPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Box>
     </>
   );
 }

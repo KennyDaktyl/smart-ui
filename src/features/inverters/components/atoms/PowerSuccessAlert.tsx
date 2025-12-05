@@ -1,4 +1,5 @@
 import { Alert, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   power: number;
@@ -7,17 +8,19 @@ interface Props {
 }
 
 export function PowerSuccessAlert({ power, timestamp, countdown }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Alert severity="success">
-      ⚡ Power: <strong>{power.toFixed(2)} kW</strong>
+      ⚡ {t("power.value", { power: power.toFixed(2) })}
 
       <Typography variant="body2">
-        Next update in {countdown}s
+        {t("power.nextUpdate", { seconds: countdown })}
       </Typography>
 
       {timestamp && (
         <Typography variant="body2">
-          Last update: {timestamp}
+          {t("power.lastUpdate", { timestamp })}
         </Typography>
       )}
     </Alert>

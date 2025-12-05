@@ -14,9 +14,11 @@ import { installationApi } from "@/api/installationApi";
 import { userApi } from "@/api/userApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import HuaweiCredentialsForm from "@/features/users/components/HuaweiCredentialsForm";
+import { useTranslation } from "react-i18next";
 
 export default function HuaweiPage() {
   const { token, user, refreshUser } = useAuth();
+  const { t } = useTranslation();
   const [userInstallations, setUserInstallations] = useState<any[]>([]);
   const [huaweiData, setHuaweiData] = useState<any[]>([]);
   const [invertersByStation, setInvertersByStation] = useState<Record<string, any[]>>({});
@@ -36,7 +38,7 @@ export default function HuaweiPage() {
       const res = await userApi.getUserInstallations(token);
       setUserInstallations(res.data.installations || []);
     } catch {
-      setError("Failed to fetch user installations.");
+      setError(t("huawei.errors.fetchInstallations"));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export default function HuaweiPage() {
 
       setHuaweiData(mapped);
     } catch {
-      setError("Failed to fetch Huawei installations.");
+      setError(t("huawei.errors.fetchHuawei"));
     } finally {
       setFetchingHuawei(false);
     }
@@ -83,7 +85,7 @@ export default function HuaweiPage() {
       await fetchUserInstallations();
     } catch (err) {
       console.error(err);
-      setError("Failed to add installation.");
+      setError(t("huawei.errors.addInstallation"));
     }
   };
 
@@ -121,7 +123,7 @@ export default function HuaweiPage() {
       }));
     } catch (err) {
       console.error("Failed to fetch inverters from Huawei:", err);
-      setError("Failed to fetch inverters from Huawei.");
+      setError(t("huawei.errors.fetchInverters"));
     } finally {
       setFetchingInverters(null);
     }
@@ -145,7 +147,7 @@ export default function HuaweiPage() {
       await fetchAndCompareInverters(stationCode);
     } catch (err) {
       console.error("Failed to add inverter to DB:", err);
-      setError("Failed to add inverter to database.");
+      setError(t("huawei.errors.addInverter"));
     }
   };
 
@@ -162,7 +164,7 @@ export default function HuaweiPage() {
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>
-        Huawei API Integration
+        {t("huawei.title")}
       </Typography>
 
       {error && <Alert severity="error">{error}</Alert>}
@@ -173,7 +175,7 @@ export default function HuaweiPage() {
           <>
             {!user?.huawei_username && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                Huawei credentials are not configured.
+                {t("huawei.credentialsMissing")}
               </Alert>
             )}
 
@@ -192,28 +194,28 @@ export default function HuaweiPage() {
 
             {user?.huawei_username && (
               <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setShowEditForm(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
             )}
           </>
         ) : (
           <>
             <Alert severity="success" sx={{ mb: 2 }}>
-              Connected as: <strong>{user.huawei_username}</strong>
+              {t("huawei.connectedAs", { username: user.huawei_username })}
             </Alert>
 
             {huaweiSaved && (
               <Alert severity="success" sx={{ mb: 2 }}>
-                Huawei credentials saved successfully.
+                {t("huawei.credentialsSaved")}
               </Alert>
             )}
 
             <Button variant="contained" onClick={fetchHuaweiInstallations}>
-              Fetch Huawei installations
+              {t("huawei.buttons.fetchInstallations")}
             </Button>
 
             <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setShowEditForm(true)}>
-              Change Huawei data
+              {t("huawei.buttons.changeData")}
             </Button>
           </>
         )}
@@ -230,7 +232,7 @@ export default function HuaweiPage() {
               <CardContent>
                 <Typography variant="h6">{inst.name}</Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Address: {inst.station_addr}
+                  {t("huawei.address", { address: inst.station_addr })}
                 </Typography>
 
                 {!inDb ? (
@@ -239,12 +241,12 @@ export default function HuaweiPage() {
                     sx={{ mt: 1 }}
                     onClick={() => handleAddInstallation(inst)}
                   >
-                    Add installation and inverters
+                    {t("huawei.buttons.addInstallation")}
                   </Button>
                 ) : (
                   <>
                     <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
-                      Installation assigned
+                      {t("huawei.installationAssigned")}
                     </Alert>
 
                     <Button
@@ -253,14 +255,14 @@ export default function HuaweiPage() {
                       disabled={fetchingInverters === inst.station_code}
                     >
                       {fetchingInverters === inst.station_code
-                        ? "Loading..."
-                        : "Show inverters"}
+                        ? t("huawei.buttons.loading")
+                        : t("huawei.buttons.showInverters")}
                     </Button>
 
                     {inverters.length > 0 && (
                       <Box mt={2} ml={2}>
                         <Typography variant="subtitle1" mb={1}>
-                          Inverters (from Huawei):
+                          {t("huawei.invertersTitle")}
                         </Typography>
                         {inverters.map((inv) => (
                           <Card key={inv.esnCode} sx={{ mb: 1, p: 1 }}>
@@ -268,7 +270,7 @@ export default function HuaweiPage() {
                               {inv.devName} ({inv.esnCode})
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Model: {inv.model || inv.invType || "Unknown"}
+                              Model: {inv.model || inv.invType || t("inverters.unknownModel")}
                             </Typography>
                             {inv.alreadySaved ? (
                               <Button
@@ -278,7 +280,7 @@ export default function HuaweiPage() {
                                 sx={{ mt: 1 }}
                                 disabled
                               >
-                                Already saved
+                                {t("huawei.buttons.alreadySaved")}
                               </Button>
                             ) : (
                               <Button
@@ -287,7 +289,7 @@ export default function HuaweiPage() {
                                 sx={{ mt: 1 }}
                                 onClick={() => handleAddInverter(inst.station_code, inv)}
                               >
-                                Add to database
+                                {t("huawei.buttons.addToDatabase")}
                               </Button>
                             )}
                           </Card>

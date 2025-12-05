@@ -11,13 +11,16 @@ import { userApi } from "@/api/userApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Installation, Inverter } from "@/features/installations/hooks/installation";
 import { InverterCard } from "@/features/inverters/components/InverterCard";
+import { useTranslation } from "react-i18next";
 
 export default function InstallationsPage() {
-  const { token, user, loading } = useAuth();
+  const { token, loading } = useAuth();
+  const { t, i18n } = useTranslation();
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
 
   // 📦 Pobierz instalacje użytkownika (na start)
   const fetchInstallations = async () => {
@@ -27,10 +30,11 @@ export default function InstallationsPage() {
       const data = res.data.installations || [];
       setInstallations(data);
       setError("");
+      setLastUpdate(new Date());
       return data;
     } catch (err) {
       console.error(err);
-      setError("Nie udało się pobrać instalacji użytkownika.");
+      setError(t("installations.fetchError"));
       return [];
     } finally {
       setFetching(false);
@@ -59,14 +63,16 @@ export default function InstallationsPage() {
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>
-        Moje instalacje
+        {t("installations.title")}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       {lastUpdate && (
         <Typography variant="body2" color="text.secondary" mb={2}>
-          🔁 Ostatnia aktualizacja: {lastUpdate.toLocaleTimeString()}
+          🔁 {t("installations.lastUpdate", {
+            time: lastUpdate.toLocaleTimeString(locale),
+          })}
         </Typography>
       )}
 
@@ -76,12 +82,12 @@ export default function InstallationsPage() {
             <CardContent>
               <Typography variant="h6">{inst.name}</Typography>
               <Typography variant="body2" color="text.secondary">
-                📍 {inst.station_addr || "Brak adresu"}
+                📍 {inst.station_addr || t("installations.noAddress")}
               </Typography>
 
               <Box mt={2}>
                 <Typography variant="subtitle1" mb={1}>
-                  Inwertery:
+                  {t("installations.inverters")}
                 </Typography>
 
                 {inst.inverters?.length ? (
@@ -90,7 +96,7 @@ export default function InstallationsPage() {
                   ))
                 ) : (
                   <Typography color="text.secondary" sx={{ ml: 2 }}>
-                    Brak inwerterów przypisanych do tej instalacji.
+                    {t("installations.noInverters")}
                   </Typography>
                 )}
               </Box>
@@ -99,7 +105,7 @@ export default function InstallationsPage() {
         ))
       ) : (
         <Typography variant="body1" color="text.secondary">
-          Brak instalacji do wyświetlenia.
+          {t("installations.noInstallations")}
         </Typography>
       )}
     </Box>

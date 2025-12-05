@@ -5,6 +5,7 @@ import Grid from "@mui/material/Grid2";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { userApi } from "@/api/userApi";
+import { useTranslation } from "react-i18next";
 
 import { HeartbeatPayload } from "@/shared/types/heartbeat";
 import { useRaspberryListLive } from "@/features/raspberries/hooks/useRaspberryListLive";
@@ -16,6 +17,7 @@ import { DeviceList } from "@/features/devices/components/DeviceList";
 
 export default function RaspberriesPage() {
   const { token } = useAuth();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<RaspberryWithDevices[]>([]);
   const [availableInverters, setAvailableInverters] = useState<any[]>([]);
@@ -79,7 +81,7 @@ export default function RaspberriesPage() {
       setItems(merged);
     } catch (err) {
       console.error("Failed to load raspberries:", err);
-      setError("Nie udało się pobrać urządzeń.");
+      setError(t("raspberries.fetchError"));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ export default function RaspberriesPage() {
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>
-        Moje urządzenia (Raspberry)
+        {t("raspberries.title")}
       </Typography>
 
       {error && <Alert severity="error">{error}</Alert>}
@@ -127,7 +129,7 @@ export default function RaspberriesPage() {
           ))
         ) : (
           <Typography color="text.secondary" sx={{ mt: 2 }}>
-            Brak zarejestrowanych Raspberry.
+            {t("raspberries.empty")}
           </Typography>
         )}
       </Grid>

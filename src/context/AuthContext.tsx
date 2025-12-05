@@ -1,4 +1,5 @@
 import { createContext, useEffect, ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { authApi } from "../api/authApi";
 
 export interface AuthContextProps {
@@ -14,6 +15,7 @@ export interface AuthContextProps {
 export const AuthContext = createContext<AuthContextProps | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const [authState, setAuthState] = useState({
     user: null,
     token: localStorage.getItem("token"),
@@ -74,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [authState.token]);
 
   if (authState.loading) {
-    return <div>Ładowanie danych użytkownika...</div>;
+    return <div>{t("common.loadingUser")}</div>;
   }
 
   return (

@@ -1,12 +1,15 @@
 import { Card, CardContent, Typography } from "@mui/material";
 import { Inverter } from "@/features/installations/hooks/installation";
 import { InverterPower } from "@/features/inverters/components/InverterPower";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   inverter: Inverter;
 }
 
 export function InverterCard({ inverter }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
@@ -15,7 +18,7 @@ export function InverterCard({ inverter }: Props) {
         </Typography>
 
         <Typography variant="body2" color="text.secondary">
-          Serial: {inverter.serial_number}
+          {t("inverters.serial", { serial: inverter.serial_number })}
         </Typography>
 
         <InverterPower

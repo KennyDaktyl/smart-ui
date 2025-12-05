@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
@@ -25,6 +26,7 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     axios
@@ -50,20 +52,20 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
       );
 
       setSaved(true);
-      setMessage("Dane Huawei zapisane pomyślnie!");
+      setMessage(t("huaweiCredentials.saved"));
 
       if (onSaved) onSaved();
 
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
-      setMessage(err.response?.data?.detail || "Błąd zapisu danych");
+      setMessage(err.response?.data?.detail || t("huaweiCredentials.saveError"));
     }
   };
 
   return (
     <Paper elevation={4} sx={{ p: 4, mt: 3 }}>
       <Typography variant="h6" mb={2}>
-        Dane logowania Huawei API
+        {t("huaweiCredentials.title")}
       </Typography>
 
       {message && (
@@ -75,7 +77,7 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
       {/* USERNAME */}
       <TextField
         fullWidth
-        label="Huawei Username"
+        label={t("huaweiCredentials.username")}
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         margin="normal"
@@ -84,7 +86,7 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
       {/* PASSWORD + toggle visibility */}
       <TextField
         fullWidth
-        label="Huawei Password"
+        label={t("huaweiCredentials.password")}
         type={showPassword ? "text" : "password"}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -104,7 +106,7 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
       />
 
       <Button variant="contained" sx={{ mt: 2 }} onClick={handleSave}>
-        Zapisz dane
+        {t("huaweiCredentials.save")}
       </Button>
     </Paper>
   );

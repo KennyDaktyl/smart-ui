@@ -1,4 +1,5 @@
 import { Typography, Button, Stack } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   slotIndex: number;
@@ -6,14 +7,16 @@ interface Props {
 }
 
 export function EmptyDeviceSlot({ slotIndex, onAdd }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Stack spacing={1}>
       <Typography variant="body2">
-        Brak urządzenia w slocie {slotIndex}
+        {t("devices.emptySlot", { slot: slotIndex })}
       </Typography>
 
       <Button variant="outlined" size="small" onClick={onAdd}>
-        Dodaj urządzenie
+        {t("devices.addDevice")}
       </Button>
     </Stack>
   );
