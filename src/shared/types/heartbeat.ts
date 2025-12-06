@@ -4,6 +4,8 @@ export interface HeartbeatPayload {
     uuid: string;
     status: string;
     sent_at?: string;
+    timestamp?: number;
+    event_type?: string;
     gpio_count?: number;
     device_count?: number;
     gpio?: Record<number, number>;

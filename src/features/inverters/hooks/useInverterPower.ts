@@ -15,6 +15,7 @@ interface UseInverterPowerResult {
 
     hasWs: boolean;
     stale: boolean;
+    missingData: boolean;
     countdown: number;
 
     loadingInitial: boolean;
@@ -32,6 +33,7 @@ export function useInverterPower({
 
     const [hasWs, setHasWs] = useState(false);
     const [stale, setStale] = useState(false);
+    const [missingData, setMissingData] = useState(false);
     const [countdown, setCountdown] = useState(180);
 
     const [loadingInitial, setLoadingInitial] = useState(true);
@@ -58,6 +60,7 @@ export function useInverterPower({
     useInverterLive(serial ?? "", (data: any) => {
         setHasWs(true);
         setStale(false);
+        setMissingData(false);
         setCountdown(180);
 
         if (data.status === "failed") {
@@ -75,7 +78,11 @@ export function useInverterPower({
         timerRef.current = setInterval(() => {
         setCountdown((cur) => {
             if (cur <= 1) {
-            if (hasWs) setStale(true);
+            if (hasWs) {
+                setStale(true);
+            } else {
+                setMissingData(true);
+            }
             return 0;
             }
             return cur - 1;
@@ -94,6 +101,7 @@ export function useInverterPower({
         error,
         hasWs,
         stale,
+        missingData,
         countdown,
         loadingInitial,
     };

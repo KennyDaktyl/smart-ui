@@ -119,6 +119,7 @@ const resources = {
       power: {
         loading: "Pobieranie danych o mocy...",
         stale: "Dane o mocy są nieaktualne!",
+        missing: "Brak informacji o produkcji energii. Dane nieaktualne.",
         lastKnown: "Ostatnia znana wartość: {{timestamp}}",
         value: "Moc: {{power}} kW",
         nextUpdate: "Kolejna aktualizacja za {{seconds}} s",
@@ -275,6 +276,7 @@ const resources = {
       power: {
         loading: "Fetching power data...",
         stale: "Power data is outdated!",
+        missing: "No production data. Information is outdated.",
         lastKnown: "Last known value: {{timestamp}}",
         value: "Power: {{power}} kW",
         nextUpdate: "Next update in {{seconds}}s",

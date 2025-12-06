@@ -7,6 +7,7 @@ import { PowerLoadingAlert } from "./atoms/PowerLoadingAlert";
 import { PowerStaleAlert } from "./atoms/PowerStaleAlert";
 import { PowerWaitingAlert } from "./atoms/PowerWaitingAlert";
 import { PowerSuccessAlert } from "./atoms/PowerSuccessAlert";
+import { PowerMissingAlert } from "./atoms/PowerMissingAlert";
 
 interface Props {
   inverterId: number;
@@ -21,6 +22,7 @@ export function InverterPower({ inverterId, serial }: Props) {
     error,
     hasWs,
     stale,
+    missingData,
     countdown,
     loadingInitial,
   } = useInverterPower({ inverterId, serial });
@@ -44,11 +46,13 @@ export function InverterPower({ inverterId, serial }: Props) {
 
       {stale && <PowerStaleAlert timestamp={formattedTimestamp} />}
 
+      {missingData && <PowerMissingAlert timestamp={formattedTimestamp} />}
+
       {!loadingInitial && !hasWs && power == null && (
         <PowerWaitingAlert countdown={countdown} />
       )}
 
-      {!error && !loadingInitial && !stale && (hasWs || power != null) && (
+      {!error && !loadingInitial && !stale && !missingData && (hasWs || power != null) && (
         <PowerSuccessAlert
           power={power ?? 0}
           timestamp={formattedTimestamp}

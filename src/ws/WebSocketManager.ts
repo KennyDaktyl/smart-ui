@@ -62,20 +62,71 @@ class WebSocketManager {
       return;
     }
 
-    // Raspberry heartbeat
-    if (msg.type === "raspberry_heartbeat") {
-      const hb = msg.data;
-      const set = this.raspberrySubs.get(hb.uuid);
-      if (set) set.forEach((cb) => cb(hb));
+    const heartbeat = this.parseHeartbeat(msg);
+    if (heartbeat) {
+      const set = this.raspberrySubs.get(heartbeat.uuid);
+      if (set) set.forEach((cb) => cb(heartbeat));
       return;
     }
 
+    // Raspberry heartbeat
     // Inverter update
     if (msg.serial_number && msg.active_power !== undefined) {
       const set = this.inverterSubs.get(msg.serial_number);
       if (set) set.forEach((cb) => cb(msg));
       return;
     }
+  }
+
+  /**
+   * Normalize heartbeat payload across different message envelopes.
+   * Supports legacy `{ type: "raspberry_heartbeat", data: {...} }`
+   * and new agent payload `{ subject: "...raspberry.<uuid>.heartbeat", payload: { event_type: "HEARTBEAT", payload: {...} } }`.
+   */
+  private parseHeartbeat(msg: any) {
+    if (!msg) return null;
+
+    // Legacy shape
+    if (msg.type === "raspberry_heartbeat" && msg.data) {
+      return this.normalizeHeartbeat(msg.data, msg.subject);
+    }
+
+    // New agent shape: subject string + nested payload
+    const subject = msg.subject || msg.topic || msg.type;
+    const envelope = msg.payload ?? msg.data;
+
+    if (typeof subject === "string" && subject.includes(".heartbeat") && envelope) {
+      const inner = envelope.payload ?? envelope; // event_type wrapper or direct payload
+
+      // Validate heartbeat event
+      if (envelope.event_type && envelope.event_type !== "HEARTBEAT") return null;
+
+      return this.normalizeHeartbeat(inner, subject);
+    }
+
+    return null;
+  }
+
+  private normalizeHeartbeat(payload: any, subject?: string) {
+    if (!payload) return null;
+
+    const subjectParts = typeof subject === "string" ? subject.split(".") : [];
+    const subjectUuid =
+      subjectParts.length >= 3 && subjectParts[1] === "raspberry" ? subjectParts[2] : undefined;
+
+    const hb = payload.payload ?? payload; // allow nested payload inside payload
+    const uuid = hb.uuid ?? subjectUuid;
+    if (!uuid) return null;
+
+    const timestamp = hb.timestamp ?? hb.sent_at;
+
+    return {
+      ...hb,
+      uuid,
+      sent_at:
+        hb.sent_at ??
+        (typeof timestamp === "number" ? new Date(timestamp * 1000).toISOString() : undefined),
+    };
   }
 
   private send(data: any) {
