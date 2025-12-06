@@ -17,7 +17,7 @@ class WebSocketManager {
   private pendingMessages: any[] = [];
 
   private constructor() {
-    this.connect();
+    // lazy connect; only when someone subscribes
   }
 
   public static getInstance() {
@@ -25,6 +25,13 @@ class WebSocketManager {
       WebSocketManager.instance = new WebSocketManager();
     }
     return WebSocketManager.instance;
+  }
+
+  private ensureConnected() {
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    this.connect();
   }
 
   private connect() {
@@ -45,7 +52,12 @@ class WebSocketManager {
       this.isConnected = false;
 
       this.reconnectTimeout = window.setTimeout(() => {
-        this.connect();
+        // reconnect only if we still have subscribers
+        if (this.hasSubscribers()) {
+          this.connect();
+        } else {
+          this.cleanupSocket();
+        }
       }, 3000);
     };
 
@@ -62,51 +74,87 @@ class WebSocketManager {
       return;
     }
 
-    const heartbeat = this.parseHeartbeat(msg);
-    if (heartbeat) {
-      const set = this.raspberrySubs.get(heartbeat.uuid);
-      if (set) set.forEach((cb) => cb(heartbeat));
-      return;
-    }
+    const wsEvent = this.extractEvent(msg);
+    if (!wsEvent) return;
 
-    // Raspberry heartbeat
-    // Inverter update
-    if (msg.serial_number && msg.active_power !== undefined) {
-      const set = this.inverterSubs.get(msg.serial_number);
-      if (set) set.forEach((cb) => cb(msg));
-      return;
+    console.log("[WS] incoming event:", wsEvent.event_type, wsEvent.payload);
+
+    switch (wsEvent.event_type) {
+      case "HEARTBEAT": {
+        const heartbeat = this.normalizeHeartbeat(wsEvent.payload, wsEvent.subject);
+        if (!heartbeat) return;
+
+        const set = this.raspberrySubs.get(heartbeat.uuid);
+        if (set) set.forEach((cb) => cb(heartbeat));
+        return;
+      }
+
+      case "POWER_READING": {
+        const inverter = this.normalizePowerReading(wsEvent.payload, wsEvent.subject);
+        if (!inverter) return;
+
+        const set = this.inverterSubs.get(inverter.serial_number);
+        if (set) set.forEach((cb) => cb(inverter));
+        return;
+      }
+
+      default:
+        return;
     }
   }
 
   /**
-   * Normalize heartbeat payload across different message envelopes.
-   * Supports legacy `{ type: "raspberry_heartbeat", data: {...} }`
-   * and new agent payload `{ subject: "...raspberry.<uuid>.heartbeat", payload: { event_type: "HEARTBEAT", payload: {...} } }`.
+   * Extract a normalized event with `event_type` and `payload`.
+   * Supports:
+   * - agent envelope `{ subject, payload: { event_type, payload } }`
+   * - backend envelope `{ event_type, payload }`
+   * - legacy heartbeat `{ type: "raspberry_heartbeat", data: {...} }`
    */
-  private parseHeartbeat(msg: any) {
+  private extractEvent(msg: any) {
     if (!msg) return null;
 
-    // Legacy shape
+    const subject = msg.subject || msg.topic || msg.type;
+    const envelope = msg.payload ?? msg.data ?? msg;
+
+    // Legacy heartbeat without event_type
     if (msg.type === "raspberry_heartbeat" && msg.data) {
-      return this.normalizeHeartbeat(msg.data, msg.subject);
+      return { event_type: "HEARTBEAT", payload: msg.data, subject };
     }
 
-    // New agent shape: subject string + nested payload
-    const subject = msg.subject || msg.topic || msg.type;
-    const envelope = msg.payload ?? msg.data;
+    // Envelope carries event_type
+    if (envelope && envelope.event_type) {
+      return {
+        event_type: envelope.event_type,
+        payload: envelope.payload ?? envelope.data ?? envelope,
+        subject,
+      };
+    }
 
-    if (typeof subject === "string" && subject.includes(".heartbeat") && envelope) {
-      const inner = envelope.payload ?? envelope; // event_type wrapper or direct payload
+    // Root carries event_type
+    if (msg.event_type) {
+      return {
+        event_type: msg.event_type,
+        payload: msg.payload ?? msg.data ?? msg,
+        subject,
+      };
+    }
 
-      // Validate heartbeat event
-      if (envelope.event_type && envelope.event_type !== "HEARTBEAT") return null;
-
-      return this.normalizeHeartbeat(inner, subject);
+    // Legacy inverter payload without event_type
+    if ((envelope && (envelope.active_power !== undefined || envelope.serial_number || envelope.serial))) {
+      return {
+        event_type: "POWER_READING",
+        payload: envelope,
+        subject,
+      };
     }
 
     return null;
   }
 
+  /**
+   * Normalize heartbeat payload across different message envelopes.
+   * Supports nested payload and subject-derived uuid.
+   */
   private normalizeHeartbeat(payload: any, subject?: string) {
     if (!payload) return null;
 
@@ -129,6 +177,29 @@ class WebSocketManager {
     };
   }
 
+  private normalizePowerReading(payload: any, subject?: string) {
+    if (!payload) return null;
+
+    const data = payload.payload ?? payload;
+    const subjectSerial = this.extractSerialFromSubject(subject);
+    const serial = data.serial_number ?? data.serial ?? subjectSerial;
+
+    if (!serial) return null;
+    if (data.active_power === undefined) return null;
+
+    return { ...data, serial_number: serial };
+  }
+
+  private extractSerialFromSubject(subject?: string) {
+    if (!subject || typeof subject !== "string") return undefined;
+
+    const parts = subject.split(".");
+    const idx = parts.findIndex((p) => p === "inverter");
+    if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+
+    return undefined;
+  }
+
   private send(data: any) {
     if (this.ws && this.isConnected) {
       this.ws.send(JSON.stringify(data));
@@ -141,15 +212,14 @@ class WebSocketManager {
   // Raspberry subscriptions
   // ============================================================
   public subscribeRaspberry(uuid: string, cb: RaspberryCallback) {
+    this.ensureConnected();
+
     if (!this.raspberrySubs.has(uuid)) {
       this.raspberrySubs.set(uuid, new Set());
     }
     this.raspberrySubs.get(uuid)!.add(cb);
 
-    this.send({
-      action: "subscribe_many",
-      uuids: Array.from(this.raspberrySubs.keys()),
-    });
+    this.syncRaspberrySubs();
   }
 
   public unsubscribeRaspberry(uuid: string, cb: RaspberryCallback) {
@@ -158,20 +228,22 @@ class WebSocketManager {
 
     set.delete(cb);
 
+    let removed: string[] | undefined;
     if (set.size === 0) {
       this.raspberrySubs.delete(uuid);
+      removed = [uuid];
     }
 
-    this.send({
-      action: "subscribe_many",
-      uuids: Array.from(this.raspberrySubs.keys()),
-    });
+    this.syncRaspberrySubs(removed);
+    this.maybeClose();
   }
 
   // ============================================================
   // Inverter subscriptions — FIXED
   // ============================================================
   public subscribeInverter(serial: string, cb: InverterCallback) {
+    this.ensureConnected();
+
     if (!this.inverterSubs.has(serial)) {
       this.inverterSubs.set(serial, new Set());
     }
@@ -198,14 +270,13 @@ class WebSocketManager {
         serial
       });
     }
+
+    this.maybeClose();
   }
 
   private resubscribeAll() {
     // raspberries
-    this.send({
-      action: "subscribe_many",
-      uuids: Array.from(this.raspberrySubs.keys()),
-    });
+    this.syncRaspberrySubs();
 
     // inverters
     for (const serial of this.inverterSubs.keys()) {
@@ -214,6 +285,57 @@ class WebSocketManager {
         serial
       });
     }
+  }
+
+  private syncRaspberrySubs(removed?: string[]) {
+    const uuids = Array.from(this.raspberrySubs.keys());
+
+    // Always send current snapshot
+    this.send({
+      action: "subscribe_many",
+      uuids,
+    });
+
+    // Be explicit about removals so the server can drop stale subs
+    if (removed && removed.length > 0) {
+      this.send({
+        action: "unsubscribe_many",
+        uuids: removed,
+      });
+    } else if (uuids.length === 0) {
+      this.send({
+        action: "unsubscribe_many",
+        uuids: [],
+      });
+    }
+  }
+
+  private hasSubscribers() {
+    return this.raspberrySubs.size > 0 || this.inverterSubs.size > 0;
+  }
+
+  private maybeClose() {
+    if (!this.hasSubscribers()) {
+      this.cleanupSocket();
+    }
+  }
+
+  private cleanupSocket() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onclose = null;
+      this.ws.onmessage = null;
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        this.ws.close();
+      }
+      this.ws = null;
+    }
+    this.isConnected = false;
+    this.pendingMessages = [];
   }
 }
 

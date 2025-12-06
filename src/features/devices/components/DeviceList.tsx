@@ -36,24 +36,15 @@ export function DeviceList({
         const device = mergedDevices.find((d) => d.device_number === slotIndex);
 
         return (
-          <Stack spacing={2} mt={2}>
-            {Array.from({ length: maxSlots }).map((_, idx) => {
-              const slotIndex = idx + 1;
-              const device = mergedDevices.find((d) => d.device_number === slotIndex);
-        
-              return (
-                <DeviceSlotWrapper key={slotIndex}>
-                  <DeviceSlot
-                    raspberryId={raspberryId}
-                    device={device}
-                    slotIndex={slotIndex}
-                    liveInitialized={liveInitialized}
-                    onRefresh={onRefresh}
-                  />
-                </DeviceSlotWrapper>
-              );
-            })}
-          </Stack>
+          <DeviceSlotWrapper key={slotIndex}>
+            <DeviceSlot
+              raspberryId={raspberryId}
+              device={device}
+              slotIndex={slotIndex}
+              liveInitialized={liveInitialized}
+              onRefresh={onRefresh}
+            />
+          </DeviceSlotWrapper>
         );
       })}
     </Stack>
