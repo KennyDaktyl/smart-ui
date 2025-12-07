@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 
 export function useRaspberryListLive(
@@ -7,16 +7,29 @@ export function useRaspberryListLive(
 ) {
   const cbRef = useRef(onUpdate);
   cbRef.current = onUpdate;
+  const handler = useCallback((hb: any) => cbRef.current(hb), []);
+  const prevUuidsRef = useRef<string[]>([]);
 
   useEffect(() => {
-    if (!uuids || uuids.length === 0) return;
+    const prev = prevUuidsRef.current;
+    const prevSet = new Set(prev);
+    const nextSet = new Set(uuids);
 
-    const handler = (hb: any) => cbRef.current(hb);
+    const added = uuids.filter((id) => !prevSet.has(id));
+    const removed = prev.filter((id) => !nextSet.has(id));
 
-    uuids.forEach((id) => wsManager.subscribeRaspberry(id, handler));
+    if (added.length === 0 && removed.length === 0) return;
 
+    added.forEach((id) => wsManager.subscribeRaspberry(id, handler));
+    removed.forEach((id) => wsManager.unsubscribeRaspberry(id, handler));
+
+    prevUuidsRef.current = [...uuids];
+  }, [uuids, handler]);
+
+  useEffect(() => {
     return () => {
-      uuids.forEach((id) => wsManager.unsubscribeRaspberry(id, handler));
+      prevUuidsRef.current.forEach((id) => wsManager.unsubscribeRaspberry(id, handler));
+      prevUuidsRef.current = [];
     };
-  }, [uuids]);
+  }, [handler]);
 }

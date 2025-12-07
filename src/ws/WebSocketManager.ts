@@ -12,6 +12,7 @@ class WebSocketManager {
   private raspberrySubs = new Map<string, Set<RaspberryCallback>>();
   private inverterSubs = new Map<string, Set<InverterCallback>>();
 
+  private lastSentRaspberryUuids: string[] = [];
   private isConnected = false;
 
   private pendingMessages: any[] = [];
@@ -38,6 +39,7 @@ class WebSocketManager {
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
+      console.info("[WS] connected to", WS_URL);
       this.isConnected = true;
 
       for (const msg of this.pendingMessages) {
@@ -50,6 +52,7 @@ class WebSocketManager {
 
     this.ws.onclose = () => {
       this.isConnected = false;
+      this.lastSentRaspberryUuids = [];
 
       this.reconnectTimeout = window.setTimeout(() => {
         // reconnect only if we still have subscribers
@@ -202,9 +205,29 @@ class WebSocketManager {
 
   private send(data: any) {
     if (this.ws && this.isConnected) {
+      this.logSend(data);
       this.ws.send(JSON.stringify(data));
     } else {
       this.pendingMessages.push(data);
+    }
+  }
+
+  private logSend(data: any) {
+    if (!data || typeof data !== "object") return;
+    const { action } = data as { action?: string };
+    switch (action) {
+      case "subscribe_many":
+        console.info(`[WS] subscribe_many ${data.uuids?.length ?? 0}:`, data.uuids ?? []);
+        break;
+      case "unsubscribe_many":
+        console.info(`[WS] unsubscribe_many ${data.uuids?.length ?? 0}:`, data.uuids ?? []);
+        break;
+      case "subscribe_inverter":
+      case "unsubscribe_inverter":
+        console.info(`[WS] ${action}:`, data.serial);
+        break;
+      default:
+        console.info("[WS] send:", data);
     }
   }
 
@@ -288,26 +311,33 @@ class WebSocketManager {
   }
 
   private syncRaspberrySubs(removed?: string[]) {
-    const uuids = Array.from(this.raspberrySubs.keys());
+    const uuids = Array.from(this.raspberrySubs.keys()).sort();
+    const prev = this.lastSentRaspberryUuids;
+    const removedUuids = removed ?? prev.filter((id) => !uuids.includes(id));
+    const hasChange = !this.areSameStringSets(uuids, prev);
 
-    // Always send current snapshot
-    this.send({
-      action: "subscribe_many",
-      uuids,
-    });
+    if (hasChange) {
+      this.send({
+        action: "subscribe_many",
+        uuids,
+      });
+      this.lastSentRaspberryUuids = uuids;
+    }
 
     // Be explicit about removals so the server can drop stale subs
-    if (removed && removed.length > 0) {
+    if (removedUuids.length > 0) {
       this.send({
         action: "unsubscribe_many",
-        uuids: removed,
-      });
-    } else if (uuids.length === 0) {
-      this.send({
-        action: "unsubscribe_many",
-        uuids: [],
+        uuids: removedUuids,
       });
     }
+  }
+
+  private areSameStringSets(a: string[], b: string[]) {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((val, idx) => val === sortedB[idx]);
   }
 
   private hasSubscribers() {
@@ -335,6 +365,7 @@ class WebSocketManager {
       this.ws = null;
     }
     this.isConnected = false;
+    this.lastSentRaspberryUuids = [];
     this.pendingMessages = [];
   }
 }
