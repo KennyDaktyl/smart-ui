@@ -1,5 +1,5 @@
 // src/pages/RaspberriesPage.tsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Box, Typography, Alert, CircularProgress } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 
@@ -14,6 +14,9 @@ import { RaspberryCard } from "@/features/raspberries/components/RaspberryCard";
 import { RaspberryWithDevices } from "@/features/raspberries/types/raspberries";
 import { DeviceList } from "@/features/devices/components/DeviceList";
 
+const HEARTBEAT_TIMEOUT_MS = 15000; // heartbeats every 5s; mark offline if nothing arrives for 15s
+type TimerId = ReturnType<typeof setTimeout>;
+
 
 export default function RaspberriesPage() {
   const { token } = useAuth();
@@ -23,13 +26,41 @@ export default function RaspberriesPage() {
   const [availableInverters, setAvailableInverters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const offlineTimers = useRef<Record<string, TimerId>>({});
 
   const uuids = useMemo(() => {
     if (loading) return [];
     return items.map((i) => i.rpi.uuid);
   }, [loading, items]);
 
+  const clearOfflineTimer = useCallback((uuid: string) => {
+    const timerId = offlineTimers.current[uuid];
+    if (timerId) {
+      clearTimeout(timerId);
+      delete offlineTimers.current[uuid];
+    }
+  }, []);
+
+  const scheduleOfflineMark = useCallback((uuid: string) => {
+    clearOfflineTimer(uuid);
+    offlineTimers.current[uuid] = setTimeout(() => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.rpi.uuid === uuid
+            ? {
+                ...item,
+                liveInitialized: true,
+                is_online: false,
+                live: [],
+              }
+            : item
+        )
+      );
+    }, HEARTBEAT_TIMEOUT_MS);
+  }, [clearOfflineTimer]);
+
   const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
+    scheduleOfflineMark(hb.uuid);
 
     setItems((prev) =>
       prev.map((item) =>
@@ -44,7 +75,7 @@ export default function RaspberriesPage() {
           : item
       )
     );
-  }, []);
+  }, [scheduleOfflineMark]);
 
   useRaspberryListLive(uuids, handleHeartbeat);
 
@@ -78,6 +109,7 @@ export default function RaspberriesPage() {
       }));
 
       setItems(merged);
+      merged.forEach((item) => scheduleOfflineMark(item.rpi.uuid));
     } catch (err) {
       console.error("Failed to load raspberries:", err);
       setError(t("raspberries.fetchError"));
@@ -89,6 +121,22 @@ export default function RaspberriesPage() {
   useEffect(() => {
     load();
   }, [token]);
+
+  useEffect(() => {
+    const active = new Set(uuids);
+    Object.keys(offlineTimers.current).forEach((uuid) => {
+      if (!active.has(uuid)) {
+        clearOfflineTimer(uuid);
+      }
+    });
+  }, [uuids, clearOfflineTimer]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(offlineTimers.current).forEach((timerId) => clearTimeout(timerId));
+      offlineTimers.current = {};
+    };
+  }, []);
 
   if (loading)
     return (
@@ -121,6 +169,7 @@ export default function RaspberriesPage() {
                 devices={item.devices}
                 live={item.live}
                 liveInitialized={item.liveInitialized}
+                isOnline={item.is_online}
                 raspberryId={item.rpi.id}
                 onRefresh={load}
               />

@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 interface Props {
   slotIndex: number;
   onAdd: () => void;
+  disabled?: boolean;
+  helperText?: string;
 }
 
-export function EmptyDeviceSlot({ slotIndex, onAdd }: Props) {
+export function EmptyDeviceSlot({ slotIndex, onAdd, disabled, helperText }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -15,7 +17,13 @@ export function EmptyDeviceSlot({ slotIndex, onAdd }: Props) {
         {t("devices.emptySlot", { slot: slotIndex })}
       </Typography>
 
-      <Button variant="outlined" size="small" onClick={onAdd}>
+      {helperText && (
+        <Typography variant="caption" color="text.secondary">
+          {helperText}
+        </Typography>
+      )}
+
+      <Button variant="outlined" size="small" onClick={onAdd} disabled={disabled}>
         {t("devices.addDevice")}
       </Button>
     </Stack>

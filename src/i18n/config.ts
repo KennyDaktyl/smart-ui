@@ -89,6 +89,8 @@ const resources = {
         autoOn: "Włączony",
         autoOff: "Wyłączony",
         deleteConfirm: "Czy usunąć urządzenie \"{{name}}\"?",
+        addDisabledOffline: "Dodawanie urządzeń wymaga połączenia Raspberry.",
+        addDisabledWaiting: "Czekamy na pierwsze połączenie urządzenia...",
         form: {
           nameLabel: "Nazwa",
           powerLabel: "Moc (kW)",
@@ -246,6 +248,8 @@ const resources = {
         autoOn: "On",
         autoOff: "Off",
         deleteConfirm: "Delete device \"{{name}}\"?",
+        addDisabledOffline: "Raspberry must be online to add devices.",
+        addDisabledWaiting: "Waiting for the first heartbeat...",
         form: {
           nameLabel: "Name",
           powerLabel: "Power (kW)",

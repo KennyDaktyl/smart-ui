@@ -92,11 +92,14 @@ export function useDeviceSlot({
       setToggling(true);
 
       try {
-        await deviceApi.setManualState(token, device.id, checked);
+        const response = await deviceApi.setManualState(token, device.id, checked);
+        const isSuccess = response?.status >= 200 && response.status < 300;
 
-        if (device.mode === "MANUAL") {
+        if (device.mode === "MANUAL" && isSuccess) {
           setLocalIsOn(checked);
         }
+      } catch (error) {
+        console.error("Failed to change manual state", error);
       } finally {
         setToggling(false);
       }

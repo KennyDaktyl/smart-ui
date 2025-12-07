@@ -11,6 +11,7 @@ interface DeviceListProps {
   devices: any[];
   live: any[];
   liveInitialized: boolean;
+  isOnline: boolean;
   raspberryId: number;
   onRefresh: () => void;
 }
@@ -19,6 +20,7 @@ export function DeviceList({
   devices,
   live,
   liveInitialized,
+  isOnline,
   raspberryId,
   onRefresh,
 }: DeviceListProps) {
@@ -42,6 +44,7 @@ export function DeviceList({
               device={device}
               slotIndex={slotIndex}
               liveInitialized={liveInitialized}
+              isOnline={isOnline}
               onRefresh={onRefresh}
             />
           </DeviceSlotWrapper>

@@ -2,12 +2,14 @@ import { DeviceForm } from "./DeviceForm";
 import { DeviceBox } from "./DeviceBox";
 import { useDeviceSlot } from "../hooks/useDeviceSlot";
 import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
+import { useTranslation } from "react-i18next";
 
 interface DeviceSlotProps {
   raspberryId: number;
   device?: any;
   slotIndex: number;
   liveInitialized: boolean;
+  isOnline: boolean;
   onRefresh: () => void;
 }
 
@@ -26,10 +28,23 @@ export function DeviceSlot(props: DeviceSlotProps) {
     handleToggle,
   } = useDeviceSlot(props);
 
-  const { device, slotIndex } = props;
+  const { t } = useTranslation();
+  const { device, slotIndex, liveInitialized, isOnline } = props;
+
+  const canAddDevice = liveInitialized && isOnline;
+  const addHelperText = !canAddDevice
+    ? t(liveInitialized ? "devices.addDisabledOffline" : "devices.addDisabledWaiting")
+    : undefined;
 
   if (!device && !editing) {
-    return <EmptyDeviceSlot slotIndex={slotIndex} onAdd={() => setEditing(true)} />;
+    return (
+      <EmptyDeviceSlot
+        slotIndex={slotIndex}
+        onAdd={() => setEditing(true)}
+        disabled={!canAddDevice}
+        helperText={addHelperText}
+      />
+    );
   }
 
   if (editing) {
