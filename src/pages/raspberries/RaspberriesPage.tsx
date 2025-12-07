@@ -30,7 +30,6 @@ export default function RaspberriesPage() {
   }, [loading, items]);
 
   const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
-    console.log("📡 Heartbeat:", hb);
 
     setItems((prev) =>
       prev.map((item) =>
