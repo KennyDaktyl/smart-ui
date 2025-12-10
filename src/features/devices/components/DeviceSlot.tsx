@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 
 interface DeviceSlotProps {
   raspberryId: number;
+  raspberryUuid: string;
+  raspberryName: string;
   device?: any;
   slotIndex: number;
   liveInitialized: boolean;
@@ -29,7 +31,7 @@ export function DeviceSlot(props: DeviceSlotProps) {
   } = useDeviceSlot(props);
 
   const { t } = useTranslation();
-  const { device, slotIndex, liveInitialized, isOnline } = props;
+  const { device, slotIndex, liveInitialized, isOnline, raspberryName, raspberryUuid } = props;
 
   const canAddDevice = liveInitialized && isOnline;
   const addHelperText = !canAddDevice
@@ -71,6 +73,9 @@ export function DeviceSlot(props: DeviceSlotProps) {
       online={effectiveOnline}
       isOn={effectiveIsOn}
       waitingForState={waitingForState}
+      raspberryName={raspberryName}
+      raspberryUuid={raspberryUuid}
+      raspberryId={props.raspberryId}
       slotIndex={slotIndex}
       toggling={toggling}
       locked={locked}

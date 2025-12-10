@@ -51,16 +51,28 @@ export function RaspberryCard({
   };
 
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
+  const showPower = assigned?.serial_number && assigned?.id;
+
+  const lastContactLabel =
+    liveInitialized && lastSeen
+      ? t("raspberries.lastContact", {
+          time: new Date(lastSeen).toLocaleTimeString(locale),
+        })
+      : t("raspberries.lastContactWaiting");
 
   return (
     <Box
       sx={{
-        p: 2,
+        p: 2.5,
         borderRadius: 2,
-        border: "1px solid rgba(15,139,111,0.15)",
-        background: "linear-gradient(135deg, #ffffff 0%, #f5fbf7 100%)",
+        border: "1px solid rgba(15,139,111,0.18)",
+        background: "linear-gradient(135deg, #ffffff 0%, #f6fbf8 100%)",
         boxShadow: "0 16px 32px rgba(0,0,0,0.16)",
         color: "#0d1b2a",
+        minHeight: 340,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
       }}
     >
       <RaspberryHeader
@@ -69,22 +81,26 @@ export function RaspberryCard({
         liveInitialized={liveInitialized}
       />
 
-      {liveInitialized && lastSeen && (
-        <Typography variant="caption" color="text.secondary">
-          {t("raspberries.lastContact", {
-            time: new Date(lastSeen).toLocaleTimeString(locale),
-          })}
-        </Typography>
-      )}
+      <Typography variant="caption" sx={{ color: "#6b7280" }}>
+        {lastContactLabel}
+      </Typography>
 
       <RaspberryInfo
         version={rpi.software_version}
         maxDevices={rpi.max_devices}
       />
 
-      {assigned?.serial_number && assigned?.id && (
-        <InverterPower inverterId={assigned.id} serial={assigned.serial_number} />
-      )}
+      <Box sx={{ mt: 1, minHeight: 118, display: "flex", alignItems: "stretch" }}>
+        {showPower ? (
+          <Box sx={{ flex: 1 }}>
+            <InverterPower inverterId={assigned!.id} serial={assigned!.serial_number} />
+          </Box>
+        ) : (
+          <Alert severity="info" sx={{ flex: 1, alignItems: "center" }}>
+            {t("raspberries.noPowerData")}
+          </Alert>
+        )}
+      </Box>
 
       <RaspberryInverterSelect
         value={selected}

@@ -5,7 +5,9 @@ import {
   CircularProgress,
   Switch,
   IconButton,
+  Button,
 } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -17,6 +19,9 @@ interface DeviceBoxProps {
   online: boolean;
   isOn: boolean;
   waitingForState: boolean;
+  raspberryName: string;
+  raspberryUuid: string;
+  raspberryId: number;
   slotIndex: number;
   toggling: boolean;
 
@@ -32,6 +37,9 @@ export function DeviceBox({
   online,
   isOn,
   waitingForState,
+  raspberryName,
+  raspberryUuid,
+  raspberryId,
   slotIndex,
   toggling,
   onEdit,
@@ -41,25 +49,31 @@ export function DeviceBox({
 }: DeviceBoxProps) {
   const { t } = useTranslation();
   const autoMode = device.mode !== "MANUAL";
+  const statusColor = online ? "#0f8b6f" : "#9ca3af";
 
   return (
     <Box
       sx={{
         p: 2,
         borderRadius: 2,
-        border: "1px solid rgba(15,139,111,0.15)",
-        bgcolor: "linear-gradient(135deg, #ffffff 0%, #f5fbf7 100%)",
-        boxShadow: "0 14px 30px rgba(0,0,0,0.12)",
+        border: "1px solid rgba(226, 242, 236, 0.7)",
+        background: "linear-gradient(135deg, #f9fbfd 0%, #eef5f3 100%)",
+        boxShadow: "0 12px 26px rgba(0,0,0,0.14)",
         color: "#0d1b2a",
       }}
     >
       {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6" fontWeight={600}>
-          {device.name}
-        </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Stack spacing={0.25}>
+          <Typography variant="h6" fontWeight={600}>
+            {device.name}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#4b5563" }}>
+            {t("devices.parentLabel", { name: raspberryName })}
+          </Typography>
+        </Stack>
 
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
           <IconButton onClick={onEdit} size="small">
             <EditIcon fontSize="small" />
           </IconButton>
@@ -93,13 +107,19 @@ export function DeviceBox({
             </Typography>
           </Stack>
         ) : (
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            color={online ? "green" : "red"}
-          >
-            {online ? t("common.online") : t("common.offline")}
-          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: statusColor,
+              }}
+            />
+            <Typography variant="body2" fontWeight={600} sx={{ color: statusColor }}>
+              {online ? t("common.online") : t("common.offline")}
+            </Typography>
+          </Stack>
         )}
 
         {/* =============================================== */}
@@ -139,6 +159,26 @@ export function DeviceBox({
           </Stack>
         )}
       </Stack>
+
+      <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          component={RouterLink}
+          to={`/raspberries/${raspberryId}/devices/${device.id}`}
+          state={{ device, raspberryName, raspberryId }}
+          size="small"
+          variant="contained"
+          sx={{
+            textTransform: "none",
+            fontWeight: 700,
+            borderRadius: 999,
+            background: "linear-gradient(135deg, #0f8b6f, #12b886)",
+            boxShadow: "0 8px 16px rgba(15,139,111,0.35)",
+            "&:hover": { background: "linear-gradient(135deg, #0c745d, #0f9b72)" },
+          }}
+        >
+          {t("devices.detailsLink")}
+        </Button>
+      </Box>
     </Box>
   );
 }

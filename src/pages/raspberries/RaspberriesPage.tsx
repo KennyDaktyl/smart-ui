@@ -1,6 +1,6 @@
 // src/pages/RaspberriesPage.tsx
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box, Typography, Alert, CircularProgress } from "@mui/material";
+import { Box, Typography, Alert, CircularProgress, Stack } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -157,22 +157,71 @@ export default function RaspberriesPage() {
         {items.length > 0 ? (
           items.map((item) => (
             <Grid key={item.rpi.uuid} size={{ xs: 12, md: 6, lg: 4 }}>
-              <RaspberryCard
-                rpi={item.rpi}
-                isOnline={item.is_online}
-                lastSeen={item.last_seen}
-                liveInitialized={item.liveInitialized}
-                availableInverters={availableInverters}
-              />
+              <Box
+                sx={{
+                  borderRadius: 3,
+                  border: "1px solid rgba(15,139,111,0.22)",
+                  background: "linear-gradient(145deg, #0b1828 0%, #0f2a37 30%, #0f8b6f 180%)",
+                  boxShadow: "0 24px 48px rgba(0,0,0,0.3)",
+                  p: { xs: 1.5, md: 2 },
+                  color: "#e2f2ec",
+                }}
+              >
+                <Box
+                  sx={{
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, #f8fbf9 100%)",
+                    borderRadius: 2,
+                    p: { xs: 1.5, md: 2 },
+                    boxShadow: "0 14px 30px rgba(0,0,0,0.22)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <RaspberryCard
+                    rpi={item.rpi}
+                    isOnline={item.is_online}
+                    lastSeen={item.last_seen}
+                    liveInitialized={item.liveInitialized}
+                    availableInverters={availableInverters}
+                  />
+                </Box>
 
-              <DeviceList
-                devices={item.devices}
-                live={item.live}
-                liveInitialized={item.liveInitialized}
-                isOnline={item.is_online}
-                raspberryId={item.rpi.id}
-                onRefresh={load}
-              />
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: { xs: 1.5, md: 2 },
+                    borderRadius: 2,
+                    border: "1px dashed rgba(226, 242, 236, 0.5)",
+                    background: "rgba(226, 242, 236, 0.05)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={1.5}
+                    spacing={1}
+                  >
+                    <Typography variant="subtitle1" sx={{ color: "#e2f2ec" }}>
+                      {t("devices.sectionTitle", { name: item.rpi.name })}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "rgba(226,242,236,0.8)" }}>
+                      {t("devices.sectionHint")}
+                    </Typography>
+                  </Stack>
+
+                  <DeviceList
+                    devices={item.devices}
+                    live={item.live}
+                    liveInitialized={item.liveInitialized}
+                    isOnline={item.is_online}
+                    raspberryId={item.rpi.id}
+                    raspberryUuid={item.rpi.uuid}
+                    raspberryName={item.rpi.name}
+                    onRefresh={load}
+                  />
+                </Box>
+              </Box>
             </Grid>
           ))
         ) : (

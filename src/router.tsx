@@ -6,6 +6,7 @@ import MyInstallationsPage from "./pages/installations/InstallationsPage";
 import UsersListPage from "./pages/admin/UsersListPage";
 import { AuthContextProps } from "./context/AuthContext";
 import RaspberriesPage from "./pages/raspberries/RaspberriesPage";
+import DeviceDetailsPage from "./pages/devices/DeviceDetailsPage";
 
 const routes = (auth: AuthContextProps | null) => [
   {
@@ -33,6 +34,14 @@ const routes = (auth: AuthContextProps | null) => [
     element: (
       <ProtectedRoute>
         <RaspberriesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/raspberries/:raspberryId/devices/:id",
+    element: (
+      <ProtectedRoute>
+        <DeviceDetailsPage />
       </ProtectedRoute>
     ),
   },

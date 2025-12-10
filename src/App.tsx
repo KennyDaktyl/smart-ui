@@ -13,6 +13,7 @@ import AppHeader from "./layout/AppHeader";
 import HuaweiPage from "./pages/user/HuaweiPage";
 import AccountPage from "./pages/user/AccountPage";
 import RaspberriesPage from "./pages/raspberries/RaspberriesPage";
+import DeviceDetailsPage from "./pages/devices/DeviceDetailsPage";
 
 export default function App() {
   const auth = useContext(AuthContext);
@@ -70,6 +71,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <RaspberriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/raspberries/:raspberryId/devices/:id"
+            element={
+              <ProtectedRoute>
+                <DeviceDetailsPage />
               </ProtectedRoute>
             }
           />
