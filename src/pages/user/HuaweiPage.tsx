@@ -170,7 +170,17 @@ export default function HuaweiPage() {
       {error && <Alert severity="error">{error}</Alert>}
 
       {/* --- CREDENTIALS SECTION --- */}
-      <Paper sx={{ p: 3, mb: 4 }}>
+      <Paper
+        sx={{
+          p: { xs: 2.5, md: 3 },
+          mb: 4,
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+          backgroundColor: "rgba(255,255,255,0.98)",
+          boxShadow: "0 14px 30px rgba(0,0,0,0.16)",
+          border: "1px solid rgba(15,139,111,0.08)",
+        }}
+      >
         {!user?.huawei_username || showEditForm ? (
           <>
             {!user?.huawei_username && (

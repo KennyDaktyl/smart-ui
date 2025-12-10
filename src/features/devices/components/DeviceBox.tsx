@@ -62,8 +62,7 @@ export function DeviceBox({
         color: "#0d1b2a",
       }}
     >
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Stack spacing={0.25}>
           <Typography variant="h6" fontWeight={600}>
             {device.name}
@@ -98,66 +97,91 @@ export function DeviceBox({
         </Typography>
       )}
 
-      <Stack direction="row" alignItems="center" spacing={2} mt={2}>
-        {waitingForState ? (
-          <Stack direction="row" spacing={1} alignItems="center">
-            <CircularProgress size={18} />
-            <Typography variant="body2" sx={{ color: "#405166" }}>
-              {t("devices.waiting")}
-            </Typography>
-          </Stack>
-        ) : (
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Box
-              sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: statusColor,
-              }}
-            />
-            <Typography variant="body2" fontWeight={600} sx={{ color: statusColor }}>
-              {online ? t("common.online") : t("common.offline")}
-            </Typography>
-          </Stack>
-        )}
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        mt={2}
+        sx={{ flexWrap: { xs: "wrap", sm: "nowrap" }, rowGap: 1, minHeight: 36 }}
+      >
+        <Box sx={{ minHeight: 28, display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
+          {waitingForState ? (
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ flexWrap: "nowrap", minWidth: 0, flex: 1 }}
+            >
+              <CircularProgress size={18} />
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "#405166",
+                  lineHeight: 1.3,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: { xs: "100%", sm: 220 },
+                }}
+              >
+                {t("devices.waiting")}
+              </Typography>
+            </Stack>
+          ) : (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  backgroundColor: statusColor,
+                }}
+              />
+              <Typography variant="body2" fontWeight={600} sx={{ color: statusColor }}>
+                {online ? t("common.online") : t("common.offline")}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
 
         {/* =============================================== */}
         {/* MANUAL — SWITCH */}
         {/* =============================================== */}
-        {!autoMode ? (
-          waitingForState ? (
-            <CircularProgress size={18} />
+        <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          {!autoMode ? (
+            waitingForState ? (
+              <CircularProgress size={18} />
+            ) : (
+              <Switch
+                checked={isOn}
+                disabled={!online || toggling || locked}
+                onChange={(e) => onToggle(e.target.checked)}
+              />
+            )
           ) : (
-            <Switch
-              checked={isOn}
-              disabled={!online || toggling || locked}
-              onChange={(e) => onToggle(e.target.checked)}
-            />
-          )
-        ) : (
-          /* =============================================== */
-          /* AUTO MODE — IKONKA + STAN                      */
-          /* =============================================== */
-          <Stack direction="row" spacing={1} alignItems="center">
-            <PowerSettingsNewIcon
-              fontSize="small"
-              color={isOn ? "success" : "disabled"}
-            />
+            /* =============================================== */
+            /* AUTO MODE — IKONKA + STAN                      */
+            /* =============================================== */
+            <Stack direction="row" spacing={1} alignItems="center">
+              <PowerSettingsNewIcon
+                fontSize="small"
+                color={isOn ? "success" : "disabled"}
+              />
 
-            <Typography
-              variant="body2"
-              sx={{
-                px: 1.2,
-                py: 0.5,
-                bgcolor: isOn ? "#c8f7c5" : "#eee",
-                borderRadius: 2,
-              }}
-            >
-              ⚡ {isOn ? t("devices.autoOn") : t("devices.autoOff")}
-            </Typography>
-          </Stack>
-        )}
+              <Typography
+                variant="body2"
+                sx={{
+                  px: 1.2,
+                  py: 0.5,
+                  bgcolor: isOn ? "#c8f7c5" : "#eee",
+                  borderRadius: 2,
+                }}
+              >
+                ⚡ {isOn ? t("devices.autoOn") : t("devices.autoOff")}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
       </Stack>
 
       <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>

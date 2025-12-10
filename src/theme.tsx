@@ -67,10 +67,9 @@ export const solarTheme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "saturate(180%) blur(12px)",
-          border: "1px solid rgba(255,255,255,0.3)",
-          boxShadow: "0 18px 40px rgba(7,17,31,0.2)",
+          background: "rgba(255,255,255,0.98)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          boxShadow: "0 18px 40px rgba(7,17,31,0.18)",
           color: "#0d1b2a",
         },
       },
@@ -206,7 +205,7 @@ export const globalStyles = (
         minHeight: "100vh",
       },
       ".glass-panel": {
-        background: "rgba(255,255,255,0.9)",
+        background: "rgba(255,255,255,0.98)",
         borderRadius: 14,
         border: "1px solid rgba(15,139,111,0.12)",
         boxShadow: "0 16px 38px rgba(0,0,0,0.12)",

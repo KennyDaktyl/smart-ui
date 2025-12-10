@@ -9,11 +9,8 @@ export function DeviceSlotWrapper({ children }: Props) {
   return (
     <Box
       sx={{
-        border: "1px solid rgba(15,139,111,0.18)",
+        p: { xs: 0, sm: 1 },
         borderRadius: 2,
-        p: 2,
-        bgcolor: "rgba(255,255,255,0.92)",
-        boxShadow: "0 12px 26px rgba(0,0,0,0.12)",
         color: "#0d1b2a",
       }}
     >

@@ -63,7 +63,18 @@ export default function HuaweiCredentialsForm({ token, onSaved }: Props) {
   };
 
   return (
-    <Paper elevation={4} sx={{ p: 4, mt: 3 }}>
+    <Paper
+      elevation={4}
+      sx={{
+        p: { xs: 2.5, md: 4 },
+        mt: 3,
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
+        backgroundColor: "rgba(255,255,255,0.98)",
+        boxShadow: "0 14px 30px rgba(0,0,0,0.16)",
+        border: "1px solid rgba(15,139,111,0.08)",
+      }}
+    >
       <Typography variant="h6" mb={2}>
         {t("huaweiCredentials.title")}
       </Typography>

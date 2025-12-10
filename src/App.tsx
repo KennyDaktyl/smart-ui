@@ -32,9 +32,9 @@ export default function App() {
 
       <Box
         sx={{
-          px: { xs: 1.5, sm: 3 },
+          px: { xs: 0.75, sm: 2, md: 3 },
           pb: 5,
-          maxWidth: 1280,
+          maxWidth: { xs: "100%", lg: 1320 },
           mx: "auto",
           width: "100%",
         }}

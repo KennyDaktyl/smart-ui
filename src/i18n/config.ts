@@ -103,8 +103,8 @@ const resources = {
           loadError: "Nie udało się pobrać urządzenia.",
           eventsError: "Nie udało się pobrać telemetrii urządzenia.",
           breadcrumb: "Raspberry {{raspberryId}} / Urządzenie {{device}}",
-          raspberryLabel: "Powiązane z: {{name}}",
-          raspberryFallback: "Powiązane Raspberry",
+          raspberryLabel: "Należy do: {{name}}",
+          raspberryFallback: "Należy do Raspberry",
           uuid: "UUID: {{uuid}}",
           subtitle: "ID urządzenia: {{id}}",
           tabs: {

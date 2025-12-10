@@ -146,7 +146,7 @@ export default function RaspberriesPage() {
     );
 
   return (
-    <Box p={3}>
+    <Box p={{ xs: 1.5, md: 3 }}>
       <Typography variant="h4" mb={3}>
         {t("raspberries.title")}
       </Typography>
@@ -159,21 +159,38 @@ export default function RaspberriesPage() {
             <Grid key={item.rpi.uuid} size={{ xs: 12, md: 6, lg: 4 }}>
               <Box
                 sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: { xs: 1.25, md: 2 },
                   borderRadius: 3,
-                  border: "1px solid rgba(15,139,111,0.22)",
-                  background: "linear-gradient(145deg, #0b1828 0%, #0f2a37 30%, #0f8b6f 180%)",
-                  boxShadow: "0 24px 48px rgba(0,0,0,0.3)",
-                  p: { xs: 1.5, md: 2 },
+                  border: {
+                    xs: "1px solid rgba(255,255,255,0.07)",
+                    md: "1px solid rgba(255,255,255,0.06)",
+                  },
+                  background: {
+                    xs: "linear-gradient(140deg, rgba(8,19,31,0.94) 0%, rgba(7,30,42,0.92) 50%, rgba(10,45,59,0.9) 100%)",
+                    md: "linear-gradient(145deg, #0b1828 0%, #0d2233 40%, #0b1828 100%)",
+                  },
+                  boxShadow: {
+                    xs: "0 14px 32px rgba(0,0,0,0.45)",
+                    md: "0 24px 48px rgba(0,0,0,0.3)",
+                  },
+                  p: { xs: 1.25, md: 1.5 },
                   color: "#e2f2ec",
                 }}
               >
                 <Box
                   sx={{
-                    background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, #f8fbf9 100%)",
+                    background: {
+                      xs: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, #f8fbf9 100%)",
+                      md: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, #f8fbf9 100%)",
+                    },
                     borderRadius: 2,
-                    p: { xs: 1.5, md: 2 },
-                    boxShadow: "0 14px 30px rgba(0,0,0,0.22)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: {
+                      xs: "0 12px 26px rgba(0,0,0,0.25)",
+                      md: "0 14px 30px rgba(0,0,0,0.22)",
+                    },
+                    border: { xs: "1px solid rgba(15,139,111,0.12)", md: "none" },
                   }}
                 >
                   <RaspberryCard
@@ -187,12 +204,21 @@ export default function RaspberriesPage() {
 
                 <Box
                   sx={{
-                    mt: 2,
-                    p: { xs: 1.5, md: 2 },
+                    mt: { xs: 0.25, md: 0 },
+                    p: { xs: 1.25, md: 2 },
                     borderRadius: 2,
-                    border: "1px dashed rgba(226, 242, 236, 0.5)",
-                    background: "rgba(226, 242, 236, 0.05)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)",
+                    border: {
+                      xs: "1px solid rgba(255,255,255,0.08)",
+                      md: "1px dashed rgba(255,255,255,0.12)",
+                    },
+                    background: {
+                      xs: "linear-gradient(180deg, rgba(6,17,26,0.88) 0%, rgba(6,20,30,0.92) 100%)",
+                      md: "linear-gradient(160deg, rgba(7,19,29,0.9) 0%, rgba(8,24,35,0.92) 70%, rgba(8,24,35,0.96) 100%)",
+                    },
+                    boxShadow: {
+                      xs: "0 10px 22px rgba(0,0,0,0.35)",
+                      md: "0 16px 30px rgba(0,0,0,0.22)",
+                    },
                   }}
                 >
                   <Stack
@@ -204,9 +230,6 @@ export default function RaspberriesPage() {
                   >
                     <Typography variant="subtitle1" sx={{ color: "#e2f2ec" }}>
                       {t("devices.sectionTitle", { name: item.rpi.name })}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "rgba(226,242,236,0.8)" }}>
-                      {t("devices.sectionHint")}
                     </Typography>
                   </Stack>
 
