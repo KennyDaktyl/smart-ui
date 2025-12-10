@@ -188,7 +188,7 @@ export function DeviceBox({
         <Button
           component={RouterLink}
           to={`/raspberries/${raspberryId}/devices/${device.id}`}
-          state={{ device, raspberryName, raspberryId }}
+          state={{ device, raspberryName, raspberryId, raspberryUuid }}
           size="small"
           variant="contained"
           sx={{

@@ -1,20 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, Chip, CircularProgress, Stack, Tab, Tabs, Typography, TextField } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Box, Button, Chip, CircularProgress, Stack, Tab, Tabs, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DnsIcon from "@mui/icons-material/Dns";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { deviceApi } from "@/api/deviceApi";
-import { DeviceInfoTile } from "@/features/devices/components/DeviceInfoTile";
 import { DeviceTelemetryTimeline } from "@/features/devices/components/DeviceTelemetryTimeline";
 import { useDeviceEvents } from "@/features/devices/hooks/useDeviceEvents";
+import { useRaspberryLive } from "@/features/raspberries/hooks/useRaspberryLive";
+import { HeartbeatPayload } from "@/shared/types/heartbeat";
+import { raspberryApi } from "@/api/raspberryApi";
+import { DeviceDetailsInfo } from "@/features/devices/components/DeviceDetailsInfo";
+import { DateRangeFields } from "@/features/common/components/DateRangeFields";
+import { MetaBadgeRow } from "@/features/common/components/MetaBadgeRow";
+import { DeviceInfoTile } from "@/features/devices/components/DeviceInfoTile";
 
 type DeviceLocationState = {
   device?: any;
   raspberryName?: string;
   raspberryId?: number;
+  raspberryUuid?: string;
 };
 
 export default function DeviceDetailsPage() {
@@ -28,9 +35,19 @@ export default function DeviceDetailsPage() {
 
   const [device, setDevice] = useState<any | null>(locationState.device ?? null);
   const [raspberryName, setRaspberryName] = useState<string>(locationState.raspberryName ?? "");
+  const [raspberryUuid, setRaspberryUuid] = useState<string>(locationState.raspberryUuid ?? "");
+  const [liveOnline, setLiveOnline] = useState<boolean | null>(
+    locationState.device?.waitingForState === false ? locationState.device?.online ?? null : null
+  );
+  const [liveInitialized, setLiveInitialized] = useState<boolean>(
+    locationState.device?.waitingForState === false
+  );
   const [tab, setTab] = useState("details");
   const [loading, setLoading] = useState(!locationState.device);
   const [error, setError] = useState<string | null>(null);
+  const offlineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const HEARTBEAT_TIMEOUT_MS = 15000;
 
   const today = useMemo(() => {
     const now = new Date();
@@ -63,6 +80,7 @@ export default function DeviceDetailsPage() {
         const res = await deviceApi.getDeviceById(token, Number(id));
         setDevice(res.data);
         setRaspberryName(res.data?.raspberry_name ?? "");
+        setRaspberryUuid(res.data?.raspberry_uuid ?? res.data?.raspberry?.uuid ?? "");
       } catch {
         setError(t("devices.details.loadError"));
       } finally {
@@ -72,6 +90,81 @@ export default function DeviceDetailsPage() {
 
     fetchDevice();
   }, [token, locationState.device, id, t]);
+
+  useEffect(() => {
+    if (!token || raspberryUuid || !device?.raspberry_id) return;
+
+    const fetchRaspberryUuid = async () => {
+      try {
+        const res = await raspberryApi.getMyRaspberries(token);
+        const raspberries = res.data?.raspberries ?? res.data ?? [];
+        const found = Array.isArray(raspberries)
+          ? raspberries.find((item: any) => Number(item.id) === Number(device.raspberry_id))
+          : null;
+
+        if (found) {
+          setRaspberryUuid(found.uuid ?? "");
+          if (!raspberryName && found.name) {
+            setRaspberryName(found.name);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to resolve raspberry uuid", err);
+      }
+    };
+
+    fetchRaspberryUuid();
+  }, [token, raspberryUuid, device?.raspberry_id, raspberryName]);
+
+  const markOffline = useCallback(() => {
+    setLiveInitialized(true);
+    setLiveOnline(false);
+    setDevice((prev: typeof device) => (prev ? { ...prev, online: false } : prev));
+  }, []);
+
+  const scheduleOfflineMark = useCallback(() => {
+    if (offlineTimerRef.current) {
+      clearTimeout(offlineTimerRef.current);
+    }
+
+    offlineTimerRef.current = setTimeout(markOffline, HEARTBEAT_TIMEOUT_MS);
+  }, [markOffline]);
+
+  const handleHeartbeat = useCallback(
+    (hb: HeartbeatPayload) => {
+      const targetId = id ? Number(id) : device?.id ?? null;
+      const liveDevice = hb.devices?.find((d) => targetId !== null && Number(d.device_id) === Number(targetId));
+      const isOnline = hb.status === "online" && !!liveDevice;
+
+      scheduleOfflineMark();
+      setLiveInitialized(true);
+      setLiveOnline(isOnline);
+      setDevice((prev: typeof device) => {
+        if (!prev) return prev;
+
+        const matched = liveDevice ?? hb.devices?.find((d) => Number(d.device_id) === Number(prev.id));
+        return {
+          ...prev,
+          online: isOnline,
+          is_on: matched?.is_on ?? prev.is_on,
+          last_update: hb.sent_at ?? prev.last_update,
+        };
+      });
+    },
+    [device?.id, id, scheduleOfflineMark]
+  );
+
+  useRaspberryLive(raspberryUuid, handleHeartbeat);
+
+  useEffect(() => {
+    if (raspberryUuid) {
+      scheduleOfflineMark();
+    }
+
+    return () => {
+      if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
+    };
+  }, [raspberryUuid, scheduleOfflineMark]);
 
   const formattedLastUpdate = useMemo(() => {
     if (!device?.last_update) return t("common.notAvailable");
@@ -91,8 +184,9 @@ export default function DeviceDetailsPage() {
     return t("devices.form.modes.manual");
   }, [device?.mode, t]);
 
+  const isOnline = liveInitialized ? !!liveOnline : !!device?.online;
   const stateLabel = device?.is_on ? t("devices.details.stateOn") : t("devices.details.stateOff");
-  const onlineLabel = device?.online ? t("common.online") : t("common.offline");
+  const onlineLabel = isOnline ? t("common.online") : t("common.offline");
 
   if (loading) {
     return (
@@ -146,17 +240,18 @@ export default function DeviceDetailsPage() {
             rowGap={1}
           >
             <Box>
-              <Typography variant="caption" sx={{ color: "rgba(226,242,236,0.75)", letterSpacing: 0.5 }}>
-                {t("devices.details.breadcrumb", {
+              <MetaBadgeRow
+                caption={t("devices.details.breadcrumb", {
                   raspberryId: raspberryId || device.raspberry_id || "?",
                   device: device.name,
                 })}
-              </Typography>
-              <Typography variant="overline" sx={{ letterSpacing: 1, color: "rgba(226,242,236,0.8)" }}>
-                {raspberryName
-                  ? t("devices.details.raspberryLabel", { name: raspberryName })
-                  : t("devices.details.raspberryFallback")}
-              </Typography>
+                badgeLabel={
+                  raspberryName
+                    ? t("devices.details.raspberryLabel", { name: raspberryName })
+                    : t("devices.details.raspberryFallback")
+                }
+                IconComponent={DnsIcon}
+              />
               <Typography variant="h5" fontWeight={700}>
                 {device.name}
               </Typography>
@@ -198,7 +293,10 @@ export default function DeviceDetailsPage() {
             onChange={(_, value) => setTab(value)}
             sx={{
               mt: 2,
-              "& .MuiTab-root": { color: "rgba(226,242,236,0.7)" },
+              "& .MuiTab-root": {
+                color: "rgba(226,242,236,0.7)",
+                cursor: "pointer",
+              },
               "& .Mui-selected": { color: "#e2f2ec" },
               "& .MuiTabs-indicator": { backgroundColor: "#e2f2ec" },
             }}
@@ -216,78 +314,25 @@ export default function DeviceDetailsPage() {
           }}
         >
           {tab === "details" && (
-            <Grid container spacing={2}>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile
-                  label={t("devices.details.fields.slot")}
-                  value={String(device.device_number ?? "-")}
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile
-                  label={t("devices.details.fields.power")}
-                  value={
-                    device.rated_power_kw != null
-                      ? `${device.rated_power_kw} kW`
-                      : t("common.notAvailable")
-                  }
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile
-                  label={t("devices.details.fields.threshold")}
-                  value={
-                    device.threshold_kw != null ? `${device.threshold_kw} kW` : t("common.notAvailable")
-                  }
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile label={t("devices.details.fields.mode")} value={modeLabel} />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile label={t("devices.details.fields.state")} value={stateLabel} />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile
-                  label={t("devices.details.fields.status")}
-                  value={onlineLabel}
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile
-                  label={t("devices.details.fields.raspberryId")}
-                  value={device.raspberry_id ? String(device.raspberry_id) : t("common.notAvailable")}
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={4}>
-                <DeviceInfoTile label={t("devices.details.fields.lastUpdate")} value={formattedLastUpdate} />
-              </Grid>
-            </Grid>
+            <DeviceDetailsInfo
+              device={device}
+              modeLabel={modeLabel}
+              stateLabel={stateLabel}
+              onlineLabel={onlineLabel}
+              formattedLastUpdate={formattedLastUpdate}
+              t={t}
+            />
           )}
           {tab === "telemetry" && (
             <Stack spacing={2}>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  label={t("devices.details.rangeStart")}
-                  type="datetime-local"
-                  size="small"
-                  fullWidth
-                  sx={{ flex: 1, minWidth: 0 }}
-                  value={range.start}
-                  onChange={(e) => setRange((prev) => ({ ...prev, start: e.target.value }))}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label={t("devices.details.rangeEnd")}
-                  type="datetime-local"
-                  size="small"
-                  fullWidth
-                  sx={{ flex: 1, minWidth: 0 }}
-                  value={range.end}
-                  onChange={(e) => setRange((prev) => ({ ...prev, end: e.target.value }))}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Stack>
+              <DateRangeFields
+                startLabel={t("devices.details.rangeStart")}
+                endLabel={t("devices.details.rangeEnd")}
+                startValue={range.start}
+                endValue={range.end}
+                onChangeStart={(value) => setRange((prev) => ({ ...prev, start: value }))}
+                onChangeEnd={(value) => setRange((prev) => ({ ...prev, end: value }))}
+              />
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <DeviceInfoTile
@@ -314,6 +359,14 @@ export default function DeviceDetailsPage() {
                       : t("common.notAvailable")
                   }
                 />
+                {device.mode === "AUTO_POWER" && (
+                  <DeviceInfoTile
+                    label={t("devices.details.fields.threshold")}
+                    value={
+                      device.threshold_kw != null ? `${device.threshold_kw} kW` : t("common.notAvailable")
+                    }
+                  />
+                )}
               </Stack>
 
               {eventsError && <Alert severity="error">{eventsError}</Alert>}

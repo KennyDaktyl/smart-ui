@@ -14,6 +14,8 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 
 import { DeviceTimelineEvent } from "@/features/devices/types/deviceEvents";
 
@@ -74,6 +76,7 @@ export function DeviceTelemetryTimeline({
 }: DeviceTelemetryTimelineProps) {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [filters, setFilters] = useState<Record<EventTypeKey, boolean>>(DEFAULT_FILTERS);
+  const [zoom, setZoom] = useState(1);
 
   const dayBuckets = useMemo(() => buildDayBuckets(events, start, end), [events, start, end]);
   const nonEmptyBuckets = dayBuckets.filter((bucket) => bucket.events.length > 0);
@@ -94,6 +97,9 @@ export function DeviceTelemetryTimeline({
     const checked = e.target.checked;
     setFilters((prev) => ({ ...prev, [key]: checked }));
   };
+
+  const zoomIn = () => setZoom((z) => Math.min(z + 0.5, 4));
+  const zoomOut = () => setZoom((z) => Math.max(z - 0.5, 1));
 
   return (
     <Box
@@ -175,7 +181,28 @@ export function DeviceTelemetryTimeline({
           </Stack>
 
           {active ? (
-            <DayTimeline bucket={active} filters={filters} resolveEventType={resolveEventType} />
+            <>
+              <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" mb={1}>
+                <Typography variant="caption" color="text.secondary">
+                  Zoom
+                </Typography>
+                <IconButton size="small" onClick={zoomOut} disabled={zoom <= 1}>
+                  <ZoomOutIcon fontSize="small" />
+                </IconButton>
+                <Typography variant="caption" sx={{ minWidth: 32, textAlign: "center" }}>
+                  {zoom.toFixed(1)}x
+                </Typography>
+                <IconButton size="small" onClick={zoomIn} disabled={zoom >= 4}>
+                  <ZoomInIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+              <DayTimeline
+                bucket={active}
+                filters={filters}
+                resolveEventType={resolveEventType}
+                zoom={zoom}
+              />
+            </>
           ) : (
             <Box sx={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Typography variant="body2" color="text.secondary">
@@ -193,10 +220,12 @@ function DayTimeline({
   bucket,
   filters,
   resolveEventType,
+  zoom,
 }: {
   bucket: DayBucket;
   filters: Record<EventTypeKey, boolean>;
   resolveEventType: (reason?: string | null) => EventTypeMeta;
+  zoom: number;
 }) {
   const spanMs = bucket.endMs - bucket.startMs;
   const now = Date.now();
@@ -253,16 +282,18 @@ function DayTimeline({
   const ticks = [0, 6, 12, 18, 24];
 
   return (
-    <Box
-      sx={{
-        height: 240,
-        position: "relative",
-        borderRadius: 2,
-        background: "linear-gradient(180deg, #f8fbf8 0%, #eef5f3 100%)",
-        overflow: "hidden",
-        mt: 1,
-      }}
-    >
+    <Box sx={{ position: "relative", mt: 1, overflowX: "auto", borderRadius: 2 }}>
+      <Box
+        sx={{
+          position: "relative",
+          height: 240,
+          minWidth: "100%",
+          width: `${zoom * 100}%`,
+          borderRadius: 2,
+          background: "linear-gradient(180deg, #f8fbf8 0%, #eef5f3 100%)",
+          overflow: "hidden",
+        }}
+      >
       <Box
         sx={{
           position: "absolute",
@@ -337,7 +368,7 @@ function DayTimeline({
                     boxShadow: `0 0 0 1px ${m.eventType.color}40`,
                   }}
                 />
-                <Typography variant="caption" sx={{ color: "#0f172a" }}>
+                <Typography variant="caption" sx={{ color: "white", fontWeight: 600 }}>
                   {m.eventType.label || m.reason}
                 </Typography>
               </Stack>
@@ -384,6 +415,7 @@ function DayTimeline({
             <Typography variant="caption">{`${String(h).padStart(2, "0")}:00`}</Typography>
           </Stack>
         ))}
+      </Box>
       </Box>
     </Box>
   );
