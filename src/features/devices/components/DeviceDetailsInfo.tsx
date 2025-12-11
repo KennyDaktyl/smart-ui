@@ -24,48 +24,48 @@ export function DeviceDetailsInfo({
     <Grid container spacing={2}>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={t("devices.details.fields.slot")}
+          label={String(t("devices.details.fields.slot"))}
           value={String(device.device_number ?? "-")}
         />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={t("devices.details.fields.power")}
+          label={String(t("devices.details.fields.power"))}
           value={
             device.rated_power_kw != null
               ? `${device.rated_power_kw} kW`
-              : t("common.notAvailable")
+              : String(t("common.notAvailable"))
           }
         />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={t("devices.details.fields.threshold")}
+          label={String(t("devices.details.fields.threshold"))}
           value={
-            device.threshold_kw != null ? `${device.threshold_kw} kW` : t("common.notAvailable")
+            device.threshold_kw != null ? `${device.threshold_kw} kW` : String(t("common.notAvailable"))
           }
         />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
-        <DeviceInfoTile label={t("devices.details.fields.mode")} value={modeLabel} />
+        <DeviceInfoTile label={String(t("devices.details.fields.mode"))} value={modeLabel} />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
-        <DeviceInfoTile label={t("devices.details.fields.state")} value={stateLabel} />
+        <DeviceInfoTile label={String(t("devices.details.fields.state"))} value={stateLabel} />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={t("devices.details.fields.status")}
+          label={String(t("devices.details.fields.status"))}
           value={onlineLabel}
         />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={t("devices.details.fields.raspberryId")}
-          value={device.raspberry_id ? String(device.raspberry_id) : t("common.notAvailable")}
+          label={String(t("devices.details.fields.raspberryId"))}
+          value={device.raspberry_id ? String(device.raspberry_id) : String(t("common.notAvailable"))}
         />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
-        <DeviceInfoTile label={t("devices.details.fields.lastUpdate")} value={formattedLastUpdate} />
+        <DeviceInfoTile label={String(t("devices.details.fields.lastUpdate"))} value={formattedLastUpdate} />
       </Grid>
     </Grid>
   );
