@@ -16,4 +16,8 @@ export const authApi = {
       headers: { Authorization: `Bearer ${token}` },
     });
   },
+
+  requestPasswordReset: async (email: string) => {
+    return axiosClient.post(`${API_URL}/auth/password-reset/request`, { email });
+  },
 };

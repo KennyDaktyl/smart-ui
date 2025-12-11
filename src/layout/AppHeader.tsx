@@ -20,7 +20,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 
 export default function AppHeader() {
-  const { token, logout } = useAuth();
+  const { token, user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useTranslation();
@@ -34,6 +34,7 @@ export default function AppHeader() {
 
   const menuItems = token
     ? [
+        ...(user?.role === "admin" ? [{ label: t("header.menu.admin"), path: "/admin" }] : []),
         { label: t("header.menu.installations"), path: "/dashboard" },
         { label: t("header.menu.raspberries"), path: "/raspberries" },
         { label: t("header.menu.huawei"), path: "/huawei" },

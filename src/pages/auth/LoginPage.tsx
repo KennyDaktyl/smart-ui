@@ -1,9 +1,10 @@
 import { useState, useContext } from "react";
-import { Box, Button, TextField, Typography, Paper, Alert } from "@mui/material";
+import { Box, Button, TextField, Typography, Alert, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../api/authApi";
 import { AuthContext } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import AuthPageLayout from "@/front/AuthPageLayout";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -16,8 +17,8 @@ export default function LoginPage() {
   const handleLogin = async () => {
     try {
       const res = await authApi.login({ email, password });
-      const token = res.data.access_token;
-      auth?.login(token);
+      const { access_token, refresh_token } = res.data;
+      auth?.login(access_token, refresh_token);
       navigate("/");
     } catch (err: any) {
       setError(err.response?.data?.detail || t("auth.login.errorDefault"));
@@ -25,14 +26,12 @@ export default function LoginPage() {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-      <Paper elevation={3} sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" mb={2}>{t("auth.login.title")}</Typography>
+    <AuthPageLayout title={t("auth.login.title")} subtitle="Zaloguj się, aby wejść do panelu Smart Energy.">
+      <Stack spacing={1.5}>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
           label={t("auth.fields.email")}
           fullWidth
-          margin="normal"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -40,17 +39,28 @@ export default function LoginPage() {
           label={t("auth.fields.password")}
           type="password"
           fullWidth
-          margin="normal"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={handleLogin}>
+        <Button variant="contained" onClick={handleLogin} sx={{ borderRadius: 10, py: 1.1 }}>
           {t("auth.login.submit")}
         </Button>
-        <Button fullWidth sx={{ mt: 1 }} onClick={() => navigate("/register")}>
+        <Button
+          variant="outlined"
+          onClick={() => navigate("/register")}
+          sx={{ borderRadius: 10 }}
+        >
           {t("auth.login.goRegister")}
         </Button>
-      </Paper>
-    </Box>
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => navigate("/forgot-password")}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          Przypomnij hasło
+        </Button>
+      </Stack>
+    </AuthPageLayout>
   );
 }

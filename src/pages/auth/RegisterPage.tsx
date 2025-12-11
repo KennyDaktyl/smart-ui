@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, Alert } from "@mui/material";
+import { Box, Button, TextField, Typography, Alert, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../api/authApi";
 import { useTranslation } from "react-i18next";
+import AuthPageLayout from "@/front/AuthPageLayout";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -23,15 +24,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-      <Paper elevation={3} sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" mb={2}>{t("auth.register.title")}</Typography>
+    <AuthPageLayout title={t("auth.register.title")} subtitle="Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.">
+      <Stack spacing={1.5}>
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}
         <TextField
           label={t("auth.fields.email")}
           fullWidth
-          margin="normal"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -39,17 +38,20 @@ export default function RegisterPage() {
           label={t("auth.fields.password")}
           type="password"
           fullWidth
-          margin="normal"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={handleRegister}>
+        <Button variant="contained" onClick={handleRegister} sx={{ borderRadius: 10, py: 1.1 }}>
           {t("auth.register.submit")}
         </Button>
-        <Button fullWidth sx={{ mt: 1 }} onClick={() => navigate("/login")}>
+        <Button
+          variant="outlined"
+          onClick={() => navigate("/login")}
+          sx={{ borderRadius: 10 }}
+        >
           {t("auth.register.haveAccount")}
         </Button>
-      </Paper>
-    </Box>
+      </Stack>
+    </AuthPageLayout>
   );
 }

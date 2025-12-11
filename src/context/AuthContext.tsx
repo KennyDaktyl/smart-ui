@@ -5,7 +5,7 @@ import { authApi } from "../api/authApi";
 export interface AuthContextProps {
   user: any;
   token: string | null;
-  login: (token: string) => void;
+  login: (token: string, refreshToken?: string) => void;
   logout: () => void;
   loading: boolean;
   isAuthenticated: boolean;
@@ -22,13 +22,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading: true,
   });
 
-  const login = (jwt: string) => {
+  const login = (jwt: string, refreshToken?: string) => {
     localStorage.setItem("token", jwt);
+    if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
     setAuthState((prev) => ({ ...prev, token: jwt }));
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
     setAuthState({ user: null, token: null, loading: false });
   };
 
