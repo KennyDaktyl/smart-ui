@@ -49,13 +49,21 @@ export default function DeviceDetailsPage() {
 
   const HEARTBEAT_TIMEOUT_MS = 15000;
 
+  const formatLocalDateTime = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return [
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+      `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    ].join("T");
+  };
+
   const today = useMemo(() => {
     const now = new Date();
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
     return {
-      start: start.toISOString().slice(0, 16),
-      end: now.toISOString().slice(0, 16),
+      start: formatLocalDateTime(start),
+      end: formatLocalDateTime(now),
     };
   }, []);
   const [range, setRange] = useState<{ start: string; end: string }>({ start: today.start, end: today.end });
