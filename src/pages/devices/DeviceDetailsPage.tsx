@@ -78,6 +78,14 @@ export default function DeviceDetailsPage() {
   });
 
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
+  const formatMinutesAsHours = (minutes: number) => {
+    const hours = minutes / 60;
+    const formattedHours = Number.isInteger(hours) ? `${hours}` : hours.toFixed(2);
+    return `${formattedHours} h`;
+  };
+  const ELECTRICITY_COST_PER_KWH_PLN = 0.62; // energy-only rate per kWh
+  const electricityRateLabel = `${ELECTRICITY_COST_PER_KWH_PLN.toFixed(2)} zł/kWh`;
+  const formatEnergyCost = (kwh: number) => `${(kwh * ELECTRICITY_COST_PER_KWH_PLN).toFixed(2)} zł`;
 
   useEffect(() => {
     if (!token || locationState.device || !id) return;
@@ -352,10 +360,18 @@ export default function DeviceDetailsPage() {
                   }
                 />
                 <DeviceInfoTile
+                  label={t("devices.details.fields.energyCost", { rate: electricityRateLabel })}
+                  value={
+                    summary.energy_kwh != null
+                      ? formatEnergyCost(summary.energy_kwh)
+                      : t("common.notAvailable")
+                  }
+                />
+                <DeviceInfoTile
                   label={t("devices.details.fields.totalMinutes")}
                   value={
                     summary.total_minutes_on != null
-                      ? `${summary.total_minutes_on} min`
+                      ? formatMinutesAsHours(summary.total_minutes_on)
                       : t("common.notAvailable")
                   }
                 />
