@@ -4,6 +4,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Link, useNavigate } from "react-router-dom";
 import LandingNav from "./LandingNav";
 import SmartEnergyFooter from "@/components/SmartEnergyFooter";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   title: string;
@@ -13,6 +14,7 @@ interface Props {
 
 export default function AuthPageLayout({ title, subtitle, children }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <Box
@@ -49,7 +51,7 @@ export default function AuthPageLayout({ title, subtitle, children }: Props) {
                 onClick={() => navigate("/")}
                 sx={{ borderRadius: 10, textTransform: "none" }}
               >
-                Wróć
+                {t("common.back")}
               </Button>
             </Stack>
 
@@ -76,7 +78,7 @@ export default function AuthPageLayout({ title, subtitle, children }: Props) {
                 "&:hover": { color: "#7cffe0" },
               }}
             >
-              ← Wróć na stronę główną
+              {t("common.backToHome")}
             </Typography>
           </Stack>
         </Container>

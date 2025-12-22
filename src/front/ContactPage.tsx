@@ -2,16 +2,19 @@ import { Box, Button, Grid, Stack, TextField, Typography } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import MapIcon from "@mui/icons-material/Map";
+import { useTranslation } from "react-i18next";
 
 export default function ContactPage() {
+  const { t } = useTranslation();
+
   return (
     <Stack spacing={3}>
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          Kontakt
+          {t("front.contact.title")}
         </Typography>
         <Typography variant="subtitle1" color="rgba(232,241,248,0.8)">
-          Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.
+          {t("front.contact.subtitle")}
         </Typography>
       </Box>
 
@@ -31,12 +34,17 @@ export default function ContactPage() {
               gap: 1.5,
             }}
           >
-            <TextField label="Imię i nazwisko" fullWidth />
-            <TextField label="Email" type="email" fullWidth />
-            <TextField label="Telefon" type="tel" fullWidth />
-            <TextField label="Opis instalacji / potrzeby" fullWidth multiline minRows={4} />
+            <TextField label={t("front.contact.form.name")} fullWidth />
+            <TextField label={t("front.contact.form.email")} type="email" fullWidth />
+            <TextField label={t("front.contact.form.phone")} type="tel" fullWidth />
+            <TextField
+              label={t("front.contact.form.description")}
+              fullWidth
+              multiline
+              minRows={4}
+            />
             <Button variant="contained" color="primary" sx={{ borderRadius: 10 }}>
-              Wyślij zapytanie
+              {t("front.contact.form.submit")}
             </Button>
           </Box>
         </Grid>
@@ -50,7 +58,7 @@ export default function ContactPage() {
                   support@smart-energy.io
                 </Typography>
                 <Typography variant="caption" color="rgba(232,241,248,0.65)">
-                  Zapytania produktowe i demo
+                  {t("front.contact.info.emailHint")}
                 </Typography>
               </Box>
             </Stack>
@@ -61,7 +69,7 @@ export default function ContactPage() {
                   +48 555 123 123
                 </Typography>
                 <Typography variant="caption" color="rgba(232,241,248,0.65)">
-                  Pon-Pt, 9:00-17:00
+                  {t("front.contact.info.phoneHint")}
                 </Typography>
               </Box>
             </Stack>
@@ -72,7 +80,7 @@ export default function ContactPage() {
                   Warszawa / Remote
                 </Typography>
                 <Typography variant="caption" color="rgba(232,241,248,0.65)">
-                  Wsparcie w całej Polsce
+                  {t("front.contact.info.locationHint")}
                 </Typography>
               </Box>
             </Stack>

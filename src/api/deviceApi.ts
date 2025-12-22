@@ -2,39 +2,79 @@ import axiosClient from "./axiosClient";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
+const authHeaders = (token: string) => ({
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+const microcontrollerDevicesPath = (microcontrollerUuid: string) =>
+  `${API_URL}/microcontrollers/${microcontrollerUuid}/devices`;
+
+const devicePath = (microcontrollerUuid: string, deviceId: number | string) =>
+  `${microcontrollerDevicesPath(microcontrollerUuid)}/${deviceId}`;
+
 export const deviceApi = {
-  getRaspberryDevices: (token: string, raspberryId: number) =>
-    axiosClient.get(`${API_URL}/devices/raspberry/${raspberryId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+  listDevices: (
+    token: string,
+    microcontrollerUuid: string,
+    params?: Record<string, any>
+  ) =>
+    axiosClient.get(microcontrollerDevicesPath(microcontrollerUuid), {
+      ...authHeaders(token),
+      params,
     }),
 
-  getDeviceById: (token: string, id: number) =>
-    axiosClient.get(`${API_URL}/devices/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+  getDevice: (
+    token: string,
+    deviceId: number,
+    microcontrollerUuid?: string,
+    params?: Record<string, any>
+  ) => {
+    if (microcontrollerUuid) {
+      return axiosClient.get(devicePath(microcontrollerUuid, deviceId), {
+        ...authHeaders(token),
+        params,
+      });
+    }
+    return axiosClient.get(`${API_URL}/devices/${deviceId}`, authHeaders(token));
+  },
+
+  createDevice: (token: string, microcontrollerUuid: string, payload: any) =>
+    axiosClient.post(microcontrollerDevicesPath(microcontrollerUuid), payload, {
+      ...authHeaders(token),
     }),
 
-  createDevice: (token: string, payload: any) =>
-    axiosClient.post(`${API_URL}/devices`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
+  updateDevice: (
+    token: string,
+    microcontrollerUuid: string,
+    deviceId: number,
+    payload: any
+  ) =>
+    axiosClient.put(devicePath(microcontrollerUuid, deviceId), payload, {
+      ...authHeaders(token),
     }),
 
-  updateDevice: (token: string, id: number, payload: any) =>
-    axiosClient.put(`${API_URL}/devices/${id}`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
+  deleteDevice: (token: string, microcontrollerUuid: string, deviceId: number) =>
+    axiosClient.delete(devicePath(microcontrollerUuid, deviceId), {
+      ...authHeaders(token),
     }),
 
-  deleteDevice: (token: string, id: number) =>
-    axiosClient.delete(`${API_URL}/devices/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-
-  setManualState(token: string, deviceId: number, state: boolean) {
+  setManualState: (
+    token: string,
+    deviceId: number,
+    state: boolean,
+    microcontrollerUuid?: string
+  ) => {
+    if (microcontrollerUuid) {
+      return axiosClient.patch(
+        `${devicePath(microcontrollerUuid, deviceId)}/manual_state`,
+        { state },
+        authHeaders(token)
+      );
+    }
     return axiosClient.patch(
       `${API_URL}/devices/${deviceId}/manual_state`,
       { state },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      authHeaders(token)
     );
   },
 };

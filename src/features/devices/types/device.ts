@@ -1,25 +1,38 @@
-import { DeviceMode } from "@/shared/enums/deviceMode";
+export interface Device {
+  id: number;
+  uuid: string;
+  microcontroller_id: number;
 
-export interface ApiDevice {
-    id: number;
-    uuid: string;
-    user_id: number;
-    name: string;
-    device_number: number;
-    rated_power_kw: number;
-    hysteresis_w: number;
-    threshold_kw: number | null;
-    mode: DeviceMode;
-    is_on: boolean;
-    schedule: any | null;
-    raspberry_id: number;
-    last_update: string;
+  name: string;
+  device_number: number;
+  mode: DeviceMode;
+
+  provider_id: number | null;
+  rated_power_w: number | null;
+  threshold_value: number | null;
+
+  manual_state: boolean | null;
+  last_state_change_at: string | null;
+
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DeviceFormData {
-    name: string;
-    rated_power_kw: number | "";
-    mode: DeviceMode;
-    device_number: number;
-    threshold_kw: number | "" ;
+  name: string;
+  mode: DeviceUIMode;
+  rated_power_w: number | "";
+  threshold_value: number | "";
+}
+
+export enum DeviceMode {
+  MANUAL = "MANUAL",
+  AUTO = "AUTO",
+  SCHEDULE = "SCHEDULE",
+}
+
+export enum DeviceUIMode {
+  MANUAL = "MANUAL",
+  AUTO_POWER = "AUTO_POWER",
+  SCHEDULE = "SCHEDULE",
 }

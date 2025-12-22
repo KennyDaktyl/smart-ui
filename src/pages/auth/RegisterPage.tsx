@@ -24,7 +24,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthPageLayout title={t("auth.register.title")} subtitle="Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.">
+    <AuthPageLayout title={t("auth.register.title")} subtitle={t("auth.register.subtitle")}>
       <Stack spacing={1.5}>
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}

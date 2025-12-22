@@ -7,7 +7,7 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ direction = "row" }: LanguageSwitcherProps) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const handleChange = (lng: "pl" | "en") => {
     changeLanguage(lng);
@@ -18,7 +18,7 @@ export function LanguageSwitcher({ direction = "row" }: LanguageSwitcherProps) {
   return (
     <Stack direction={direction} spacing={1} alignItems="center">
       <IconButton
-        aria-label="Polish"
+        aria-label={t("common.language.polish")}
         onClick={() => handleChange("pl")}
         sx={{
           bgcolor: isActive("pl") ? "primary.light" : "transparent",
@@ -26,13 +26,13 @@ export function LanguageSwitcher({ direction = "row" }: LanguageSwitcherProps) {
         }}
         size="small"
       >
-        <span role="img" aria-label="Polish flag">
+        <span role="img" aria-label={t("common.language.polishFlag")}>
           🇵🇱
         </span>
       </IconButton>
 
       <IconButton
-        aria-label="English"
+        aria-label={t("common.language.english")}
         onClick={() => handleChange("en")}
         sx={{
           bgcolor: isActive("en") ? "primary.light" : "transparent",
@@ -40,7 +40,7 @@ export function LanguageSwitcher({ direction = "row" }: LanguageSwitcherProps) {
         }}
         size="small"
       >
-        <span role="img" aria-label="United Kingdom flag">
+        <span role="img" aria-label={t("common.language.englishFlag")}>
           🇬🇧
         </span>
       </IconButton>

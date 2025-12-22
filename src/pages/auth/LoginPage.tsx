@@ -26,7 +26,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthPageLayout title={t("auth.login.title")} subtitle="Zaloguj się, aby wejść do panelu Smart Energy.">
+    <AuthPageLayout title={t("auth.login.title")} subtitle={t("auth.login.subtitle")}>
       <Stack spacing={1.5}>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
@@ -58,7 +58,7 @@ export default function LoginPage() {
           onClick={() => navigate("/forgot-password")}
           sx={{ alignSelf: "flex-start" }}
         >
-          Przypomnij hasło
+          {t("auth.login.forgotPassword")}
         </Button>
       </Stack>
     </AuthPageLayout>

@@ -2,10 +2,13 @@ import { useState, useCallback, useMemo } from "react";
 import { deviceApi } from "@/api/deviceApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useTranslation } from "react-i18next";
+import type { DeviceFormData } from "@/features/devices/types/device";
+import { mapUIModeToApi } from "@/features/devices/types/device.mappers";
 
 interface UseDeviceSlotParams {
   device?: any;
   raspberryId: number;
+  raspberryUuid: string;
   slotIndex: number;
   liveInitialized: boolean;
   onRefresh: () => void;
@@ -14,6 +17,7 @@ interface UseDeviceSlotParams {
 export function useDeviceSlot({
   device,
   raspberryId,
+  raspberryUuid,
   slotIndex,
   liveInitialized,
   onRefresh,
@@ -43,24 +47,35 @@ export function useDeviceSlot({
   const waitingForState = !liveInitialized;
 
   const handleSave = useCallback(
-    async (form: any) => {
-      if (!token) return;
+    async (form: DeviceFormData | null) => {
+      if (!form) return;
+      if (!token || !raspberryUuid) return;
 
       setSaving(true);
       try {
-        const payload = {
+        const ratedPowerValue =
+          form.rated_power_w === "" ? null : Number(form.rated_power_w);
+        const thresholdValue =
+          form.threshold_value === "" ? null : Number(form.threshold_value);
+
+        const payload: Record<string, any> = {
           name: form.name,
-          rated_power_kw: Number(form.rated_power_kw),
-          mode: form.mode,
+          mode: mapUIModeToApi(form.mode),
           device_number: slotIndex,
-          threshold_kw: form.threshold_kw ? Number(form.threshold_kw) : null,
-          raspberry_id: raspberryId,
         };
 
+        if (ratedPowerValue !== null) {
+          payload.rated_power_w = ratedPowerValue;
+        }
+
+        if (thresholdValue !== null) {
+          payload.threshold_value = thresholdValue;
+        }
+
         if (device) {
-          await deviceApi.updateDevice(token, device.id, payload);
+          await deviceApi.updateDevice(token, raspberryUuid, device.id, payload);
         } else {
-          await deviceApi.createDevice(token, payload);
+          await deviceApi.createDevice(token, raspberryUuid, payload);
         }
 
         onRefresh();
@@ -69,30 +84,35 @@ export function useDeviceSlot({
         setSaving(false);
       }
     },
-    [token, device, raspberryId, slotIndex, onRefresh]
+    [token, device, raspberryUuid, slotIndex, onRefresh]
   );
 
   const handleDelete = useCallback(async () => {
-    if (!token || !device) return;
+    if (!token || !device || !raspberryUuid) return;
     if (!confirm(t("devices.deleteConfirm", { name: device.name }))) return;
 
     setSaving(true);
     try {
-      await deviceApi.deleteDevice(token, device.id);
+      await deviceApi.deleteDevice(token, raspberryUuid, device.id);
       onRefresh();
     } finally {
       setSaving(false);
     }
-  }, [token, device, onRefresh, t]);
+  }, [token, device, raspberryUuid, onRefresh, t]);
 
   const handleToggle = useCallback(
     async (checked: boolean) => {
-      if (!token || !device) return;
+      if (!token || !device || !raspberryUuid) return;
 
       setToggling(true);
 
       try {
-        const response = await deviceApi.setManualState(token, device.id, checked);
+        const response = await deviceApi.setManualState(
+          token,
+          device.id,
+          checked,
+          raspberryUuid
+        );
         const isSuccess = response?.status >= 200 && response.status < 300;
 
         if (device.mode === "MANUAL" && isSuccess) {
@@ -104,7 +124,7 @@ export function useDeviceSlot({
         setToggling(false);
       }
     },
-    [token, device]
+    [token, device, raspberryUuid]
   );
 
   return {

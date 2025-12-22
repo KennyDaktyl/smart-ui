@@ -1,45 +1,57 @@
 import { Box, Button, Chip, Grid, Stack, Typography } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
-
-const tiers = [
-  {
-    name: "Starter",
-    price: "0 zł",
-    desc: "Do testów i małych instalacji domowych.",
-    features: ["1 instalacja", "Do 2 inwerterów", "Live Raspberry", "Podstawowa telemetria"],
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "79 zł",
-    desc: "Najpopularniejszy wariant dla kilku lokalizacji.",
-    features: [
-      "Do 5 instalacji",
-      "10 inwerterów",
-      "Pełna telemetria live",
-      "Alerty i timeline zdarzeń",
-      "Priorytet wsparcia",
-    ],
-    highlight: true,
-  },
-  {
-    name: "Enterprise",
-    price: "na zapytanie",
-    desc: "Dla flot urządzeń, SLA i własnych integracji.",
-    features: ["Brak limitu instalacji", "Integracje custom", "SLA i HA", "Dedykowane wdrożenie"],
-    highlight: false,
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export default function PricingPage() {
+  const { t } = useTranslation();
+  const tiers = [
+    {
+      name: t("front.pricing.tiers.starter.name"),
+      price: t("front.pricing.tiers.starter.price"),
+      desc: t("front.pricing.tiers.starter.desc"),
+      features: [
+        t("front.pricing.tiers.starter.features.installations"),
+        t("front.pricing.tiers.starter.features.inverters"),
+        t("front.pricing.tiers.starter.features.raspberry"),
+        t("front.pricing.tiers.starter.features.telemetry"),
+      ],
+      highlight: false,
+    },
+    {
+      name: t("front.pricing.tiers.pro.name"),
+      price: t("front.pricing.tiers.pro.price"),
+      desc: t("front.pricing.tiers.pro.desc"),
+      features: [
+        t("front.pricing.tiers.pro.features.installations"),
+        t("front.pricing.tiers.pro.features.inverters"),
+        t("front.pricing.tiers.pro.features.telemetry"),
+        t("front.pricing.tiers.pro.features.alerts"),
+        t("front.pricing.tiers.pro.features.support"),
+      ],
+      highlight: true,
+    },
+    {
+      name: t("front.pricing.tiers.enterprise.name"),
+      price: t("front.pricing.tiers.enterprise.price"),
+      desc: t("front.pricing.tiers.enterprise.desc"),
+      features: [
+        t("front.pricing.tiers.enterprise.features.unlimited"),
+        t("front.pricing.tiers.enterprise.features.integrations"),
+        t("front.pricing.tiers.enterprise.features.sla"),
+        t("front.pricing.tiers.enterprise.features.onboarding"),
+      ],
+      highlight: false,
+    },
+  ];
+
   return (
     <Stack spacing={3}>
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          Cennik
+          {t("front.pricing.title")}
         </Typography>
         <Typography variant="subtitle1" color="rgba(232,241,248,0.8)">
-          Wybierz pakiet dopasowany do skali Twojej sieci energetycznej.
+          {t("front.pricing.subtitle")}
         </Typography>
       </Box>
 
@@ -63,7 +75,9 @@ export default function PricingPage() {
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
                     {tier.name}
                   </Typography>
-                  {tier.highlight && <Chip label="Najczęściej wybierany" color="secondary" size="small" />}
+                  {tier.highlight && (
+                    <Chip label={t("front.pricing.highlight")} color="secondary" size="small" />
+                  )}
                 </Box>
                 <Typography variant="h4" sx={{ fontWeight: 800 }}>
                   {tier.price}
@@ -85,7 +99,7 @@ export default function PricingPage() {
               </Stack>
 
               <Button variant={tier.highlight ? "contained" : "outlined"} color="primary" fullWidth>
-                Wybierz
+                {t("front.pricing.select")}
               </Button>
             </Box>
           </Grid>

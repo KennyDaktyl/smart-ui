@@ -7,22 +7,26 @@ import { useTranslation } from "react-i18next";
 
 import AppHeader from "./layout/AppHeader";
 import SmartEnergyFooter from "./components/SmartEnergyFooter";
+import AdminUserDetailsPage from "./pages/admin/UserDetailsPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
-const MyInstallationsPage = lazy(() => import("./pages/installations/InstallationsPage"));
-const UsersListPage = lazy(() => import("./pages/admin/UsersListPage"));
-const UserDetailsPage = lazy(() => import("./pages/admin/UserInstallationsPage"));
-const HuaweiPage = lazy(() => import("./pages/user/HuaweiPage"));
+const MicrocontrollersPage = lazy(() => import("./pages/microcontrollers/MicrocontrollersPage"));
 const AccountPage = lazy(() => import("./pages/user/AccountPage"));
-const RaspberriesPage = lazy(() => import("./pages/raspberries/RaspberriesPage"));
-const DeviceDetailsPage = lazy(() => import("./pages/devices/DeviceDetailsPage"));
+const MicrocontrollerDetailsPage = lazy(
+  () => import("./pages/microcontrollers/MicrocontrollerDetailsPage")
+);
+const ProvidersPage = lazy(() => import("./pages/providers/ProvidersPage"));
 const LandingLayout = lazy(() => import("./front/LandingLayout"));
 const HomePage = lazy(() => import("./front/HomePage"));
 const OfferPage = lazy(() => import("./front/OfferPage"));
 const PricingPage = lazy(() => import("./front/PricingPage"));
 const ContactPage = lazy(() => import("./front/ContactPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const UsersListPage = lazy(() => import("./pages/admin/AdminPage"));
+const AdminMicrocontrollerDetailsPage = lazy(
+  () => import("./pages/admin/MicrocontrollerDetailsAdminPage")
+);
 
 export default function App() {
   const auth = useContext(AuthContext);
@@ -33,7 +37,7 @@ export default function App() {
   }
 
   const isPublic = !auth?.token;
-  const authedHome = auth?.user?.role === "admin" ? "/admin" : "/dashboard";
+  const authedHome = "/microcontrollers";
 
   const renderSpinner = (
     <Box
@@ -125,49 +129,37 @@ export default function App() {
               />
 
               <Route
-                path="/dashboard"
+                path="/microcontrollers"
                 element={
                   <ProtectedRoute>
-                    <MyInstallationsPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/raspberries"
-                element={
-                  <ProtectedRoute>
-                    <RaspberriesPage />
+                    <MicrocontrollersPage />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/raspberries/:raspberryId/devices/:id"
+                path="/microcontrollers/:microcontrollerUuid"
                 element={
                   <ProtectedRoute>
-                    <DeviceDetailsPage />
+                    <MicrocontrollerDetailsPage />
                   </ProtectedRoute>
                 }
               />
-
               <Route
-                path="/huawei"
+                path="/microcontrollers/:microcontrollerUuid/provider"
                 element={
                   <ProtectedRoute>
-                    <HuaweiPage />
+                    <ProvidersPage />
                   </ProtectedRoute>
                 }
               />
-
               <Route
-                path="/account"
+                path="/providers"
                 element={
                   <ProtectedRoute>
-                    <AccountPage />
+                    <ProvidersPage />
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/admin"
                 element={
@@ -180,7 +172,24 @@ export default function App() {
                 path="/admin/users/:userId"
                 element={
                   <ProtectedRoute adminOnly>
-                    <UserDetailsPage />
+                    <AdminUserDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users/:userId/microcontrollers/:microcontrollerUuid"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminMicrocontrollerDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <AccountPage />
                   </ProtectedRoute>
                 }
               />

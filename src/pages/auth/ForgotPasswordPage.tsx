@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Alert, Button, Stack, TextField } from "@mui/material";
 import AuthPageLayout from "@/front/AuthPageLayout";
 import { authApi } from "@/api/authApi";
+import { useTranslation } from "react-i18next";
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -13,15 +15,15 @@ export default function ForgotPasswordPage() {
     setError("");
     setSuccess("");
     if (!email) {
-      setError("Podaj adres e-mail.");
+      setError(t("auth.forgot.emptyEmail"));
       return;
     }
     try {
       setLoading(true);
       await authApi.requestPasswordReset(email);
-      setSuccess("Jeśli konto istnieje, wysłaliśmy instrukcje zmiany hasła.");
+      setSuccess(t("auth.forgot.success"));
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Nie udało się wysłać wiadomości.");
+      setError(err?.response?.data?.detail || t("auth.forgot.error"));
     } finally {
       setLoading(false);
     }
@@ -29,14 +31,14 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthPageLayout
-      title="Przypomnij hasło"
-      subtitle="Wyślij link do resetu hasła na swój e-mail."
+      title={t("auth.forgot.title")}
+      subtitle={t("auth.forgot.subtitle")}
     >
       <Stack spacing={1.5}>
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}
         <TextField
-          label="Email"
+          label={t("auth.fields.email")}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -48,7 +50,7 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           sx={{ borderRadius: 10, py: 1.1 }}
         >
-          {loading ? "Wysyłanie..." : "Wyślij link resetujący"}
+          {loading ? t("auth.forgot.loading") : t("auth.forgot.submit")}
         </Button>
       </Stack>
     </AuthPageLayout>

@@ -9,7 +9,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { deviceApi } from "@/api/deviceApi";
 import { DeviceTelemetryTimeline } from "@/features/devices/components/DeviceTelemetryTimeline";
 import { useDeviceEvents } from "@/features/devices/hooks/useDeviceEvents";
-import { useRaspberryLive } from "@/features/raspberries/hooks/useRaspberryLive";
+import { useMicrocontrollerLive } from "@/features/raspberries/hooks/useMicrocontrollerLive";
 import { HeartbeatPayload } from "@/shared/types/heartbeat";
 import { raspberryApi } from "@/api/raspberryApi";
 import { DeviceDetailsInfo } from "@/features/devices/components/DeviceDetailsInfo";
@@ -75,6 +75,7 @@ export default function DeviceDetailsPage() {
     rangeEnd: range.end,
     enabled: tab === "telemetry",
     errorMessage: t("devices.details.eventsError"),
+    microcontrollerUuid: raspberryUuid || null,
   });
 
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
@@ -93,7 +94,11 @@ export default function DeviceDetailsPage() {
     const fetchDevice = async () => {
       setLoading(true);
       try {
-        const res = await deviceApi.getDeviceById(token, Number(id));
+        const res = await deviceApi.getDevice(
+          token,
+          Number(id),
+          raspberryUuid || undefined
+        );
         setDevice(res.data);
         setRaspberryName(res.data?.raspberry_name ?? "");
         setRaspberryUuid(res.data?.raspberry_uuid ?? res.data?.raspberry?.uuid ?? "");
@@ -105,7 +110,7 @@ export default function DeviceDetailsPage() {
     };
 
     fetchDevice();
-  }, [token, locationState.device, id, t]);
+  }, [token, locationState.device, id, t, raspberryUuid]);
 
   useEffect(() => {
     if (!token || raspberryUuid || !device?.raspberry_id) return;
@@ -170,7 +175,7 @@ export default function DeviceDetailsPage() {
     [device?.id, id, scheduleOfflineMark]
   );
 
-  useRaspberryLive(raspberryUuid, handleHeartbeat);
+  useMicrocontrollerLive(raspberryUuid, handleHeartbeat);
 
   useEffect(() => {
     if (raspberryUuid) {

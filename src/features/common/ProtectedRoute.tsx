@@ -15,7 +15,7 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
   if (!auth?.token) return <Navigate to="/login" replace />;
 
   if (adminOnly && auth?.user?.role !== "admin") {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/microcontrollers" replace />;
   }
 
   return children;

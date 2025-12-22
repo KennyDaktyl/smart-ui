@@ -5,6 +5,7 @@ import WifiIcon from "@mui/icons-material/Wifi";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import { keyframes } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 
 const glowOrbit = keyframes`
   0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
@@ -24,6 +25,8 @@ const floatCard = keyframes`
 `;
 
 export default function HomePage() {
+  const { t } = useTranslation();
+
   return (
     <Stack spacing={3}>
       <Box
@@ -66,22 +69,21 @@ export default function HomePage() {
         <Stack spacing={1.5} sx={{ position: "relative", zIndex: 1 }}>
           <Chip
             icon={<BoltIcon />}
-            label="Energia ze słońca → urządzenia"
+            label={t("front.home.heroChip")}
             color="secondary"
             variant="filled"
             sx={{ fontWeight: 700, alignSelf: "flex-start" }}
           />
           <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
-            Wykorzystaj nadwyżkę energii, zanim ucieknie.
+            {t("front.home.heroTitle")}
           </Typography>
           <Typography variant="h6" sx={{ color: "rgba(232,241,248,0.8)", maxWidth: 800 }}>
-            Zarządzaj urządzeniami zdalnie, włącz harmonogram pracy i trzymaj rękę na pulsie
-            fotowoltaiki w czasie rzeczywistym. Wszystko w jednym panelu.
+            {t("front.home.heroSubtitle")}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Chip label="Zarządzaj urządzeniami zdalnie" variant="outlined" color="secondary" />
-            <Chip label="Harmonogram pracy" variant="outlined" color="primary" />
-            <Chip label="Wykorzystaj nadwyżkę energii" variant="outlined" color="success" />
+            <Chip label={t("front.home.heroTags.manage")} variant="outlined" color="secondary" />
+            <Chip label={t("front.home.heroTags.schedule")} variant="outlined" color="primary" />
+            <Chip label={t("front.home.heroTags.surplus")} variant="outlined" color="success" />
           </Stack>
         </Stack>
 
@@ -106,18 +108,18 @@ export default function HomePage() {
         {[
           {
             icon: <ElectricBoltIcon color="secondary" />,
-            title: "Płynąca moc",
-            desc: "Strumień z inwertera i urządzeń – wizualizacja WS z lekką animacją.",
+            title: t("front.home.cards.flow.title"),
+            desc: t("front.home.cards.flow.desc"),
           },
           {
             icon: <WifiIcon color="info" />,
-            title: "Heartbeat IoT",
-            desc: "Live status Raspberry i urządzeń. Jeśli milkną – wiesz o tym natychmiast.",
+            title: t("front.home.cards.heartbeat.title"),
+            desc: t("front.home.cards.heartbeat.desc"),
           },
           {
             icon: <ScheduleIcon color="primary" />,
-            title: "Harmonogram pracy",
-            desc: "Przełącz tryby w rytmie produkcji PV. Automatyzacja nadwyżek energii.",
+            title: t("front.home.cards.schedule.title"),
+            desc: t("front.home.cards.schedule.desc"),
           },
         ].map((item, idx) => (
           <Grid key={item.title} item xs={12} md={4}>
@@ -158,12 +160,11 @@ export default function HomePage() {
           <Stack direction="row" alignItems="center" spacing={1}>
             <WbSunnyIcon color="warning" />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              Widzisz energię zanim zgaśnie słońce
+              {t("front.home.bottom.title")}
             </Typography>
           </Stack>
           <Typography variant="body1">
-            Animowane podglądy mocy, żywe linie przepływu energii i statusy urządzeń w czasie
-            rzeczywistym. Tekst jest drugorzędny – liczy się wizualny puls energii.
+            {t("front.home.bottom.desc")}
           </Typography>
         </Stack>
       </Box>

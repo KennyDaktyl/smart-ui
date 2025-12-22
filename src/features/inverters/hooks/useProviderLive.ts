@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 
-export function useInverterLive(serial: string, onUpdate: (data: any) => void) {
+export function useProviderLive(serial: string, onUpdate: (data: any) => void) {
   const cbRef = useRef(onUpdate);
   cbRef.current = onUpdate;
 

@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { DeviceForm } from "./DeviceForm";
 import { DeviceBox } from "./DeviceBox";
 import { useDeviceSlot } from "../hooks/useDeviceSlot";
 import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
 import { useTranslation } from "react-i18next";
+import type { DeviceFormData } from "../types/device";
 
 interface DeviceSlotProps {
   raspberryId: number;
@@ -31,12 +33,46 @@ export function DeviceSlot(props: DeviceSlotProps) {
   } = useDeviceSlot(props);
 
   const { t } = useTranslation();
-  const { device, slotIndex, liveInitialized, isOnline, raspberryName, raspberryUuid } = props;
+  const {
+    device,
+    slotIndex,
+    liveInitialized,
+    isOnline,
+    raspberryName,
+    raspberryUuid,
+    raspberryId,
+  } = props;
+
+  /* ===================== FORM STATE ===================== */
+
+  const [formState, setFormState] = useState<DeviceFormData>(() => ({
+    name: device?.name ?? "",
+    rated_power_w: device?.rated_power_w ?? "",
+    mode: device?.mode ?? "MANUAL",
+    threshold_value: device?.threshold_value ?? "",
+    device_number: slotIndex,
+  }));
+
+  useEffect(() => {
+    if (!device) return;
+
+    setFormState({
+      name: device.name ?? "",
+      rated_power_w: device.rated_power_w ?? "",
+      mode: device.mode ?? "MANUAL",
+      threshold_value: device.threshold_value ?? "",
+      device_number: slotIndex,
+    });
+  }, [device, slotIndex]);
+
+  /* ===================== ADD CONDITIONS ===================== */
 
   const canAddDevice = liveInitialized && isOnline;
   const addHelperText = !canAddDevice
     ? t(liveInitialized ? "devices.addDisabledOffline" : "devices.addDisabledWaiting")
     : undefined;
+
+  /* ===================== EMPTY SLOT ===================== */
 
   if (!device && !editing) {
     return (
@@ -49,23 +85,22 @@ export function DeviceSlot(props: DeviceSlotProps) {
     );
   }
 
+  /* ===================== EDIT MODE ===================== */
+
   if (editing) {
     return (
       <DeviceForm
-        initialData={{
-          name: device?.name ?? "",
-          rated_power_kw: device?.rated_power_kw ?? "",
-          mode: device?.mode ?? "MANUAL",
-          threshold_kw: device?.threshold_kw ?? "",
-          device_number: slotIndex,
-        }}
+        value={formState}
         saving={saving}
-        locked={locked}
+        disabled={locked}
+        onChange={setFormState}
         onCancel={() => setEditing(false)}
-        onSubmit={handleSave}
+        onSubmit={() => handleSave(formState)}
       />
     );
   }
+
+  /* ===================== VIEW MODE ===================== */
 
   return (
     <DeviceBox
@@ -75,7 +110,7 @@ export function DeviceSlot(props: DeviceSlotProps) {
       waitingForState={waitingForState}
       raspberryName={raspberryName}
       raspberryUuid={raspberryUuid}
-      raspberryId={props.raspberryId}
+      raspberryId={raspberryId}
       slotIndex={slotIndex}
       toggling={toggling}
       locked={locked}

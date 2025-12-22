@@ -2,18 +2,19 @@ import { AppBar, Box, Button, IconButton, Toolbar, Typography } from "@mui/mater
 import { Link, useLocation } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
-
-const links = [
-  { label: "Home", to: "/" },
-  { label: "Oferta", to: "/offer" },
-  { label: "Cennik", to: "/pricing" },
-  { label: "Kontakt", to: "/contact" },
-];
+import { useTranslation } from "react-i18next";
 
 export function LandingNav() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const isActive = (to: string) => pathname === to;
+  const links = [
+    { label: t("front.nav.home"), to: "/" },
+    { label: t("front.nav.offer"), to: "/offer" },
+    { label: t("front.nav.pricing"), to: "/pricing" },
+    { label: t("front.nav.contact"), to: "/contact" },
+  ];
 
   return (
     <AppBar
@@ -38,7 +39,7 @@ export function LandingNav() {
             letterSpacing: 0.8,
           }}
         >
-          ⚡ Smart Energy
+          {t("common.brand")}
         </Typography>
 
         <Box sx={{ flex: 1, display: { xs: "none", md: "flex" }, gap: 1 }}>
@@ -68,7 +69,7 @@ export function LandingNav() {
             color="secondary"
             sx={{ borderRadius: 999, borderColor: "rgba(124,255,224,0.6)" }}
           >
-            Zaloguj
+            {t("front.nav.login")}
           </Button>
           <Button
             component={Link}
@@ -77,7 +78,7 @@ export function LandingNav() {
             color="primary"
             sx={{ borderRadius: 999, boxShadow: "0 8px 22px rgba(15,139,111,0.35)" }}
           >
-            Zarejestruj
+            {t("front.nav.register")}
           </Button>
         </Box>
 
@@ -85,7 +86,7 @@ export function LandingNav() {
           edge="end"
           onClick={() => setOpen((v) => !v)}
           sx={{ display: { xs: "flex", md: "none" }, color: "#e8f1f8" }}
-          aria-label="Menu"
+          aria-label={t("common.menu")}
         >
           <MenuIcon />
         </IconButton>
@@ -127,7 +128,7 @@ export function LandingNav() {
               sx={{ borderRadius: 999, borderColor: "rgba(124,255,224,0.6)" }}
               onClick={() => setOpen(false)}
             >
-              Zaloguj
+              {t("front.nav.login")}
             </Button>
             <Button
               component={Link}
@@ -138,7 +139,7 @@ export function LandingNav() {
               sx={{ borderRadius: 999, boxShadow: "0 8px 22px rgba(15,139,111,0.35)" }}
               onClick={() => setOpen(false)}
             >
-              Zarejestruj
+              {t("front.nav.register")}
             </Button>
           </Box>
         </Box>

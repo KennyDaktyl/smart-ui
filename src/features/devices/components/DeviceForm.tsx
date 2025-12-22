@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,191 +6,155 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
-
-import { DeviceFormData } from "@/features/devices/types/device";
-import { DeviceMode } from "@/shared/enums/deviceMode";
 import { useTranslation } from "react-i18next";
+import { DeviceFormData, DeviceUIMode } from "../types/device";
 
 interface DeviceFormProps {
-  initialData: DeviceFormData;
-  locked: boolean;
+  value: DeviceFormData;
+  disabled: boolean;
   saving: boolean;
-  onCancel: () => void;
-  onSubmit: (form: DeviceFormData) => void;
+  onChange(next: DeviceFormData): void;
+  onSubmit(): void;
+  onCancel(): void;
 }
 
 export function DeviceForm({
-  initialData,
-  locked,
+  value,
+  disabled,
   saving,
-  onCancel,
+  onChange,
   onSubmit,
+  onCancel,
 }: DeviceFormProps) {
-  const [form, setForm] = useState<DeviceFormData>(initialData);
   const { t } = useTranslation();
 
-  const [errors, setErrors] = useState<Record<string, string>>({
-    name: "",
-    rated_power_kw: "",
-    threshold_kw: "",
-  });
+  const handleChange =
+    (field: keyof DeviceFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value === "" ? "" : value,
-    }));
-
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
-
-  const validate = () => {
-    let isValid = true;
-
-    const newErrors: Record<string, string> = {
-      name: "",
-      rated_power_kw: "",
-      threshold_kw: "",
+      onChange({
+        ...value,
+        [field]:
+          raw === ""
+            ? ""
+            : field === "name"
+            ? raw
+            : Number(raw),
+      });
     };
 
-    if (!form.name || form.name.trim().length === 0) {
-      newErrors.name = t("devices.form.errors.nameRequired");
-      isValid = false;
-    }
+  const isAutoMode = value.mode === DeviceUIMode.AUTO_POWER;
 
-    if (form.rated_power_kw === "" || Number(form.rated_power_kw) <= 0) {
-      newErrors.rated_power_kw = t("devices.form.errors.powerRequired");
-      isValid = false;
-    }
+  const nameError =
+    value.name.trim().length === 0
+      ? t("devices.form.errors.nameRequired")
+      : "";
 
-    if (form.mode === DeviceMode.AUTO_POWER) {
-      if (form.threshold_kw === "" || Number(form.threshold_kw) <= 0) {
-        newErrors.threshold_kw = t("devices.form.errors.thresholdRequired");
-        isValid = false;
-      }
-    }
+  const powerError =
+    value.rated_power_w === "" || value.rated_power_w <= 0
+      ? t("devices.form.errors.powerRequired")
+      : "";
 
-    setErrors(newErrors);
-    return isValid;
-  };
+  const thresholdError =
+    isAutoMode &&
+    (value.threshold_value === "" || value.threshold_value <= 0)
+      ? t("devices.form.errors.thresholdRequired")
+      : "";
 
-  const handleSubmitForm = (e?: React.FormEvent) => {
-    e?.preventDefault();
-
-    if (!validate()) return;
-
-    const normalized: DeviceFormData = {
-      ...form,
-      rated_power_kw:
-        form.rated_power_kw === "" ? 0 : Number(form.rated_power_kw),
-      threshold_kw:
-        form.mode === DeviceMode.AUTO_POWER
-          ? (form.threshold_kw === "" ? "" : Number(form.threshold_kw))
-          : "",
-    };
-
-    onSubmit(normalized);
-  };
+  const hasErrors = Boolean(nameError || powerError || thresholdError);
 
   return (
     <Card
       sx={{
         p: 1,
-        opacity: locked ? 0.5 : 1,
-        bgcolor: "linear-gradient(160deg, #ffffff 0%, #f3faf5 100%)",
+        opacity: disabled ? 0.6 : 1,
         border: "1px solid rgba(15,139,111,0.14)",
-        color: "#0d1b2a",
       }}
     >
       <CardContent>
+        {/* ACTIONS */}
         <Stack direction="row" justifyContent="space-between">
-          <Stack direction="row" alignItems="center">
-            <IconButton onClick={handleSubmitForm} disabled={saving || locked}>
+          <Stack direction="row">
+            <IconButton
+              onClick={onSubmit}
+              disabled={saving || disabled || hasErrors}
+            >
               <SaveIcon color="primary" />
             </IconButton>
 
-            <IconButton onClick={onCancel}>
+            <IconButton onClick={onCancel} disabled={saving}>
               <CloseIcon />
             </IconButton>
           </Stack>
         </Stack>
 
+        {/* FORM */}
         <Stack spacing={2} mt={2}>
-
-          {/* --- NAZWA REQUIRED --- */}
           <TextField
             label={t("devices.form.nameLabel")}
-            name="name"
-            fullWidth
+            value={value.name}
+            onChange={handleChange("name")}
+            disabled={disabled}
+            error={!!nameError}
+            helperText={nameError}
             size="small"
-            value={form.name}
-            onChange={handleChange}
-            disabled={locked}
-            error={!!errors.name}
-            helperText={errors.name}
+            fullWidth
           />
 
           <TextField
             label={t("devices.form.powerLabel")}
-            name="rated_power_kw"
             type="number"
-            fullWidth
+            value={value.rated_power_w}
+            onChange={handleChange("rated_power_w")}
+            disabled={disabled}
+            error={!!powerError}
+            helperText={powerError}
             size="small"
-            value={form.rated_power_kw}
-            onChange={handleChange}
-            disabled={locked}
-            error={!!errors.rated_power_kw}
-            helperText={errors.rated_power_kw}
+            fullWidth
           />
 
           <TextField
             select
             label={t("devices.form.modeLabel")}
-            name="mode"
-            fullWidth
+            value={value.mode}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                mode: e.target.value as DeviceUIMode,
+                threshold_value: "",
+              })
+            }
+            disabled={disabled}
             size="small"
-            value={form.mode}
-            onChange={handleChange}
-            disabled={locked}
+            fullWidth
           >
-            <MenuItem value={DeviceMode.MANUAL}>{t("devices.form.modes.manual")}</MenuItem>
-            <MenuItem value={DeviceMode.AUTO_POWER}>{t("devices.form.modes.autoPower")}</MenuItem>
-            <MenuItem value={DeviceMode.SCHEDULE}>{t("devices.form.modes.schedule")}</MenuItem>
+            <MenuItem value={DeviceUIMode.MANUAL}>
+              {t("devices.form.modes.manual")}
+            </MenuItem>
+            <MenuItem value={DeviceUIMode.AUTO_POWER}>
+              {t("devices.form.modes.autoPower")}
+            </MenuItem>
+            <MenuItem value={DeviceUIMode.SCHEDULE}>
+              {t("devices.form.modes.schedule")}
+            </MenuItem>
           </TextField>
 
-          {form.mode === DeviceMode.AUTO_POWER && (
+          {isAutoMode && (
             <TextField
               label={t("devices.form.thresholdLabel")}
-              name="threshold_kw"
               type="number"
-              fullWidth
+              value={value.threshold_value}
+              onChange={handleChange("threshold_value")}
+              disabled={disabled}
+              error={!!thresholdError}
+              helperText={thresholdError}
               size="small"
-              value={form.threshold_kw}
-              onChange={handleChange}
-              disabled={locked}
-              error={!!errors.threshold_kw}
-              helperText={errors.threshold_kw}
+              fullWidth
             />
           )}
-
-          <TextField
-            label={t("devices.form.slotLabel")}
-            name="device_number"
-            fullWidth
-            size="small"
-            value={form.device_number}
-            slotProps={{
-              input: {
-                readOnly: true,
-              },
-            }}
-          />
-
         </Stack>
       </CardContent>
     </Card>

@@ -12,12 +12,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@/api/authApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 type Mode = "login" | "register";
 
 export function AuthPanel() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -30,7 +32,7 @@ export function AuthPanel() {
     setError("");
     setSuccess("");
     if (!email || !password) {
-      setError("Podaj email i hasło.");
+      setError(t("front.authPanel.errors.missingFields"));
       return;
     }
     try {
@@ -42,11 +44,11 @@ export function AuthPanel() {
         navigate("/");
       } else {
         await authApi.register({ email, password });
-        setSuccess("Konto utworzone! Zaloguj się tym samym hasłem.");
+        setSuccess(t("front.authPanel.registerSuccess"));
         setMode("login");
       }
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Operacja nie powiodła się.");
+      setError(err?.response?.data?.detail || t("front.authPanel.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -65,24 +67,24 @@ export function AuthPanel() {
       <Tabs
         value={mode}
         onChange={(_, val) => setMode(val)}
-        aria-label="auth tabs"
+        aria-label={t("front.authPanel.ariaTabs")}
         textColor="primary"
         indicatorColor="primary"
       >
-        <Tab value="login" label="Logowanie" />
-        <Tab value="register" label="Rejestracja" />
+        <Tab value="login" label={t("front.authPanel.tabs.login")} />
+        <Tab value="register" label={t("front.authPanel.tabs.register")} />
       </Tabs>
 
       <Stack spacing={1.25} mt={2}>
         <TextField
-          label="Email"
+          label={t("auth.fields.email")}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           fullWidth
         />
         <TextField
-          label="Hasło"
+          label={t("auth.fields.password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -91,7 +93,7 @@ export function AuthPanel() {
 
         {mode === "register" && (
           <Typography variant="caption" color="text.secondary">
-            Hasło min. 6 znaków. Konto tworzone jest od razu, bez dodatkowych pól.
+            {t("front.authPanel.registerHint")}
           </Typography>
         )}
 
@@ -109,7 +111,11 @@ export function AuthPanel() {
             boxShadow: "0 12px 26px rgba(15,139,111,0.3)",
           }}
         >
-          {loading ? "Przetwarzanie..." : mode === "login" ? "Zaloguj się" : "Utwórz konto"}
+          {loading
+            ? t("front.authPanel.processing")
+            : mode === "login"
+            ? t("front.authPanel.submitLogin")
+            : t("front.authPanel.submitRegister")}
         </Button>
 
         <Button
@@ -117,7 +123,9 @@ export function AuthPanel() {
           size="small"
           onClick={() => setMode(mode === "login" ? "register" : "login")}
         >
-          {mode === "login" ? "Chcę utworzyć konto" : "Mam już konto"}
+          {mode === "login"
+            ? t("front.authPanel.switchToRegister")
+            : t("front.authPanel.switchToLogin")}
         </Button>
       </Stack>
     </Box>

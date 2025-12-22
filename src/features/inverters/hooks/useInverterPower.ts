@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { inverterApi } from "@/api/inverterApi";
-import { useInverterLive } from "./useInverterLive";
+import { useProviderLive } from "./useProviderLive";
 
 interface UseInverterPowerArgs {
     serial: string | null;
@@ -57,7 +57,7 @@ export function useInverterPower({
         load();
     }, [token, inverterId]);
 
-    useInverterLive(serial ?? "", (data: any) => {
+    useProviderLive(serial ?? "", (data: any) => {
         setHasWs(true);
         setStale(false);
         setMissingData(false);

@@ -3,39 +3,41 @@ import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturi
 import DnsIcon from "@mui/icons-material/Dns";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import LockIcon from "@mui/icons-material/Lock";
-
-const cards = [
-  {
-    icon: <PrecisionManufacturingIcon color="secondary" />,
-    title: "Zarządzanie urządzeniami",
-    desc: "Raspberry + urządzenia, tryby pracy (manual, auto, harmonogram), status online i sterowanie.",
-  },
-  {
-    icon: <DnsIcon color="info" />,
-    title: "Integracja inwerterów",
-    desc: "Moc, modele, heartbeat i przypisanie do instalacji. Współpraca z API Huawei.",
-  },
-  {
-    icon: <TimelineIcon color="primary" />,
-    title: "Telemetria",
-    desc: "Strumienie websocket, timeline zdarzeń, wykresy mocy, alerty o stanie.",
-  },
-  {
-    icon: <LockIcon color="success" />,
-    title: "Bezpieczeństwo",
-    desc: "JWT z odświeżaniem, kontrola ról (admin/użytkownik), separacja danych per konto.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export default function OfferPage() {
+  const { t } = useTranslation();
+  const cards = [
+    {
+      icon: <PrecisionManufacturingIcon color="secondary" />,
+      title: t("front.offer.cards.devices.title"),
+      desc: t("front.offer.cards.devices.desc"),
+    },
+    {
+      icon: <DnsIcon color="info" />,
+      title: t("front.offer.cards.inverters.title"),
+      desc: t("front.offer.cards.inverters.desc"),
+    },
+    {
+      icon: <TimelineIcon color="primary" />,
+      title: t("front.offer.cards.telemetry.title"),
+      desc: t("front.offer.cards.telemetry.desc"),
+    },
+    {
+      icon: <LockIcon color="success" />,
+      title: t("front.offer.cards.security.title"),
+      desc: t("front.offer.cards.security.desc"),
+    },
+  ];
+
   return (
     <Stack spacing={3}>
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
-          Oferta dla energetyki prosumenckiej
+          {t("front.offer.title")}
         </Typography>
         <Typography variant="subtitle1" color="rgba(232,241,248,0.8)">
-          Kompletny stack do monitorowania i automatyzacji urządzeń PV w czasie rzeczywistym.
+          {t("front.offer.subtitle")}
         </Typography>
       </Box>
 
@@ -54,7 +56,7 @@ export default function OfferPage() {
               <Stack spacing={1}>
                 <Box display="flex" alignItems="center" gap={1}>
                   {card.icon}
-                  <Chip label="live" size="small" color="secondary" variant="outlined" />
+                  <Chip label={t("front.offer.live")} size="small" color="secondary" variant="outlined" />
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   {card.title}

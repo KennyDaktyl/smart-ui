@@ -16,6 +16,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import { useTranslation } from "react-i18next";
 
 import { DeviceTimelineEvent } from "@/features/devices/types/deviceEvents";
 
@@ -27,11 +28,11 @@ interface EventTypeMeta {
   color: string;
 }
 
-const EVENT_TYPES: EventTypeMeta[] = [
-  { key: "AUTO_TRIGGER", label: "Auto trigger", color: "#0f8b6f" },
-  { key: "HEARTBEAT_FAILURE", label: "Heartbeat failure", color: "#e0b100" },
-  { key: "POWER_MISSING", label: "Power missing", color: "#ef4444" },
-  { key: "MANUAL", label: "Manual", color: "#6366f1" },
+const EVENT_TYPE_DEFS: Array<{ key: EventTypeKey; color: string }> = [
+  { key: "AUTO_TRIGGER", color: "#0f8b6f" },
+  { key: "HEARTBEAT_FAILURE", color: "#e0b100" },
+  { key: "POWER_MISSING", color: "#ef4444" },
+  { key: "MANUAL", color: "#6366f1" },
 ];
 
 const DEFAULT_FILTERS: Record<EventTypeKey, boolean> = {
@@ -74,9 +75,18 @@ export function DeviceTelemetryTimeline({
   start,
   end,
 }: DeviceTelemetryTimelineProps) {
+  const { t } = useTranslation();
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [filters, setFilters] = useState<Record<EventTypeKey, boolean>>(DEFAULT_FILTERS);
   const [zoom, setZoom] = useState(1);
+  const eventTypes = useMemo<EventTypeMeta[]>(
+    () =>
+      EVENT_TYPE_DEFS.map((item) => ({
+        ...item,
+        label: t(`devices.timeline.events.${item.key}`),
+      })),
+    [t]
+  );
 
   const dayBuckets = useMemo(() => buildDayBuckets(events, start, end), [events, start, end]);
   const nonEmptyBuckets = dayBuckets.filter((bucket) => bucket.events.length > 0);
@@ -100,6 +110,13 @@ export function DeviceTelemetryTimeline({
 
   const zoomIn = () => setZoom((z) => Math.min(z + 0.5, 4));
   const zoomOut = () => setZoom((z) => Math.max(z - 0.5, 1));
+  const resolveEventType = (reason?: string | null) => {
+    const normalized = (reason || "").toUpperCase();
+    if (normalized.includes("AUTO")) return eventTypes[0];
+    if (normalized.includes("HEARTBEAT")) return eventTypes[1];
+    if (normalized.includes("POWER")) return eventTypes[2];
+    return eventTypes[3];
+  };
 
   return (
     <Box
@@ -136,7 +153,7 @@ export function DeviceTelemetryTimeline({
       {loading ? (
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ height: 180 }}>
           <CircularProgress size={20} />
-          <Typography variant="body2">Loading…</Typography>
+          <Typography variant="body2">{t("common.loading")}</Typography>
         </Stack>
       ) : error ? (
         <Alert severity="error">{error}</Alert>
@@ -144,9 +161,9 @@ export function DeviceTelemetryTimeline({
         <>
           <Stack direction="row" spacing={2} mb={1.5} flexWrap="wrap" alignItems="center">
             <Typography variant="caption" sx={{ color: "#0f172a", fontWeight: 700 }}>
-              Legend:
+              {t("devices.timeline.legend")}
             </Typography>
-            {EVENT_TYPES.map((item) => (
+            {eventTypes.map((item) => (
               <FormControlLabel
                 key={item.key}
                 control={
@@ -180,11 +197,11 @@ export function DeviceTelemetryTimeline({
             ))}
           </Stack>
 
-          {active ? (
+      {active ? (
             <>
               <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" mb={1}>
                 <Typography variant="caption" color="text.secondary">
-                  Zoom
+                  {t("devices.timeline.zoom")}
                 </Typography>
                 <IconButton size="small" onClick={zoomOut} disabled={zoom <= 1}>
                   <ZoomOutIcon fontSize="small" />
@@ -201,6 +218,7 @@ export function DeviceTelemetryTimeline({
                 filters={filters}
                 resolveEventType={resolveEventType}
                 zoom={zoom}
+                emptyLabel={t("devices.timeline.emptyDay")}
               />
             </>
           ) : (
@@ -221,11 +239,13 @@ function DayTimeline({
   filters,
   resolveEventType,
   zoom,
+  emptyLabel,
 }: {
   bucket: DayBucket;
   filters: Record<EventTypeKey, boolean>;
   resolveEventType: (reason?: string | null) => EventTypeMeta;
   zoom: number;
+  emptyLabel: string;
 }) {
   const spanMs = bucket.endMs - bucket.startMs;
   const now = Date.now();
@@ -348,7 +368,7 @@ function DayTimeline({
             fontSize: 12,
           }}
         >
-          No events this day (timeline still shows 24h scale)
+          {emptyLabel}
         </Box>
       )}
 

@@ -8,7 +8,7 @@ import { userApi } from "@/api/userApi";
 import { useTranslation } from "react-i18next";
 
 import { HeartbeatPayload } from "@/shared/types/heartbeat";
-import { useRaspberryListLive } from "@/features/raspberries/hooks/useRaspberryListLive";
+import { useMicrocontrollerListLive } from "@/features/raspberries/hooks/useMicrocontrollerListLive";
 
 import { RaspberryCard } from "@/features/raspberries/components/RaspberryCard";
 import { RaspberryWithDevices } from "@/features/raspberries/types/raspberries";
@@ -77,7 +77,7 @@ export default function RaspberriesPage() {
     );
   }, [scheduleOfflineMark]);
 
-  useRaspberryListLive(uuids, handleHeartbeat);
+  useMicrocontrollerListLive(uuids, handleHeartbeat);
 
   const load = async () => {
     if (!token) return;

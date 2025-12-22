@@ -10,6 +10,7 @@ interface UseDeviceEventsOptions {
   rangeEnd?: string;
   enabled?: boolean;
   errorMessage: string;
+  microcontrollerUuid?: string | null;
 }
 
 interface UseDeviceEventsResult {
@@ -26,6 +27,7 @@ export function useDeviceEvents({
   rangeEnd,
   enabled = true,
   errorMessage,
+  microcontrollerUuid,
 }: UseDeviceEventsOptions): UseDeviceEventsResult {
   const [events, setEvents] = useState<DeviceTimelineEvent[]>([]);
   const [summary, setSummary] = useState<DeviceEventsSummary>({});
@@ -46,7 +48,8 @@ export function useDeviceEvents({
           token,
           deviceId,
           new Date(rangeStart).toISOString(),
-          new Date(rangeEnd).toISOString()
+          new Date(rangeEnd).toISOString(),
+          microcontrollerUuid ?? undefined
         );
         if (cancelled) return;
 
@@ -71,7 +74,7 @@ export function useDeviceEvents({
     return () => {
       cancelled = true;
     };
-  }, [token, deviceId, rangeStart, rangeEnd, enabled, errorMessage]);
+  }, [token, deviceId, rangeStart, rangeEnd, enabled, errorMessage, microcontrollerUuid]);
 
   return { events, summary, loading, error };
 }

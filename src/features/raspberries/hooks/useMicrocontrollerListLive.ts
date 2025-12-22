@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 
-export function useRaspberryListLive(
+export function useMicrocontrollerListLive(
   uuids: string[],
   onUpdate: (data: any) => void
 ) {

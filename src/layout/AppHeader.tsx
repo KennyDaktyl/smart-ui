@@ -34,10 +34,9 @@ export default function AppHeader() {
 
   const menuItems = token
     ? [
+        { label: t("header.menu.microcontrollers"), path: "/microcontrollers" },
+        { label: t("header.menu.controllers"), path: "/providers" },
         ...(user?.role === "admin" ? [{ label: t("header.menu.admin"), path: "/admin" }] : []),
-        { label: t("header.menu.installations"), path: "/dashboard" },
-        { label: t("header.menu.raspberries"), path: "/raspberries" },
-        { label: t("header.menu.huawei"), path: "/huawei" },
         { label: t("header.menu.account"), path: "/account" },
         { label: t("header.menu.logout"), action: handleLogout },
       ]
@@ -118,7 +117,7 @@ export default function AppHeader() {
                 color: "#d32f2f",
               }}
             >
-              Huawei
+              {t("common.huaweiBadge")}
             </Box>
           </Typography>
 
