@@ -5,7 +5,7 @@ import { DeviceSlot } from "./DeviceSlot";
 import { mergeLiveDeviceData } from "../utils/mergeLiveDeviceData";
 import { getMaxDeviceSlots } from "../utils/getMaxDeviceSlots";
 import { DeviceSlotWrapper } from "../atoms/DeviceSlotWrapper";
-import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
+import type { Provider } from "@/features/providers/types";
 
 interface DeviceListProps {
   devices: any[];
@@ -15,6 +15,7 @@ interface DeviceListProps {
   raspberryId: number;
   raspberryUuid: string;
   raspberryName: string;
+  provider: Provider | null;
   onRefresh: () => void;
 }
 
@@ -26,6 +27,7 @@ export function DeviceList({
   raspberryId,
   raspberryUuid,
   raspberryName,
+  provider,
   onRefresh,
 }: DeviceListProps) {
   
@@ -42,18 +44,19 @@ export function DeviceList({
         const device = mergedDevices.find((d) => d.device_number === slotIndex);
 
         return (
-          <DeviceSlotWrapper key={slotIndex}>
-            <DeviceSlot
-              raspberryId={raspberryId}
-              raspberryUuid={raspberryUuid}
-              raspberryName={raspberryName}
-              device={device}
-              slotIndex={slotIndex}
-              liveInitialized={liveInitialized}
-              isOnline={isOnline}
-              onRefresh={onRefresh}
-            />
-          </DeviceSlotWrapper>
+        <DeviceSlotWrapper key={slotIndex}>
+          <DeviceSlot
+            raspberryId={raspberryId}
+            raspberryUuid={raspberryUuid}
+            raspberryName={raspberryName}
+            device={device}
+            slotIndex={slotIndex}
+            liveInitialized={liveInitialized}
+            isOnline={isOnline}
+            provider={provider}
+            onRefresh={onRefresh}
+          />
+        </DeviceSlotWrapper>
         );
       })}
     </Stack>

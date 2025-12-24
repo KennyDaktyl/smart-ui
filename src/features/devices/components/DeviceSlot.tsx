@@ -5,6 +5,7 @@ import { useDeviceSlot } from "../hooks/useDeviceSlot";
 import { EmptyDeviceSlot } from "../atoms/EmptyDeviceSlot";
 import { useTranslation } from "react-i18next";
 import type { DeviceFormData } from "../types/device";
+import type { Provider } from "@/features/providers/types";
 
 interface DeviceSlotProps {
   raspberryId: number;
@@ -14,6 +15,7 @@ interface DeviceSlotProps {
   slotIndex: number;
   liveInitialized: boolean;
   isOnline: boolean;
+  provider: Provider | null;
   onRefresh: () => void;
 }
 
@@ -41,6 +43,7 @@ export function DeviceSlot(props: DeviceSlotProps) {
     raspberryName,
     raspberryUuid,
     raspberryId,
+    provider,
   } = props;
 
   /* ===================== FORM STATE ===================== */
@@ -67,8 +70,12 @@ export function DeviceSlot(props: DeviceSlotProps) {
 
   /* ===================== ADD CONDITIONS ===================== */
 
-  const canAddDevice = liveInitialized && isOnline;
-  const addHelperText = !canAddDevice
+  const providerAttached = Boolean(provider);
+  const baseCanAdd = liveInitialized && isOnline;
+  const canAddDevice = baseCanAdd && providerAttached;
+  const addHelperText = !providerAttached
+    ? t("devices.addDisabledNoProvider")
+    : !baseCanAdd
     ? t(liveInitialized ? "devices.addDisabledOffline" : "devices.addDisabledWaiting")
     : undefined;
 
@@ -89,14 +96,15 @@ export function DeviceSlot(props: DeviceSlotProps) {
 
   if (editing) {
     return (
-      <DeviceForm
-        value={formState}
-        saving={saving}
-        disabled={locked}
-        onChange={setFormState}
-        onCancel={() => setEditing(false)}
-        onSubmit={() => handleSave(formState)}
-      />
+        <DeviceForm
+          value={formState}
+          saving={saving}
+          disabled={locked}
+          onChange={setFormState}
+          onCancel={() => setEditing(false)}
+          onSubmit={() => handleSave(formState)}
+          provider={provider}
+        />
     );
   }
 

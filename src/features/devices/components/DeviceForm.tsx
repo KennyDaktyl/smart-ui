@@ -5,16 +5,21 @@ import {
   Stack,
   TextField,
   MenuItem,
+  Slider,
+  Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
 import { DeviceFormData, DeviceUIMode } from "../types/device";
+import type { Provider } from "@/features/providers/types";
+import type { SyntheticEvent } from "react";
 
 interface DeviceFormProps {
   value: DeviceFormData;
   disabled: boolean;
   saving: boolean;
+  provider?: Provider | null;
   onChange(next: DeviceFormData): void;
   onSubmit(): void;
   onCancel(): void;
@@ -24,6 +29,7 @@ export function DeviceForm({
   value,
   disabled,
   saving,
+  provider,
   onChange,
   onSubmit,
   onCancel,
@@ -47,6 +53,39 @@ export function DeviceForm({
     };
 
   const isAutoMode = value.mode === DeviceUIMode.AUTO_POWER;
+
+  const providerRange =
+    provider &&
+    provider.value_min != null &&
+    provider.value_max != null &&
+    provider.value_max > provider.value_min
+      ? { min: provider.value_min, max: provider.value_max }
+      : null;
+
+  const thresholdSliderValueRaw =
+    providerRange && value.threshold_value !== ""
+      ? Number(value.threshold_value)
+      : providerRange?.min ?? 0;
+  const thresholdSliderValue = providerRange
+    ? Math.min(providerRange.max, Math.max(providerRange.min, thresholdSliderValueRaw))
+    : thresholdSliderValueRaw;
+
+  const thresholdSliderStep = providerRange
+    ? Math.max((providerRange.max - providerRange.min) / 20, 0.1)
+    : 1;
+
+  const handleThresholdSliderChange = (
+    _: SyntheticEvent,
+    sliderValue: number | number[]
+  ) => {
+    if (!providerRange) return;
+
+    const nextValue = Array.isArray(sliderValue) ? sliderValue[0] : sliderValue;
+    onChange({
+      ...value,
+      threshold_value: nextValue,
+    });
+  };
 
   const nameError =
     value.name.trim().length === 0
@@ -143,17 +182,43 @@ export function DeviceForm({
           </TextField>
 
           {isAutoMode && (
-            <TextField
-              label={t("devices.form.thresholdLabel")}
-              type="number"
-              value={value.threshold_value}
-              onChange={handleChange("threshold_value")}
-              disabled={disabled}
-              error={!!thresholdError}
-              helperText={thresholdError}
-              size="small"
-              fullWidth
-            />
+            <>
+              {providerRange && (
+                <Stack spacing={1}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("devices.form.thresholdRangeLabel", {
+                      min: providerRange.min,
+                      max: providerRange.max,
+                      unit: provider?.unit ?? t("common.notAvailable"),
+                    })}
+                  </Typography>
+                  <Slider
+                    value={thresholdSliderValue}
+                    min={providerRange.min}
+                    max={providerRange.max}
+                    step={thresholdSliderStep}
+                    onChange={handleThresholdSliderChange}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(val) => {
+                      const suffix = provider?.unit ? ` ${provider.unit}` : "";
+                      return `${val}${suffix}`;
+                    }}
+                    disabled={disabled}
+                  />
+                </Stack>
+              )}
+              <TextField
+                label={t("devices.form.thresholdLabel")}
+                type="number"
+                value={value.threshold_value}
+                onChange={handleChange("threshold_value")}
+                disabled={disabled}
+                error={!!thresholdError}
+                helperText={thresholdError}
+                size="small"
+                fullWidth
+              />
+            </>
           )}
         </Stack>
       </CardContent>

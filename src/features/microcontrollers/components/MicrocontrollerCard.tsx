@@ -200,7 +200,7 @@ export function MicrocontrollerCard({
               }}
               onClick={() => onAttachProvider(microcontroller)}
             >
-              {t("microcontrollers.attachProvider")}
+              {provider ? t("microcontrollers.changeProvider") : t("microcontrollers.attachProvider")}
             </Button>
           </Stack>
 
@@ -214,6 +214,7 @@ export function MicrocontrollerCard({
             raspberryId={microcontroller.id}
             raspberryUuid={microcontroller.uuid}
             raspberryName={microcontroller.name}
+            provider={microcontroller.active_provider}
             onRefresh={onRefresh}
           />
         </Stack>

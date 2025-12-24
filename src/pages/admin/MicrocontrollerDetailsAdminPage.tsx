@@ -27,6 +27,8 @@ import { useTranslation } from "react-i18next";
 
 import { adminApi } from "@/api/adminApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { microcontrollerApi } from "@/api/microcontrollerApi";
+import { ADMIN_DEFAULT_PAGE_SIZE } from "@/config/admin";
 
 export default function AdminMicrocontrollerDetailsPage() {
   const { userId, microcontrollerUuid } = useParams<{
@@ -52,7 +54,10 @@ export default function AdminMicrocontrollerDetailsPage() {
     type: "raspberry_pi_zero",
     assigned_sensors: [] as string[],
   });
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
 
+  const limit = ADMIN_DEFAULT_PAGE_SIZE;
   const providerLabel = useMemo(() => {
     const provider = microcontroller?.active_provider;
     if (!provider) return t("admin.microcontrollers.noProvider");
@@ -65,11 +70,7 @@ export default function AdminMicrocontrollerDetailsPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await adminApi.getMicrocontroller(
-          token,
-          Number(userId),
-          microcontrollerUuid
-        );
+        const res = await microcontrollerApi.getMicrocontrollers(token, { limit, offset });
         setMicrocontroller(res.data ?? null);
         setError("");
       } catch (err) {

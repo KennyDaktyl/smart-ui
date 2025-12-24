@@ -22,6 +22,7 @@ import { adminApi } from "@/api/adminApi";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { ADMIN_DEFAULT_PAGE_SIZE } from "@/config/admin";
 import { Pagination } from "@/features/paginations/Pagination";
+import { microcontrollerApi } from "@/api/microcontrollerApi";
 
 export function AdminMicrocontrollersList() {
   const { token } = useAuth();
@@ -42,7 +43,7 @@ export function AdminMicrocontrollersList() {
     setLoading(true);
     setError("");
     try {
-      const res = await adminApi.listMicrocontrollers(token, { limit, offset });
+      const res = await microcontrollerApi.getMicrocontrollers(token, { limit, offset, admin_list: true });
       setItems(res.data.items ?? []);
       setTotal(res.data.meta?.total ?? 0);
     } catch (err) {
