@@ -1,57 +1,61 @@
-import { useState } from "react";
-import { Box, Button, TextField, Typography, Alert, Stack } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { authApi } from "../../api/authApi";
+import { Box, Button, Stack, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import AuthPageLayout from "@/front/AuthPageLayout";
+
+import UserRegisterForm from "@/features/auth/components/UserRegisterForm";
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const handleRegister = async () => {
-    try {
-      await authApi.register({ email, password });
-      setSuccess(t("auth.register.success"));
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t("auth.register.error"));
-    }
-  };
 
   return (
-    <AuthPageLayout title={t("auth.register.title")} subtitle={t("auth.register.subtitle")}>
-      <Stack spacing={1.5}>
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
-        <TextField
-          label={t("auth.fields.email")}
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          label={t("auth.fields.password")}
-          type="password"
-          fullWidth
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Button variant="contained" onClick={handleRegister} sx={{ borderRadius: 10, py: 1.1 }}>
-          {t("auth.register.submit")}
-        </Button>
+    <Stack spacing={3} sx={{ width: "100%", maxWidth: 520, mx: "auto" }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            {t("auth.register.title")}
+          </Typography>
+          <Typography variant="body2" color="rgba(232,241,248,0.8)">
+            {t("auth.register.subtitle")}
+          </Typography>
+        </Box>
         <Button
-          variant="outlined"
-          onClick={() => navigate("/login")}
-          sx={{ borderRadius: 10 }}
+          component={Link}
+          to="/"
+          startIcon={<ArrowBackIcon />}
+          variant="text"
+          color="secondary"
+          sx={{ borderRadius: 10, textTransform: "none" }}
         >
-          {t("auth.register.haveAccount")}
+          {t("common.back")}
         </Button>
       </Stack>
-    </AuthPageLayout>
+
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.24)",
+          color: "#0d1b2a",
+        }}
+      >
+        <UserRegisterForm />
+      </Box>
+
+      <Typography
+        component={Link}
+        to="/"
+        sx={{
+          alignSelf: "flex-start",
+          color: "rgba(232,241,248,0.8)",
+          textDecoration: "none",
+          fontWeight: 600,
+          "&:hover": { color: "#7cffe0" },
+        }}
+      >
+        {t("common.backToHome")}
+      </Typography>
+    </Stack>
   );
 }

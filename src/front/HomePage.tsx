@@ -1,4 +1,5 @@
-import { Box, Chip, Grid, Stack, Typography } from "@mui/material";
+import { Box, Chip, Stack, Typography } from "@mui/material";
+import Grid2 from "@mui/material/Grid2";
 import BoltIcon from "@mui/icons-material/Bolt";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import WifiIcon from "@mui/icons-material/Wifi";
@@ -48,20 +49,22 @@ export default function HomePage() {
             width: 360,
             height: 360,
             borderRadius: "50%",
-            background: "radial-gradient(circle at 30% 30%, #ffe680 0%, #ffb300 55%, rgba(255,179,0,0.2) 80%)",
+            background:
+              "radial-gradient(circle at 30% 30%, #ffe680 0%, #ffb300 55%, rgba(255,179,0,0.2) 80%)",
             filter: "blur(8px)",
             opacity: 0.7,
             animation: `${glowOrbit} 16s linear infinite`,
           }}
         />
+
         <Box
           sx={{
             position: "absolute",
             inset: "40% -60% -40% auto",
             width: "80%",
+            height: 12,
             background:
               "linear-gradient(120deg, rgba(124,255,224,0.14) 0%, rgba(15,139,111,0.4) 40%, rgba(124,255,224,0.14) 80%)",
-            height: 12,
             filter: "blur(18px)",
           }}
         />
@@ -69,21 +72,26 @@ export default function HomePage() {
         <Stack spacing={1.5} sx={{ position: "relative", zIndex: 1 }}>
           <Chip
             icon={<BoltIcon />}
-            label={t("front.home.heroChip")}
+            label={t("landing.home.heroChip")}
             color="secondary"
-            variant="filled"
             sx={{ fontWeight: 700, alignSelf: "flex-start" }}
           />
-          <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
-            {t("front.home.heroTitle")}
+
+          <Typography variant="h3" fontWeight={800} lineHeight={1.1}>
+            {t("landing.home.heroTitle")}
           </Typography>
-          <Typography variant="h6" sx={{ color: "rgba(232,241,248,0.8)", maxWidth: 800 }}>
-            {t("front.home.heroSubtitle")}
+
+          <Typography
+            variant="h6"
+            sx={{ color: "rgba(232,241,248,0.8)", maxWidth: 800 }}
+          >
+            {t("landing.home.heroSubtitle")}
           </Typography>
+
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Chip label={t("front.home.heroTags.manage")} variant="outlined" color="secondary" />
-            <Chip label={t("front.home.heroTags.schedule")} variant="outlined" color="primary" />
-            <Chip label={t("front.home.heroTags.surplus")} variant="outlined" color="success" />
+            <Chip label={t("landing.home.heroTags.manage")} variant="outlined" color="secondary" />
+            <Chip label={t("landing.home.heroTags.schedule")} variant="outlined" color="primary" />
+            <Chip label={t("landing.home.heroTags.surplus")} variant="outlined" color="success" />
           </Stack>
         </Stack>
 
@@ -94,48 +102,49 @@ export default function HomePage() {
             left: "6%",
             right: "6%",
             height: 3,
+            borderRadius: 999,
             background:
               "linear-gradient(90deg, rgba(124,255,224,0.1) 0%, rgba(124,255,224,0.6) 50%, rgba(124,255,224,0.1) 100%)",
             backgroundSize: "200% 100%",
             animation: `${flowLine} 8s linear infinite`,
-            borderRadius: 999,
             opacity: 0.7,
           }}
         />
       </Box>
 
-      <Grid container spacing={2.5}>
+      <Grid2 container spacing={2.5}>
         {[
           {
             icon: <ElectricBoltIcon color="secondary" />,
-            title: t("front.home.cards.flow.title"),
-            desc: t("front.home.cards.flow.desc"),
+            title: t("landing.home.cards.flow.title"),
+            desc: t("landing.home.cards.flow.desc"),
           },
           {
             icon: <WifiIcon color="info" />,
-            title: t("front.home.cards.heartbeat.title"),
-            desc: t("front.home.cards.heartbeat.desc"),
+            title: t("landing.home.cards.heartbeat.title"),
+            desc: t("landing.home.cards.heartbeat.desc"),
           },
           {
             icon: <ScheduleIcon color="primary" />,
-            title: t("front.home.cards.schedule.title"),
-            desc: t("front.home.cards.schedule.desc"),
+            title: t("landing.home.cards.schedule.title"),
+            desc: t("landing.home.cards.schedule.desc"),
           },
         ].map((item, idx) => (
-          <Grid key={item.title} item xs={12} md={4}>
+          <Grid2 key={item.title} xs={12} md={4}>
             <Box
               sx={{
                 p: 2.5,
                 borderRadius: 3,
-                background: "linear-gradient(160deg, rgba(10,24,36,0.92), rgba(7,18,28,0.9))",
-                border: "1px solid rgba(255,255,255,0.06)",
                 minHeight: 190,
+                background:
+                  "linear-gradient(160deg, rgba(10,24,36,0.92), rgba(7,18,28,0.9))",
+                border: "1px solid rgba(255,255,255,0.06)",
                 animation: `${floatCard} 6s ease-in-out ${idx * 0.6}s infinite`,
               }}
             >
               <Stack spacing={1}>
                 {item.icon}
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                <Typography variant="h6" fontWeight={700}>
                   {item.title}
                 </Typography>
                 <Typography variant="body2" color="rgba(232,241,248,0.8)">
@@ -143,28 +152,30 @@ export default function HomePage() {
                 </Typography>
               </Stack>
             </Box>
-          </Grid>
+          </Grid2>
         ))}
-      </Grid>
+      </Grid2>
 
       <Box
         sx={{
           p: { xs: 2.5, md: 3 },
           borderRadius: 3,
-          background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
+          background:
+            "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
           color: "#0d1b2a",
           boxShadow: "0 18px 40px rgba(0,0,0,0.18)",
         }}
       >
         <Stack spacing={1}>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="center">
             <WbSunnyIcon color="warning" />
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              {t("front.home.bottom.title")}
+            <Typography variant="h6" fontWeight={800}>
+              {t("landing.home.bottom.title")}
             </Typography>
           </Stack>
+
           <Typography variant="body1">
-            {t("front.home.bottom.desc")}
+            {t("landing.home.bottom.desc")}
           </Typography>
         </Stack>
       </Box>

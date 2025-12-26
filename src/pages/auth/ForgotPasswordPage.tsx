@@ -1,58 +1,61 @@
-import { useState } from "react";
-import { Alert, Button, Stack, TextField } from "@mui/material";
-import AuthPageLayout from "@/front/AuthPageLayout";
-import { authApi } from "@/api/authApi";
+import { Box, Button, Stack, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+
+import UserForgotPasswordForm from "@/features/auth/components/UserForgotPasswordForm";
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async () => {
-    setError("");
-    setSuccess("");
-    if (!email) {
-      setError(t("auth.forgot.emptyEmail"));
-      return;
-    }
-    try {
-      setLoading(true);
-      await authApi.requestPasswordReset(email);
-      setSuccess(t("auth.forgot.success"));
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t("auth.forgot.error"));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
-    <AuthPageLayout
-      title={t("auth.forgot.title")}
-      subtitle={t("auth.forgot.subtitle")}
-    >
-      <Stack spacing={1.5}>
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
-        <TextField
-          label={t("auth.fields.email")}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          fullWidth
-        />
+    <Stack spacing={3} sx={{ width: "100%", maxWidth: 520, mx: "auto" }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            {t("auth.forgot.title")}
+          </Typography>
+          <Typography variant="body2" color="rgba(232,241,248,0.8)">
+            {t("auth.forgot.subtitle")}
+          </Typography>
+        </Box>
         <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={loading}
-          sx={{ borderRadius: 10, py: 1.1 }}
+          component={Link}
+          to="/"
+          startIcon={<ArrowBackIcon />}
+          variant="text"
+          color="secondary"
+          sx={{ borderRadius: 10, textTransform: "none" }}
         >
-          {loading ? t("auth.forgot.loading") : t("auth.forgot.submit")}
+          {t("common.back")}
         </Button>
       </Stack>
-    </AuthPageLayout>
+
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.24)",
+          color: "#0d1b2a",
+        }}
+      >
+        <UserForgotPasswordForm />
+      </Box>
+
+      <Typography
+        component={Link}
+        to="/"
+        sx={{
+          alignSelf: "flex-start",
+          color: "rgba(232,241,248,0.8)",
+          textDecoration: "none",
+          fontWeight: 600,
+          "&:hover": { color: "#7cffe0" },
+        }}
+      >
+        {t("common.backToHome")}
+      </Typography>
+    </Stack>
   );
 }

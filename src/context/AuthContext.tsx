@@ -1,9 +1,11 @@
 import { createContext, useEffect, ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { authApi } from "../api/authApi";
+import { UserResponse } from "@/features/users/types/user";
+import { userApi } from "@/api/userApi";
+import CenteredSpinner from "@/features/common/components/CenteredSpinner";
 
 export interface AuthContextProps {
-  user: any;
+  user: UserResponse | null;
   token: string | null;
   login: (token: string, refreshToken?: string) => void;
   logout: () => void;
@@ -14,9 +16,16 @@ export interface AuthContextProps {
 
 export const AuthContext = createContext<AuthContextProps | null>(null);
 
+interface AuthState {
+  user: UserResponse | null;
+  token: string | null;
+  loading: boolean;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation();
-  const [authState, setAuthState] = useState({
+
+  const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: localStorage.getItem("token"),
     loading: true,
@@ -24,27 +33,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (jwt: string, refreshToken?: string) => {
     localStorage.setItem("token", jwt);
-    if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
-    setAuthState((prev) => ({ ...prev, token: jwt }));
+    if (refreshToken) {
+      localStorage.setItem("refresh_token", refreshToken);
+    }
+
+    setAuthState((prev) => ({
+      ...prev,
+      token: jwt,
+      loading: true,
+    }));
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refresh_token");
-    setAuthState({ user: null, token: null, loading: false });
+
+    setAuthState({
+      user: null,
+      token: null,
+      loading: false,
+    });
   };
 
   const refreshUser = async () => {
     if (!authState.token) return;
-  
+
+    setAuthState((prev) => ({ ...prev, loading: true }));
+
     try {
-      const res = await authApi.getMe(authState.token);
+      const res = await userApi.getMe();
       setAuthState((prev) => ({
         ...prev,
         user: res.data,
+        loading: false,
       }));
-    } catch (err) {
-      console.error("Failed to refresh user", err);
+    } catch {
+      logout();
     }
   };
 
@@ -58,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const res = await authApi.getMe(authState.token);
+        const res = await userApi.getMe();
         if (!cancelled) {
           setAuthState({
             user: res.data,
@@ -72,13 +96,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadUser();
+
     return () => {
       cancelled = true;
     };
   }, [authState.token]);
 
   if (authState.loading) {
-    return <div>{t("common.loadingUser")}</div>;
+    return <CenteredSpinner />;
   }
 
   return (

@@ -1,66 +1,181 @@
 import { useState, useContext } from "react";
-import { Box, Button, TextField, Typography, Alert, Stack } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import {
+  Alert,
+  AlertColor,
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
 import { authApi } from "../../api/authApi";
 import { AuthContext } from "../../context/AuthContext";
-import { useTranslation } from "react-i18next";
-import AuthPageLayout from "@/front/AuthPageLayout";
+import Toast from "@/components/Toast";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const { t } = useTranslation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ open: boolean; severity: AlertColor; message: string }>(
+    { open: false, severity: "success", message: "" }
+  );
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
       const res = await authApi.login({ email, password });
       const { access_token, refresh_token } = res.data;
+
       auth?.login(access_token, refresh_token);
-      navigate("/");
+      const successMessage = t("auth.login.success");
+      setToast({ open: true, severity: "success", message: successMessage });
+      setTimeout(() => navigate("/"), 300);
     } catch (err: any) {
-      setError(err.response?.data?.detail || t("auth.login.errorDefault"));
+      const message = err?.response?.data?.detail || t("auth.login.errorDefault");
+
+      setError(message);
+      setToast({ open: true, severity: "error", message });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthPageLayout title={t("auth.login.title")} subtitle={t("auth.login.subtitle")}>
-      <Stack spacing={1.5}>
-        {error && <Alert severity="error">{error}</Alert>}
-        <TextField
-          label={t("auth.fields.email")}
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          label={t("auth.fields.password")}
-          type="password"
-          fullWidth
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Button variant="contained" onClick={handleLogin} sx={{ borderRadius: 10, py: 1.1 }}>
-          {t("auth.login.submit")}
-        </Button>
+    <Stack spacing={3} sx={{ width: "100%", maxWidth: 520, mx: "auto" }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            {t("auth.login.title")}
+          </Typography>
+          <Typography variant="body2" color="rgba(232,241,248,0.8)">
+            {t("auth.login.subtitle")}
+          </Typography>
+        </Box>
         <Button
-          variant="outlined"
-          onClick={() => navigate("/register")}
-          sx={{ borderRadius: 10 }}
-        >
-          {t("auth.login.goRegister")}
-        </Button>
-        <Button
+          component={Link}
+          to="/"
+          startIcon={<ArrowBackIcon />}
           variant="text"
-          size="small"
-          onClick={() => navigate("/forgot-password")}
-          sx={{ alignSelf: "flex-start" }}
+          color="secondary"
+          sx={{ borderRadius: 10, textTransform: "none" }}
         >
-          {t("auth.login.forgotPassword")}
+          {t("common.back")}
         </Button>
       </Stack>
-    </AuthPageLayout>
+
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.24)",
+          color: "#0d1b2a",
+        }}
+      >
+        <Stack spacing={1.5}>
+          {error && <Alert severity="error">{error}</Alert>}
+
+          <TextField
+            label={t("auth.fields.email")}
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+
+          <TextField
+            label={t("auth.fields.password")}
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((v) => !v)}
+                    edge="end"
+                    aria-label="toggle password visibility"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLogin();
+            }}
+          />
+
+          <Button
+            variant="contained"
+            onClick={handleLogin}
+            disabled={loading}
+            sx={{ borderRadius: 10, py: 1.1 }}
+          >
+            {loading
+              ? t("common.waitingForStatus")
+              : t("auth.login.submit")}
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/register")}
+            sx={{ borderRadius: 10 }}
+          >
+            {t("auth.login.goRegister")}
+          </Button>
+
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => navigate("/forgot-password")}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            {t("auth.login.forgotPassword")}
+          </Button>
+        </Stack>
+      </Box>
+
+      <Typography
+        component={Link}
+        to="/"
+        sx={{
+          alignSelf: "flex-start",
+          color: "rgba(232,241,248,0.8)",
+          textDecoration: "none",
+          fontWeight: 600,
+          "&:hover": { color: "#7cffe0" },
+        }}
+      >
+        {t("common.backToHome")}
+      </Typography>
+
+      <Toast
+        open={toast.open}
+        severity={toast.severity}
+        message={toast.message}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+    </Stack>
   );
 }

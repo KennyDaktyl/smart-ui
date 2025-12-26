@@ -1,31 +1,56 @@
-import { SyntheticEvent, useState } from "react";
-import { Box, Tabs, Tab, Typography, Stack } from "@mui/material";
-import { AdminUserList } from "@/features/admin/components/AdminUserList";
-import { AdminMicrocontrollersList } from "@/features/admin/components/AdminMicrocontrollersList";
+// src/pages/admin/AdminPage.tsx
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Tabs, Tab, Stack, Typography, Box } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
+import { AdminPageContainer } from "@/features/admin/components/layout/AdminPageLayout";
 
-export default function UsersListPage() {
-  const [tab, setTab] = useState("users");
+export default function AdminPage() {
+  const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const handleChange = (_: SyntheticEvent, value: string) => {
-    setTab(value);
-  };
+  const currentTab = location.pathname.includes("/microcontrollers")
+    ? "microcontrollers"
+    : "users";
+
+  const pathSegments = location.pathname
+    .split("/")
+    .filter(Boolean);
+
+  const showTabs = pathSegments.length <= 2;
 
   return (
-    <Box p={{ xs: 2, md: 4 }}>
-      <Stack spacing={2}>
+    <AdminPageContainer>
+      <Stack spacing={3}>
+        {/* HEADER */}
         <Typography variant="h4" fontWeight={800}>
-          Admin
+          {t("admin.title")}
         </Typography>
 
-        <Tabs value={tab} onChange={handleChange}>
-          <Tab value="users" label="Users" />
-          <Tab value="microcontrollers" label="Microcontrollers" />
-        </Tabs>
+        {/* TABS */}
+        {showTabs && (
+          <Box>
+            <Tabs
+              value={currentTab}
+              onChange={(_, value) => navigate(`/admin/${value}`)}
+              aria-label="Admin navigation tabs"
+            >
+              <Tab
+                value="users"
+                label={t("admin.tabs.users")}
+              />
+              <Tab
+                value="microcontrollers"
+                label={t("admin.tabs.microcontrollers")}
+              />
+            </Tabs>
+          </Box>
+        )}
 
-        {tab === "users" && <AdminUserList />}
-        {tab === "microcontrollers" && <AdminMicrocontrollersList />}
+        {/* CONTENT */}
+        <Outlet />
       </Stack>
-    </Box>
+    </AdminPageContainer>
   );
 }

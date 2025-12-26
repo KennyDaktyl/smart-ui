@@ -1,37 +1,24 @@
+import { get } from "node_modules/axios/index.cjs";
 import axiosClient from "./axiosClient";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
-const authHeaders = (token: string) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
-
 export const userApi = {
-  getUserDetails: async (token: string) => {
-    return axiosClient.get(`${API_URL}/users/me/details`, authHeaders(token));
+  getMe: () => {
+    return axiosClient.get("/users/me");
   },
 
-  getUserInstallations: async (token: string) => {
-    return axiosClient.get(`${API_URL}/users/me/installations`, authHeaders(token));
+  getUserDetails: () => {
+    return axiosClient.get("/users/me/details");
   },
 
-  getHuaweiCredentials: async (token: string) => {
-    return axiosClient.get(`${API_URL}/users/me/huawei-credentials`, authHeaders(token));
+  updateProfile: (payload: Record<string, any>) => {
+    return axiosClient.patch("/users/me", payload);
   },
 
-  getProfile: async (token: string) => {
-    return axiosClient.get(`${API_URL}/users/me`, authHeaders(token));
+  getProfileDetails: () => {
+    return axiosClient.get("/users/me/profile");
   },
 
-  updateProfile: async (token: string, payload: Record<string, any>) => {
-    return axiosClient.patch(`${API_URL}/users/me`, payload, authHeaders(token));
-  },
-
-  getProfileDetails: async (token: string) => {
-    return axiosClient.get(`${API_URL}/users/me/profile`, authHeaders(token));
-  },
-
-  updateProfileDetails: async (token: string, payload: Record<string, any>) => {
-    return axiosClient.patch(`${API_URL}/users/me/profile`, payload, authHeaders(token));
+  updateProfileDetails: (payload: Record<string, any>) => {
+    return axiosClient.patch("/users/me/profile", payload);
   },
 };

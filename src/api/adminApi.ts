@@ -1,89 +1,80 @@
+import { UserResponse } from "@/features/users/types/user";
+import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import axiosClient from "./axiosClient";
+import { PaginatedResponse } from "@/components/types/pagination";
+import { UserFormPayload } from "@/features/admin/types/userForm";
+import {
+  CreateMicrocontrollerPayload,
+  EditMicrocontrollerPayload,
+  UpdateMicrocontrollerConfigPayload,
+} from "@/features/microcontrollers/types/microcontrollerPayload";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+type GetUsersParams = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+};
+
+type GetMicrocontrollersParams = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+};
 
 export const adminApi = {
-  getUsers: async (token: string, params?: { limit?: number; offset?: number }) => {
-    return axiosClient.get(`${API_URL}/users/list`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params,
-    });
+  getUsers: (params?: GetUsersParams) => {
+    return axiosClient.get<PaginatedResponse<UserResponse>>(
+      "/admin/users/list",
+      { params }
+    );
   },
 
-  getUserDetails: async (token: string, userId: number) => {
-    return axiosClient.get(`${API_URL}/users/${userId}/details`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  getUserDetails: (userId: number) => {
+    return axiosClient.get(`/admin/users/${userId}/details`);
   },
-  createMicrocontroller: async (token: string, userId: number, payload: any) => {
-    return axiosClient.post(`${API_URL}/users/${userId}/microcontrollers`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+
+  createUser: (payload: UserFormPayload) => {
+    return axiosClient.post("/admin/users", payload);
   },
-  updateMicrocontroller: async (
-    token: string,
-    userId: number,
-    microcontrollerUuid: string,
-    payload: any
-  ) => {
-    return axiosClient.patch(
-      `${API_URL}/users/${userId}/microcontrollers/${microcontrollerUuid}`,
-      payload,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+  updateUser: (userId: number, payload: UserFormPayload) => {
+    return axiosClient.patch(`/admin/users/${userId}`, payload);
   },
-  deleteMicrocontroller: async (
-    token: string,
-    userId: number,
-    microcontrollerUuid: string
-  ) => {
-    return axiosClient.delete(
-      `${API_URL}/users/${userId}/microcontrollers/${microcontrollerUuid}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+
+  deleteUser: (userId: number) => {
+    return axiosClient.delete(`/admin/users/${userId}`);
   },
-  getMicrocontroller: async (
-    token: string,
-    userId: number,
-    microcontrollerUuid: string
-  ) => {
-    return axiosClient.get(
-      `${API_URL}/users/${userId}/microcontrollers/${microcontrollerUuid}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-  },
-  listMicrocontrollers: async (
-    token: string,
-    params?: { limit?: number; offset?: number }
-  ) => {
-    return axiosClient.get(`${API_URL}/admin/microcontrollers`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params,
-    });
-  },
-  getMicrocontrollerByUuid: async (token: string, uuid: string) => {
-    return axiosClient.get(`${API_URL}/admin/microcontrollers/${uuid}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  },
-  updateMicrocontrollerByUuid: async (token: string, uuid: string, payload: any) => {
-    return axiosClient.patch(
-      `${API_URL}/admin/microcontrollers/${uuid}`,
-      payload,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-  },
-  deleteMicrocontrollerByUuid: async (token: string, uuid: string) => {
-    return axiosClient.delete(`${API_URL}/admin/microcontrollers/${uuid}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  },
+
+  getMicrocontrollers: (params?: GetMicrocontrollersParams) =>
+    axiosClient.get<PaginatedResponse<MicrocontrollerResponse>>(
+      "/admin/microcontrollers/list",
+      { params }
+    ),
+
+  getMicrocontroller: (microcontrollerId: number) =>
+    axiosClient.get(`/admin/microcontrollers/${microcontrollerId}`),
+
+  
+  createMicrocontroller: (payload: CreateMicrocontrollerPayload) =>
+    axiosClient.post("/admin/microcontrollers", payload),
+
+  updateMicrocontroller: (
+    microcontrollerId: number,
+    payload: EditMicrocontrollerPayload
+  ) =>
+    axiosClient.patch(
+      `/admin/microcontrollers/${microcontrollerId}`,
+      payload
+  ),
+
+  updateMicrocontrollerConfig: (
+    microcontrollerId: number,
+    payload: UpdateMicrocontrollerConfigPayload
+  ) =>
+    axiosClient.patch(
+      `/admin/microcontrollers/${microcontrollerId}/config`,
+      payload
+  ),
+
+  deleteMicrocontroller: (microcontrollerId: number) =>
+    axiosClient.delete(`/admin/microcontrollers/${microcontrollerId}`),
 };

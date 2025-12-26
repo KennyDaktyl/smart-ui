@@ -6,6 +6,7 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import "./i18n/config";
 import { globalStyles, solarTheme } from "./theme";
+import { ToastProvider } from "./context/ToastContext";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -19,7 +20,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     {globalStyles}
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   </ThemeProvider>

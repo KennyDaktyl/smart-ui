@@ -1,12 +1,24 @@
-import { Box, Typography, Paper } from "@mui/material";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { Box, Typography, Stack } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
-export default function AccountPage() {
-  const { user } = useAuth();
-  const { t, i18n } = useTranslation();
+import { useAccount } from "@/features/users/hooks/useAccount";
+import AccountHeader from "@/features/users/components/AccountHeader";
+import AccountTabs from "@/features/users/components/AccountTabs";
+import CenteredSpinner from "@/features/common/components/CenteredSpinner";
 
-  const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
+export default function AccountPage() {
+  const { t } = useTranslation();
+  const { data, loading } = useAccount();
+
+  if (loading) return <CenteredSpinner />;
+
+  if (!data) {
+    return (
+      <Typography color="text.secondary">
+        {t("account.missingUser")}
+      </Typography>
+    );
+  }
 
   return (
     <Box p={3}>
@@ -14,28 +26,15 @@ export default function AccountPage() {
         {t("account.title")}
       </Typography>
 
-      {user ? (
-        <Paper sx={{ p: 3, maxWidth: 400 }}>
-          <Typography variant="body1">
-            <strong>{t("account.email")}</strong> {user.email}
-          </Typography>
-          <Typography variant="body1">
-            <strong>{t("account.role")}</strong> {user.role}
-          </Typography>
-          <Typography variant="body1">
-            <strong>{t("account.huawei")}</strong>{" "}
-            {user.huawei_username ? user.huawei_username : t("account.noHuawei")}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mt={2}>
-            {t("account.createdAt")}{" "}
-            {new Date(user.created_at).toLocaleDateString(locale)}
-          </Typography>
-        </Paper>
-      ) : (
-        <Typography color="text.secondary">
-          {t("account.missingUser")}
-        </Typography>
-      )}
+      <Stack spacing={3}>
+        <AccountHeader
+          email={data.email}
+          role={data.role}
+          createdAt={data.created_at}
+        />
+
+        <AccountTabs />
+      </Stack>
     </Box>
   );
 }

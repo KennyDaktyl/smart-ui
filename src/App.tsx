@@ -2,217 +2,126 @@ import { Suspense, lazy, useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import ProtectedRoute from "./features/common/ProtectedRoute";
-import { Box, CircularProgress, Toolbar } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
-import AppHeader from "./layout/AppHeader";
-import SmartEnergyFooter from "./components/SmartEnergyFooter";
-import AdminUserDetailsPage from "./pages/admin/UserDetailsPage";
+import AppShell from "./layout/AppShell";
+import { UserRole } from "./features/users/types/role";
+import CenteredSpinner from "./features/common/components/CenteredSpinner";
+import { AdminUserDetails } from "./pages/admin/AdminUserDetails";
+import { AdminUsersTab } from "./features/admin/tabs/AdminUsersTab";
+import { AdminMicrocontrollersTab } from "./features/admin/tabs/AdminMicrocontrollersList";
+import AdminMicrocontrollerDetailsPage from "./pages/admin/AdminMicrocontrollerDetailsPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
-const MicrocontrollersPage = lazy(() => import("./pages/microcontrollers/MicrocontrollersPage"));
 const AccountPage = lazy(() => import("./pages/user/AccountPage"));
-const MicrocontrollerDetailsPage = lazy(
-  () => import("./pages/microcontrollers/MicrocontrollerDetailsPage")
-);
-const ProvidersPage = lazy(() => import("./pages/providers/ProvidersPage"));
-const LandingLayout = lazy(() => import("./front/LandingLayout"));
 const HomePage = lazy(() => import("./front/HomePage"));
 const OfferPage = lazy(() => import("./front/OfferPage"));
 const PricingPage = lazy(() => import("./front/PricingPage"));
 const ContactPage = lazy(() => import("./front/ContactPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
-const UsersListPage = lazy(() => import("./pages/admin/AdminPage"));
-const AdminMicrocontrollerDetailsPage = lazy(
-  () => import("./pages/admin/MicrocontrollerDetailsAdminPage")
-);
+const ConfirmEmailPage = lazy(() => import("./pages/auth/ConfirmEmailPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const NotFoundPage = lazy(() => import("./pages/common/NotFoundPage"));
 
 export default function App() {
   const auth = useContext(AuthContext);
   const { t } = useTranslation();
+  const isAdmin = auth?.user?.role === UserRole.ADMIN;
 
   if (auth?.loading) {
-    return <div>{t("common.loadingUser")}</div>;
+    return <CenteredSpinner fullscreen />;
   }
 
   const isPublic = !auth?.token;
-  const authedHome = "/microcontrollers";
-
-  const renderSpinner = (
-    <Box
-      sx={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(255,255,255,0.75)",
-        zIndex: 1200,
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  );
+  const mode = isPublic ? "public" : "app";
+  const authedHome = "/account";
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {!isPublic && <AppHeader />}
-      {!isPublic && <Toolbar />}
+    <AppShell mode={mode}>
+      <Suspense fallback={<CenteredSpinner fullscreen overlay />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      <Box sx={{ flex: 1, width: "100%" }}>
-        <Box
-          sx={{
-            px: { xs: 0.75, sm: 2, md: 3 },
-            pb: 5,
-            maxWidth: { xs: "100%", lg: 1320 },
-            mx: "auto",
-            width: "100%",
-          }}
-        >
-          <Suspense fallback={renderSpinner}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/"
+            element={
+              isPublic ? (
+                <HomePage />
+              ) : (
+                <Navigate to={authedHome} replace />
+              )
+            }
+          />
+          <Route
+            path="/offer"
+            element={
+              isPublic ? (
+                <OfferPage />
+              ) : (
+                <Navigate to={authedHome} replace />
+              )
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              isPublic ? (
+                <PricingPage />
+              ) : (
+                <Navigate to={authedHome} replace />
+              )
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              isPublic ? (
+                <ContactPage />
+              ) : (
+                <Navigate to={authedHome} replace />
+              )
+            }
+          />
 
-              <Route
-                path="/"
-              element={
-                auth?.token ? (
-                  <Navigate to={authedHome} replace />
-                ) : (
-                  <LandingLayout showAuthPanel={false}>
-                    <HomePage />
-                  </LandingLayout>
-                )
-              }
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                {isAdmin ? <AdminPage /> : <Navigate to="/account" replace />}
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="users" replace />} />
+            <Route path="users" element={<AdminUsersTab />} />
+            <Route path="microcontrollers" element={<AdminMicrocontrollersTab />} />
+            <Route
+              path="microcontrollers/:microcontrollerId"
+              element={<AdminMicrocontrollerDetailsPage />}
             />
-
-              <Route
-                path="/offer"
-                element={
-                  auth?.token ? (
-                    <Navigate to={authedHome} replace />
-                  ) : (
-                    <LandingLayout>
-                      <OfferPage />
-                    </LandingLayout>
-                  )
-                }
-              />
-
-              <Route
-                path="/pricing"
-                element={
-                  auth?.token ? (
-                    <Navigate to={authedHome} replace />
-                  ) : (
-                    <LandingLayout>
-                      <PricingPage />
-                    </LandingLayout>
-                  )
-                }
-              />
-
-              <Route
-                path="/contact"
-                element={
-                  auth?.token ? (
-                    <Navigate to={authedHome} replace />
-                  ) : (
-                    <LandingLayout>
-                      <ContactPage />
-                    </LandingLayout>
-                  )
-                }
-              />
-
-              <Route
-                path="/microcontrollers"
-                element={
-                  <ProtectedRoute>
-                    <MicrocontrollersPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/microcontrollers/:microcontrollerUuid"
-                element={
-                  <ProtectedRoute>
-                    <MicrocontrollerDetailsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/microcontrollers/:microcontrollerUuid/provider"
-                element={
-                  <ProtectedRoute>
-                    <ProvidersPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/providers"
-                element={
-                  <ProtectedRoute>
-                    <ProvidersPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <UsersListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users/:userId"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminUserDetailsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users/:userId/microcontrollers/:microcontrollerUuid"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminMicrocontrollerDetailsPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <AccountPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </Box>
-      </Box>
-
-      {!isPublic && (
-        <Box
-          sx={{
-            px: { xs: 0.75, sm: 2, md: 3 },
-            pb: 3,
-            maxWidth: { xs: "100%", lg: 1320 },
-            mx: "auto",
-            width: "100%",
-          }}
-        >
-          <SmartEnergyFooter />
-        </Box>
-      )}
-    </Box>
+            <Route
+              path="/admin/users/:userId"
+              element={<AdminUserDetails />}
+            />
+          </Route>
+          
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
+    </AppShell>
   );
 }

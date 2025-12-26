@@ -1,185 +1,218 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  CircularProgress,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   Stack,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
   Typography,
 } from "@mui/material";
-import ListItemButton from "@mui/material/ListItemButton";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
-import { adminApi } from "@/api/adminApi";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import SurfacePanel from "@/layout/SurfacePanel";
 import { ADMIN_DEFAULT_PAGE_SIZE } from "@/config/admin";
 import { Pagination } from "@/features/paginations/Pagination";
-import { microcontrollerApi } from "@/api/microcontrollerApi";
+import CenteredSpinner from "@/features/common/components/CenteredSpinner";
+import { useDebouncedValue } from "@/components/hooks/useDebouncedValue";
+import { SearchInput } from "@/components/forms/SearchInput";
+import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
+import { MicrocontrollerFormModal } from "./MicrocontrollerFormModal";
+import { AdminPageHeader } from "./layout/AdminPageLayout";
+import { useMicrocontrollersOnlineStatus } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
+import { useAdminMicrocontrollersList } from "../hooks/useAdminMicrocontrollersList";
+import { useMicrocontrollerDeletion } from "../hooks/useMicrocontrollerDeletion";
 
 export function AdminMicrocontrollersList() {
-  const { token } = useAuth();
-  const navigate = useNavigate();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 500);
 
   const limit = ADMIN_DEFAULT_PAGE_SIZE;
 
-  const loadMicrocontrollers = useCallback(async () => {
-    if (!token) return;
+  const { items, total, loading, error, reload } =
+    useAdminMicrocontrollersList({
+      limit,
+      offset,
+      search: debouncedSearch,
+    });
 
-    setLoading(true);
-    setError("");
+  const { remove } = useMicrocontrollerDeletion();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selected, setSelected] = useState<MicrocontrollerResponse | null>(null);
+
+  const uuids = items.map((mc) => mc.uuid);
+  const onlineState = useMicrocontrollersOnlineStatus(uuids);
+
+  const handleDelete = async (microcontrollerId: number) => {
     try {
-      const res = await microcontrollerApi.getMicrocontrollers(token, { limit, offset, admin_list: true });
-      setItems(res.data.items ?? []);
-      setTotal(res.data.meta?.total ?? 0);
-    } catch (err) {
-      console.error("Failed to load microcontrollers", err);
-      setError(t("admin.errors.loadMicrocontrollers"));
-    } finally {
-      setLoading(false);
+      await remove(microcontrollerId);
+      reload();
+    } catch {
+      // toast already emitted
     }
-  }, [token, limit, offset, t]);
-
-  useEffect(() => {
-    loadMicrocontrollers();
-  }, [loadMicrocontrollers]);
-
-  const handleDelete = async (uuid: string) => {
-    if (!token) return;
-    if (!confirm("Czy na pewno usunąć mikrokontroler?")) return;
-
-    await adminApi.deleteMicrocontrollerByUuid(token, uuid);
-    setOffset(0);
-    await loadMicrocontrollers();
   };
 
-  if (loading) {
-    return (
-      <Box py={6} display="flex" justifyContent="center">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={1.5}>
-          <Button
-            variant="outlined"
-            onClick={() => navigate("/admin/microcontrollers/add")}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            {t("admin.microcontrollers.addButton")}
-          </Button>
+    <SurfacePanel>
+      <Stack spacing={2}>
+        <AdminPageHeader
+          title={t("admin.microcontrollers.title")}
+          breadcrumbs={[
+            { label: t("admin.title"), to: "/admin" },
+            {
+              label: t("admin.tabs.microcontrollers"),
+              to: "/admin/microcontrollers",
+            },
+          ]}
+          endActions={
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                setSelected(null);
+                setModalOpen(true);
+              }}
+            >
+              {t("admin.microcontrollers.add")}
+            </Button>
+          }
+        />
 
-          {error && <Alert severity="error">{error}</Alert>}
+        <SearchInput
+          value={search}
+          onChange={(v) => {
+            setOffset(0);
+            setSearch(v);
+          }}
+        />
 
-          <List>
-            {items.map((mc, idx) => (
-              <Box key={mc.uuid}>
-                <ListItem
-                  disablePadding
-                  secondaryAction={
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/microcontrollers/${mc.uuid}/edit`);
-                        }}
-                      >
-                        {t("admin.microcontrollers.editButton")}
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(mc.uuid);
-                        }}
-                      >
-                        {t("admin.microcontrollers.deleteButton")}
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/microcontrollers/${mc.uuid}`);
-                        }}
-                      >
-                        {t("admin.microcontrollers.detailsButton")}
-                      </Button>
-                    </Stack>
-                  }
-                >
-                  <ListItemButton
-                    onClick={() => navigate(`/admin/microcontrollers/${mc.uuid}`)}
-                  >
-                    <ListItemText
-                      primary={
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography fontWeight={700}>
-                            {mc.name ?? mc.uuid}
-                          </Typography>
-                          <Chip
-                            size="small"
-                            label={
-                              mc.enabled
-                                ? t("admin.microcontrollers.statusActive")
-                                : t("admin.microcontrollers.statusInactive")
-                            }
-                            color={mc.enabled ? "success" : "default"}
-                          />
-                        </Stack>
-                      }
-                      secondary={
-                        <Stack spacing={0.25}>
-                          <Typography variant="body2">
-                            UUID: {mc.uuid}
-                          </Typography>
-                          <Typography variant="body2">
-                            {t("admin.microcontrollers.ownerLabel")}:{" "}
-                            {mc.user_email ?? "-"}
-                          </Typography>
-                        </Stack>
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
+        {error && <Alert severity="error">{error}</Alert>}
 
-                {idx < items.length - 1 && <Divider />}
-              </Box>
-            ))}
-          </List>
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell align="center">{t("microcontroller.name")}</TableCell>
+                <TableCell align="center">{t("microcontroller.owner")}</TableCell>
+                <TableCell align="center">{t("microcontroller.type")}</TableCell>
+                <TableCell align="center">{t("microcontroller.enabled")}</TableCell>
+                <TableCell align="center">{t("common.online")}</TableCell>
+                <TableCell align="center">{t("common.createdAt")}</TableCell>
+                <TableCell align="center">{t("common.actions")}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <Box py={4} display="flex" justifyContent="center">
+                      <CenteredSpinner />
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              )}
 
-          <Pagination
-            offset={offset}
-            limit={limit}
-            count={items.length}
-            total={total}
-            onPrev={() => setOffset((o) => Math.max(0, o - limit))}
-            onNext={() => setOffset((o) => o + limit)}
-          />
-        </Stack>
-      </CardContent>
-    </Card>
+              {!loading &&
+                items.map((mc) => (
+                  <TableRow key={mc.uuid} hover>
+                    <TableCell>
+                      <Typography fontWeight={600} noWrap>
+                        {mc.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>
+                        {mc.user?.email ?? "-"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={t(`microcontroller.types.${mc.type}`)} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={
+                          mc.enabled ? t("common.enabled") : t("common.disabled")
+                        }
+                        color={mc.enabled ? "success" : "default"}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      {onlineState[mc.uuid]?.online ? (
+                        <Chip label="OK" color="success" />
+                      ) : (
+                        <Chip label="NO" color="error" variant="outlined" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption">
+                        {new Date(mc.created_at).toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            navigate(`/admin/microcontrollers/${mc.id}`)
+                          }
+                        >
+                          {t("common.details")}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setSelected(mc);
+                            setModalOpen(true);
+                          }}
+                        >
+                          {t("common.edit")}
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(mc.id)}
+                        >
+                          {t("common.delete")}
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </Box>
+
+        <Pagination
+          offset={offset}
+          limit={limit}
+          count={items.length}
+          total={total}
+          onPrev={() => setOffset((o) => Math.max(0, o - limit))}
+          onNext={() => setOffset((o) => o + limit)}
+        />
+
+        <MicrocontrollerFormModal
+          open={modalOpen}
+          microcontroller={selected ?? undefined}
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => {
+            setModalOpen(false);
+            reload();
+          }}
+        />
+      </Stack>
+    </SurfacePanel>
   );
 }

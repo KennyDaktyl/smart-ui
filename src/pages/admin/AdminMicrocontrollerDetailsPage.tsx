@@ -1,219 +1,165 @@
 import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
-  Divider,
-  Stack,
-  Typography,
+  Tabs,
+  Tab,
 } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import MemoryIcon from "@mui/icons-material/Memory";
+import EditIcon from "@mui/icons-material/Edit";
 import { useTranslation } from "react-i18next";
 
 import { adminApi } from "@/api/adminApi";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
+import { MicrocontrollerDetails } from "@/features/microcontrollers/components/MicrocontrollerDetails";
+import { MicrocontrollerFormModal } from "@/features/admin/components/MicrocontrollerFormModal";
+import { MicrocontrollerActionsTab } from "@/features/admin/tabs/MicrocontrollerActionsTab";
+import { MicrocontrollerConfigurationTab } from "@/features/admin/tabs/MicrocontrollerConfigurationTab";
+import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
+import SurfacePanel from "@/layout/SurfacePanel";
+
+type TabKey = "details" | "configuration" | "actions";
 
 export default function AdminMicrocontrollerDetailsPage() {
-  const { microcontrollerUuid } = useParams<{ microcontrollerUuid: string }>();
-  const navigate = useNavigate();
-  const { token } = useAuth();
   const { t } = useTranslation();
+  const { microcontrollerId } = useParams<{ microcontrollerId: string }>();
+  const navigate = useNavigate();
 
-  const [microcontroller, setMicrocontroller] = useState<any | null>(null);
+  const [mc, setMc] = useState<MicrocontrollerResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const loadDetails = async () => {
-    if (!token || !microcontrollerUuid) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await adminApi.getMicrocontrollerByUuid(token, microcontrollerUuid);
-      setMicrocontroller(res.data ?? null);
-    } catch (err) {
-      console.error("Failed to load microcontroller", err);
-      setError(t("admin.errors.loadMicrocontrollers"));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [editOpen, setEditOpen] = useState(false);
+  const [tab, setTab] = useState<TabKey>("details");
 
   useEffect(() => {
-    loadDetails();
-  }, [microcontrollerUuid, token]);
-
-  const handleDelete = async () => {
-    if (!token || !microcontrollerUuid) return;
-    if (!confirm(t("admin.microcontrollers.deleteConfirm", { name: microcontroller?.name ?? "" }))) {
+    if (!microcontrollerId || Number.isNaN(Number(microcontrollerId))) {
+      navigate("/admin/microcontrollers", { replace: true });
       return;
     }
-    await adminApi.deleteMicrocontrollerByUuid(token, microcontrollerUuid);
-    navigate("/admin/microcontrollers");
-  };
+
+    setLoading(true);
+    adminApi
+      .getMicrocontroller(Number(microcontrollerId))
+      .then((res) => setMc(res.data))
+      .finally(() => setLoading(false));
+  }, [microcontrollerId, navigate]);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" height="70vh">
+      <Box display="flex" justifyContent="center" mt={8}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error || !microcontroller) {
-    return (
-      <Box p={{ xs: 2, md: 3 }}>
-        <Alert severity="error">{error || t("admin.errors.loadMicrocontrollers")}</Alert>
-      </Box>
-    );
-  }
-
-  const providerLabel = microcontroller?.active_provider
-    ? microcontroller.active_provider.name ??
-      microcontroller.active_provider.vendor ??
-      t("admin.microcontrollers.unknownProvider")
-    : t("admin.microcontrollers.noProvider");
-
-  const sensorsLabel =
-    Array.isArray(microcontroller.assigned_sensors) &&
-    microcontroller.assigned_sensors.length > 0
-      ? microcontroller.assigned_sensors.join(", ")
-      : t("admin.microcontrollers.noSensors");
+  if (!mc) return null;
 
   return (
-    <Box
-      p={{ xs: 2, md: 4 }}
-      sx={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(15,139,111,0.18), transparent 48%), radial-gradient(circle at bottom right, rgba(17,61,78,0.2), transparent 45%), linear-gradient(180deg, #081824 0%, #0b1f2a 40%, #081824 100%)",
-      }}
-    >
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/admin/microcontrollers")}
-        variant="outlined"
+    <>
+      <AdminPageHeader
+        title={mc.name}
+        breadcrumbs={[
+          { label: t("admin.title"), to: "/admin" },
+          {
+            label: t("admin.tabs.microcontrollers"),
+            to: "/admin/microcontrollers",
+          },
+          { label: t("common.details") },
+        ]}
+        startAction={
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/admin/microcontrollers")}
+          >
+            {t("common.backToList")}
+          </Button>
+        }
+        endActions={
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={() => setEditOpen(true)}
+          >
+            {t("common.edit")}
+          </Button>
+        }
+      />
+
+      <SurfacePanel
         sx={{
-          mb: 2.5,
-          borderColor: "rgba(255,255,255,0.35)",
-          color: "#e8f1f8",
+          mt: 2,
+          px: 0,
+          py: 0,
+          backgroundColor: "rgba(255,255,255,0.9)",
         }}
       >
-        {t("admin.microcontrollers.backToList")}
-      </Button>
+        <Tabs
+          value={tab}
+          onChange={(_, value) => setTab(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{
+            minHeight: 48,
+            borderBottom: "1px solid",
+            borderColor: "divider",
 
-      <Card
-        sx={{
-          borderRadius: 3,
-          border: "1px solid rgba(13,27,42,0.12)",
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(245,249,248,0.94) 100%)",
-          boxShadow: "0 18px 42px rgba(8,24,36,0.2)",
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: 600,
+              minHeight: 48,
+              color: "text.secondary",
+            },
+
+            "& .MuiTab-root.Mui-selected": {
+              color: "primary.main",
+            },
+
+            "& .MuiTabs-indicator": {
+              backgroundColor: "primary.main",
+              height: 2,
+            },
+          }}
+        >
+
+          <Tab value="details" label={t("common.details")} />
+          <Tab value="configuration" label={t("microcontroller.configuration")} />
+          <Tab value="actions" label={t("common.actions")} />
+        </Tabs>
+      </SurfacePanel>
+
+      <SurfacePanel sx={{ mt: 2 }}>
+        {tab === "details" && (
+          <MicrocontrollerDetails
+            microcontroller={mc}
+            isAdmin
+            onDelete={async () => {
+              await adminApi.deleteMicrocontroller(mc.id);
+              navigate("/admin/microcontrollers");
+            }}
+          />
+        )}
+
+        {tab === "configuration" && (
+          <MicrocontrollerConfigurationTab microcontroller={mc} />
+        )}
+
+        {tab === "actions" && (
+          <MicrocontrollerActionsTab microcontroller={mc} />
+        )}
+      </SurfacePanel>
+
+      {/* EDIT MODAL */}
+      <MicrocontrollerFormModal
+        open={editOpen}
+        microcontroller={mc}
+        onClose={() => setEditOpen(false)}
+        onSuccess={async () => {
+          setEditOpen(false);
+          const res = await adminApi.getMicrocontroller(mc.id);
+          setMc(res.data);
         }}
-      >
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <MemoryIcon sx={{ color: "#0f8b6f" }} />
-              <Typography variant="h6" sx={{ color: "#0b1f2a" }}>
-                {microcontroller.name ?? microcontroller.uuid}
-              </Typography>
-              <Chip
-                size="small"
-                label={
-                  microcontroller.enabled
-                    ? t("admin.microcontrollers.statusActive")
-                    : t("admin.microcontrollers.statusInactive")
-                }
-                color={microcontroller.enabled ? "success" : "default"}
-              />
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate(`/admin/microcontrollers/${microcontroller.uuid}/edit`)}
-                >
-                  {t("admin.microcontrollers.editButton")}
-                </Button>
-                <Button variant="text" color="error" onClick={handleDelete}>
-                  {t("admin.microcontrollers.deleteButton")}
-                </Button>
-              </Stack>
-            </Stack>
-
-            <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-              UUID: {microcontroller.uuid}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-              {t("admin.microcontrollers.ownerLabel")}: {microcontroller.user_email}
-            </Typography>
-            {microcontroller.type && (
-              <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-                {t("admin.microcontrollers.typeLabel", { type: microcontroller.type })}
-              </Typography>
-            )}
-            {microcontroller.software_version && (
-              <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-                {t("admin.microcontrollers.softwareLabel", {
-                  version: microcontroller.software_version,
-                })}
-              </Typography>
-            )}
-
-            <Divider sx={{ borderColor: "rgba(11,31,42,0.12)" }} />
-
-            <Stack spacing={0.5}>
-              <Typography variant="subtitle2" sx={{ color: "#0b1f2a" }}>
-                {t("admin.microcontrollers.fields.sensors")}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-                {sensorsLabel}
-              </Typography>
-            </Stack>
-
-            <Stack spacing={0.5}>
-              <Typography variant="subtitle2" sx={{ color: "#0b1f2a" }}>
-                {t("admin.microcontrollers.activeProvider")}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-                {providerLabel}
-              </Typography>
-            </Stack>
-
-            <Stack spacing={0.5}>
-              <Typography variant="subtitle2" sx={{ color: "#0b1f2a" }}>
-                {t("admin.microcontrollers.devicesTitle")}
-              </Typography>
-              {Array.isArray(microcontroller.devices) &&
-              microcontroller.devices.length > 0 ? (
-                <Stack spacing={0.75}>
-                  {microcontroller.devices.map((device: any) => (
-                    <Stack
-                      key={device.uuid ?? device.id}
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                    >
-                      <Typography variant="body2" sx={{ color: "#0b1f2a" }}>
-                        {device.name ?? t("admin.microcontrollers.deviceFallback")}
-                      </Typography>
-                      <Chip size="small" label={device.mode ?? "-"} />
-                    </Stack>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" sx={{ color: "rgba(11,31,42,0.62)" }}>
-                  {t("admin.microcontrollers.devicesEmpty")}
-                </Typography>
-              )}
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
-    </Box>
+      />
+    </>
   );
 }

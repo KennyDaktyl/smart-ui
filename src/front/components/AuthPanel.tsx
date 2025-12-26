@@ -32,7 +32,7 @@ export function AuthPanel() {
     setError("");
     setSuccess("");
     if (!email || !password) {
-      setError(t("front.authPanel.errors.missingFields"));
+      setError(t("landing.authPanel.errors.missingFields"));
       return;
     }
     try {
@@ -44,11 +44,11 @@ export function AuthPanel() {
         navigate("/");
       } else {
         await authApi.register({ email, password });
-        setSuccess(t("front.authPanel.registerSuccess"));
+        setSuccess(t("landing.authPanel.registerSuccess"));
         setMode("login");
       }
     } catch (err: any) {
-      setError(err?.response?.data?.detail || t("front.authPanel.errors.generic"));
+      setError(err?.response?.data?.detail || t("landing.authPanel.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -67,12 +67,12 @@ export function AuthPanel() {
       <Tabs
         value={mode}
         onChange={(_, val) => setMode(val)}
-        aria-label={t("front.authPanel.ariaTabs")}
+        aria-label={t("landing.authPanel.ariaTabs")}
         textColor="primary"
         indicatorColor="primary"
       >
-        <Tab value="login" label={t("front.authPanel.tabs.login")} />
-        <Tab value="register" label={t("front.authPanel.tabs.register")} />
+        <Tab value="login" label={t("landing.authPanel.tabs.login")} />
+        <Tab value="register" label={t("landing.authPanel.tabs.register")} />
       </Tabs>
 
       <Stack spacing={1.25} mt={2}>
@@ -93,7 +93,7 @@ export function AuthPanel() {
 
         {mode === "register" && (
           <Typography variant="caption" color="text.secondary">
-            {t("front.authPanel.registerHint")}
+            {t("landing.authPanel.registerHint")}
           </Typography>
         )}
 
@@ -112,10 +112,10 @@ export function AuthPanel() {
           }}
         >
           {loading
-            ? t("front.authPanel.processing")
+            ? t("landing.authPanel.processing")
             : mode === "login"
-            ? t("front.authPanel.submitLogin")
-            : t("front.authPanel.submitRegister")}
+            ? t("landing.authPanel.submitLogin")
+            : t("landing.authPanel.submitRegister")}
         </Button>
 
         <Button
@@ -124,8 +124,8 @@ export function AuthPanel() {
           onClick={() => setMode(mode === "login" ? "register" : "login")}
         >
           {mode === "login"
-            ? t("front.authPanel.switchToRegister")
-            : t("front.authPanel.switchToLogin")}
+            ? t("landing.authPanel.switchToRegister")
+            : t("landing.authPanel.switchToLogin")}
         </Button>
       </Stack>
     </Box>

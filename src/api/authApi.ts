@@ -1,39 +1,32 @@
 import axiosClient from "./axiosClient";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
-const authHeaders = (token: string) => ({
-  headers: { Authorization: `Bearer ${token}` },
-});
-
 export const authApi = {
-  login: async (data: { email: string; password: string }) => {
-    return axiosClient.post(`${API_URL}/auth/login`, data);
-  },
+  login: (data: { email: string; password: string }) =>
+    axiosClient.post("/auth/login", data),
 
-  register: async (data: { email: string; password: string }) => {
-    return axiosClient.post(`${API_URL}/auth/register`, data);
-  },
+  register: (data: { email: string; password: string }) =>
+    axiosClient.post("/auth/register", data),
 
-  confirmRegistration: async (body: Record<string, any>) => {
-    return axiosClient.post(`${API_URL}/auth/confirm`, body);
-  },
+  confirmEmail: (token: string) =>
+    axiosClient.post("/auth/confirm", { token }),
 
-  refreshToken: async (refreshToken: string) => {
-    return axiosClient.post(`${API_URL}/auth/refresh`, {
+  refreshToken: (refreshToken: string) =>
+    axiosClient.post("/auth/refresh", {
       refresh_token: refreshToken,
-    });
-  },
+    }),
 
-  getMe: async (token: string) => {
-    return axiosClient.get(`${API_URL}/auth/me`, authHeaders(token));
-  },
+  requestPasswordReset: (email: string) =>
+    axiosClient.post("/auth/password-reset/request", { email }),
 
-  requestPasswordReset: async (email: string) => {
-    return axiosClient.post(`${API_URL}/auth/password-reset/request`, { email });
-  },
+  changePassword: (body: {
+    current_password: string;
+    new_password: string;
+  }) =>
+    axiosClient.post("/auth/change-password", body),
 
-  confirmPasswordReset: async (body: Record<string, any>) => {
-    return axiosClient.post(`${API_URL}/auth/password-reset/confirm`, body);
-  },
+  confirmPasswordReset: (body: {
+    token: string;
+    new_password: string;
+  }) =>
+    axiosClient.post("/auth/password-reset/confirm", body),
 };
