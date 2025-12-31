@@ -28,11 +28,24 @@ const resources = {
         actions: "Akcje",
         send: "Wyślij",
         none: "Brak",
+        next: "Dalej",
+        selectPlaceholder: "Wybierz…",
+        configuration: "Konfiguracja",
+        confirmDelete: "Potwierdź usunięcie",
+        confirmTitle: "Czy na pewno?",
+        confirmMessage: "Tej operacji nie można cofnąć.",
+        confirm: "Potwierdź",
         language: {
           polish: "Polski",
           english: "Angielski",
           polishFlag: "Flaga Polski",
           englishFlag: "Flaga Wielkiej Brytanii",
+        },
+        error: {
+          generic: "Coś poszło nie tak.",
+        },
+        success: {
+          generic: "Operacja zakończona sukcesem.",
         },
       },
       user: {
@@ -299,6 +312,58 @@ const resources = {
           },
         },
       },
+      providers:{
+        "title": "Providery",
+        "actions": {
+          "add": "Dodaj providera",
+          "create": "Utwórz providera"
+        },
+        "wizard": {
+          "steps": {
+            "provider": "Wybór providera",
+            "config": "Konfiguracja",
+            "summary": "Podsumowanie"
+          },
+          "selectVendor": "Wybierz dostawcę",
+          "vendorMeta": "{{kind}} • {{unit}}",
+          "final": "Podsumowanie",
+          "actions": {
+            "next": "Dalej"
+          },
+          "finalForm": {
+            "name": "Nazwa providera",
+            "minValue": "Minimalna wartość ({{unit}})",
+            "maxValue": "Maksymalna wartość ({{unit}})"
+          }
+        },
+        "errors": {
+          "load": "Nie udało się pobrać providerów.",
+          "loadDetail": "Błąd ładowania providerów: {{message}}",
+          "wizardStart": "Nie udało się rozpocząć kreatora: {{message}}",
+          "wizardStep": "Błąd podczas kroku kreatora: {{message}}",
+          "final": "Nie udało się dodać providera: {{message}}"
+        },
+        "success": {
+          "create": "Provider został dodany."
+        },
+        "validation": {
+          "backendError": "Błąd walidacji: {{message}}"
+        },
+        "card": {
+          "vendor": "Dostawca",
+          "type": "Typ",
+          "kind": "Rodzaj",
+          "unit": "Jednostka",
+          "range": "Zakres pracy",
+          "lastValue": "Ostatnia wartość",
+          "lastMeasurement": "Ostatni pomiar:"
+        },
+        "empty": {
+          "title": "Brak skonfigurowanych providerów",
+          "description": "Dodaj pierwszego providera, aby rozpocząć.",
+          "action": "Dodaj providera"
+        }
+      },
       microcontroller: {
         uuid: "UUID",
         name: "Nazwa",
@@ -309,6 +374,9 @@ const resources = {
         description: "Opis",
         enabled: "Status",
         noUserAssigned: "Brak przypisanego użytkownika.",
+        deleteSuccess: "Mikrokontroler został usunięty.",
+        deleteError: "Nie udało się usunąć mikrokontrolera.",
+        confirmDelete: "Czy na pewno chcesz usunąć ten mikrokontroler?",
         form: {
           addTitle: "Dodaj mikrokontroler",
           editTitle: "Edytuj mikrokontroler",
@@ -424,11 +492,24 @@ const resources = {
         actions: "Actions",
         send: "Send",
         none: "None",
+        next: "Next",
+        selectPlaceholder: "Select…",
+        confirmDelete: "Confirm deletion",
+        configuration: "Configuration",
+        confirmTitle: "Are you sure?",
+        confirmMessage: "This action cannot be undone.",
+        confirm: "Confirm",
         language: {
           polish: "Polish",
           english: "English",
           polishFlag: "Polish flag",
           englishFlag: "United Kingdom flag",
+        },
+        error: {
+          generic: "Something went wrong.",
+        },
+        success: {
+          generic: "Operation completed successfully.",
         },
       },
       header: {
@@ -697,6 +778,58 @@ const resources = {
           },
         },
       },
+      providers:{
+        "title": "Providers",
+        "actions": {
+          "add": "Add provider",
+          "create": "Create provider"
+        },
+        "wizard": {
+          "steps": {
+            "provider": "Select vendor",
+            "config": "Configuration",
+            "summary": "Summary"
+          },
+          "selectVendor": "Pick a vendor",
+          "vendorMeta": "{{kind}} • {{unit}}",
+          "final": "Summary",
+          "actions": {
+            "next": "Next"
+          },
+          "finalForm": {
+            "name": "Provider name",
+            "minValue": "Min value ({{unit}})",
+            "maxValue": "Max value ({{unit}})"
+          }
+        },
+        "errors": {
+          "load": "Failed to load providers.",
+          "loadDetail": "Failed to load providers: {{message}}",
+          "wizardStart": "Unable to start wizard: {{message}}",
+          "wizardStep": "Wizard step failed: {{message}}",
+          "final": "Failed to create provider: {{message}}"
+        },
+        "success": {
+          "create": "Provider has been added."
+        },
+        "validation": {
+          "backendError": "Validation error: {{message}}"
+        },
+        "card": {
+          "vendor": "Vendor",
+          "type": "Type",
+          "kind": "Kind",
+          "unit": "Unit",
+          "range": "Operating range",
+          "lastValue": "Last value",
+          "lastMeasurement": "Last measurement:"
+        },
+        "empty": {
+          "title": "No configured providers",
+          "description": "Add the first provider to get started.",
+          "action": "Add provider"
+        }
+      },
       microcontroller: {
         uuid: "UUID",
         name: "Name",
@@ -707,6 +840,9 @@ const resources = {
         description: "Description",
         enabled: "Status",
         noUserAssigned: "No user assigned.",
+        deleteSuccess: "Microcontroller has been deleted.",
+        deleteError: "Failed to delete microcontroller.",
+        confirmDelete: "Are you sure you want to delete this microcontroller?",
         form: {
           addTitle: "Add microcontroller",
           editTitle: "Edit microcontroller",

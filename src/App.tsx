@@ -5,12 +5,13 @@ import ProtectedRoute from "./features/common/ProtectedRoute";
 import { useTranslation } from "react-i18next";
 
 import AppShell from "./layout/AppShell";
-import { UserRole } from "./features/users/types/role";
 import CenteredSpinner from "./features/common/components/CenteredSpinner";
-import { AdminUserDetails } from "./pages/admin/AdminUserDetails";
-import { AdminUsersTab } from "./features/admin/tabs/AdminUsersTab";
-import { AdminMicrocontrollersTab } from "./features/admin/tabs/AdminMicrocontrollersList";
-import AdminMicrocontrollerDetailsPage from "./pages/admin/AdminMicrocontrollerDetailsPage";
+import { AdminShell } from "./features/admin/components/layout/AdminShell";
+import ProvidersPage from "./pages/providers/ProvidersPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminUserDetailsPage } from "./pages/admin/AdminUserDetailsPage";
+import { AdminMicrocontrollersPage } from "./pages/admin/AdminMicrocontrollersPage";
+import AdminMicrocontrollerDetailsPage from "./pages/admin/AdminMicrocontrollerDetialsPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
@@ -28,7 +29,6 @@ const NotFoundPage = lazy(() => import("./pages/common/NotFoundPage"));
 export default function App() {
   const auth = useContext(AuthContext);
   const { t } = useTranslation();
-  const isAdmin = auth?.user?.role === UserRole.ADMIN;
 
   if (auth?.loading) {
     return <CenteredSpinner fullscreen />;
@@ -99,26 +99,41 @@ export default function App() {
           />
 
           <Route
+            path="/providers"
+            element={
+              <ProtectedRoute>
+                <ProvidersPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/admin"
             element={
               <ProtectedRoute>
-                {isAdmin ? <AdminPage /> : <Navigate to="/account" replace />}
+                <AdminShell />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="users" replace />} />
-            <Route path="users" element={<AdminUsersTab />} />
-            <Route path="microcontrollers" element={<AdminMicrocontrollersTab />} />
-            <Route
-              path="microcontrollers/:microcontrollerId"
-              element={<AdminMicrocontrollerDetailsPage />}
-            />
-            <Route
-              path="/admin/users/:userId"
-              element={<AdminUserDetails />}
-            />
+            <Route element={<AdminPage />}>
+              <Route index element={<Navigate to="users" replace />} />
+
+              {/* USERS */}
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="users/:userId" element={<AdminUserDetailsPage />} />
+
+              {/* MICROCONTROLLERS */}
+              <Route
+                path="microcontrollers"
+                element={<AdminMicrocontrollersPage />}
+              />
+              <Route
+                path="microcontrollers/:microcontrollerId"
+                element={<AdminMicrocontrollerDetailsPage />}
+              />
+            </Route>
           </Route>
-          
+                    
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

@@ -53,7 +53,9 @@ export function parseApiError(error: unknown): ParsedApiError {
   }
 
   const detailMessage =
-    getArrayDetailMessage(detail) ?? getObjectDetailMessage(detail);
+    getArrayDetailMessage(detail) ??
+    getObjectDetailMessage(detail) ??
+    (typeof detail === "string" ? detail : undefined);
 
   const message =
     detailMessage ||

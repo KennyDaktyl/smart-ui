@@ -1,9 +1,4 @@
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, CardContent, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,10 +28,12 @@ function sanitizeConfig(input: any): UpdateMicrocontrollerConfigPayload {
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
+  disabled?: boolean;
 };
 
 export function MicrocontrollerConfigurationTab({
   microcontroller,
+  disabled = false,
 }: Props) {
   const { t } = useTranslation();
   const [json, setJson] = useState("{}");
@@ -58,10 +55,14 @@ export function MicrocontrollerConfigurationTab({
   }, [microcontroller]);
 
   const handleSave = async () => {
+    if (disabled) {
+      console.warn("Configuration update blocked – microcontroller offline");
+      return;
+    }
+
     try {
       const parsed = JSON.parse(json);
       const payload = sanitizeConfig(parsed);
-
       await save(payload);
     } catch (error) {
       if (error instanceof SyntaxError) {
@@ -71,15 +72,7 @@ export function MicrocontrollerConfigurationTab({
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "background.paper",
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        p: { xs: 2, md: 3 },
-      }}
-    >
+    <CardContent>
       <Typography variant="subtitle1" fontWeight={600} gutterBottom>
         {t("microcontroller.configuration")}
       </Typography>
@@ -92,17 +85,18 @@ export function MicrocontrollerConfigurationTab({
         onChange={(e) => setJson(e.target.value)}
         fullWidth
         sx={{ fontFamily: "monospace" }}
+        disabled={disabled}
       />
 
       <Box display="flex" justifyContent="flex-end" mt={2}>
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={loading}
+          disabled={disabled || loading}
         >
           {t("common.save")}
         </Button>
       </Box>
-    </Box>
+    </CardContent>
   );
 }

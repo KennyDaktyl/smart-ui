@@ -17,9 +17,7 @@ class WebSocketManager {
 
   private pendingMessages: any[] = [];
 
-  private constructor() {
-    // lazy connect; only when someone subscribes
-  }
+  private constructor() {}
 
   public static getInstance() {
     if (!WebSocketManager.instance) {
@@ -55,7 +53,6 @@ class WebSocketManager {
       this.lastSentRaspberryUuids = [];
 
       this.reconnectTimeout = window.setTimeout(() => {
-        // reconnect only if we still have subscribers
         if (this.hasSubscribers()) {
           this.connect();
         } else {
@@ -261,9 +258,6 @@ class WebSocketManager {
     this.maybeClose();
   }
 
-  // ============================================================
-  // Inverter subscriptions — FIXED
-  // ============================================================
   public subscribeInverter(serial: string, cb: InverterCallback) {
     this.ensureConnected();
 
@@ -298,10 +292,8 @@ class WebSocketManager {
   }
 
   private resubscribeAll() {
-    // raspberries
     this.syncRaspberrySubs();
 
-    // inverters
     for (const serial of this.inverterSubs.keys()) {
       this.send({
         action: "subscribe_inverter",
@@ -324,7 +316,6 @@ class WebSocketManager {
       this.lastSentRaspberryUuids = uuids;
     }
 
-    // Be explicit about removals so the server can drop stale subs
     if (removedUuids.length > 0) {
       this.send({
         action: "unsubscribe_many",

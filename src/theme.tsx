@@ -224,8 +224,6 @@ export const solarTheme = createTheme({
       },
     },
 
-    /* ❌ USUNIĘTE: MuiTypography color: inherit
-       – to psuło kontrast globalnie */
   },
 });
 
@@ -245,7 +243,7 @@ export const globalStyles = (
         `,
         backgroundSize: "cover",
         color: "#e8f1f8",
-        minHeight: "100vh",
+        minHeight: "120vh",
       },
 
       "#root": {

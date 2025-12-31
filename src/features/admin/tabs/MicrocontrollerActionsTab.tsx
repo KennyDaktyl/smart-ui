@@ -1,45 +1,34 @@
-import { Box, Button, Stack, Divider, Typography } from "@mui/material";
+import { Box, Button, Stack, Divider, Typography, CardContent } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
+  disabled?: boolean;
 };
 
-export function MicrocontrollerActionsTab({ microcontroller }: Props) {
+export function MicrocontrollerActionsTab({
+  microcontroller,
+  disabled = false,
+}: Props) {
   const { t } = useTranslation();
 
   return (
-    <Box
-      sx={{
-        width: "100%",
-        background: "rgba(255,255,255,0.9)",
-        borderRadius: 2,
-        border: "1px solid rgba(16, 185, 129, 0.2)",
-        p: { xs: 2, md: 3 },
-        color: "text.primary",
-      }}
-    >
-      <Typography
-        variant="subtitle1"
-        fontWeight={600}
-        sx={{ color: "text.primary" }}
-      >
+    <CardContent>
+      <Typography variant="subtitle1" fontWeight={600}>
         {t("microcontroller.actions.title")}
       </Typography>
 
-      <Divider sx={{ my: 2, borderColor: "divider" }} />
+      <Divider sx={{ my: 2 }} />
 
       <Stack spacing={2} width="100%">
         <Button
           variant="outlined"
           color="warning"
           fullWidth
-          sx={{
-            borderWidth: 2,
-            borderColor: "rgba(249, 115, 22, 0.6)",
-          }}
+          disabled={disabled}
           onClick={() => {
+            if (disabled) return;
             console.log("RESTART", microcontroller.uuid);
           }}
         >
@@ -50,13 +39,15 @@ export function MicrocontrollerActionsTab({ microcontroller }: Props) {
           variant="contained"
           color="success"
           fullWidth
+          disabled={disabled}
           onClick={() => {
+            if (disabled) return;
             console.log("UPDATE", microcontroller.uuid);
           }}
         >
           {t("microcontroller.actions.update")}
         </Button>
       </Stack>
-    </Box>
+    </CardContent>
   );
 }

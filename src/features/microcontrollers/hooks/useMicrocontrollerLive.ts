@@ -1,19 +1,22 @@
-// src/features/microcontrollers/hooks/useMicrocontrollerLive.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 import { HeartbeatPayload } from "@/shared/types/heartbeat";
 
+type LiveStatus = "pending" | "online" | "offline";
+
 type LiveState = {
   lastSeen: number | null;
-  online: boolean;
+  status: LiveStatus;
 };
 
 const ONLINE_TIMEOUT_MS = 15_000;
+const CHECK_INTERVAL_MS = 5_000;
+const isDev = process.env.NODE_ENV === "development";
 
 export function useMicrocontrollerLive(uuid?: string) {
   const [state, setState] = useState<LiveState>({
     lastSeen: null,
-    online: false,
+    status: "pending",
   });
 
   const lastSeenRef = useRef<number | null>(null);
@@ -23,32 +26,52 @@ export function useMicrocontrollerLive(uuid?: string) {
 
     setState({
       lastSeen: lastSeenRef.current,
-      online: true,
+      status: "online",
     });
   }, []);
 
   useEffect(() => {
-    if (!uuid) return;
+    if (!uuid) {
+      setState({
+        lastSeen: null,
+        status: "pending",
+      });
+      return;
+    }
 
-    console.info("[MC DETAILS] Subscribed to heartbeat", uuid);
+    if (isDev) {
+      console.info("[MC LIVE] Subscribed to heartbeat", uuid);
+    }
+
     wsManager.subscribeRaspberry(uuid, handleHeartbeat);
 
     const interval = setInterval(() => {
-      if (!lastSeenRef.current) return;
+      if (!lastSeenRef.current) {
+        setState((prev) => ({
+          ...prev,
+          status: "offline",
+        }));
+        return;
+      }
 
       const isOnline =
         Date.now() - lastSeenRef.current < ONLINE_TIMEOUT_MS;
 
       setState((prev) => ({
         ...prev,
-        online: isOnline,
+        status: isOnline ? "online" : "offline",
       }));
-    }, 5_000);
+    }, CHECK_INTERVAL_MS);
 
     return () => {
-      console.info("[MC DETAILS] Unsubscribed from heartbeat", uuid);
+      if (isDev) {
+        console.info("[MC LIVE] Unsubscribed from heartbeat", uuid);
+      }
+
       wsManager.unsubscribeRaspberry(uuid, handleHeartbeat);
       clearInterval(interval);
+
+      lastSeenRef.current = null;
     };
   }, [uuid, handleHeartbeat]);
 

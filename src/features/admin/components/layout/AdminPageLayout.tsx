@@ -3,13 +3,16 @@ import {
   Breadcrumbs,
   Link as MuiLink,
   Stack,
+  Tabs,
+  Tab,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import ContentContainer from "@/layout/ContentContainer";
 import SurfacePanel from "@/layout/SurfacePanel";
+import { useTranslation } from "react-i18next";
 
 export type AdminBreadcrumb = {
   label: ReactNode;

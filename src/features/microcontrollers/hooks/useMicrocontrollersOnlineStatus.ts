@@ -29,9 +29,6 @@ export function useMicrocontrollersOnlineStatus(uuids: string[]) {
     }));
   }, []);
 
-  /**
-   * Subscribe / unsubscribe when UUID list changes
-   */
   useEffect(() => {
     const prev = subscribedRef.current;
     const prevSet = new Set(prev);

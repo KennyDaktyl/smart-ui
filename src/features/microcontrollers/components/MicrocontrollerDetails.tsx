@@ -1,22 +1,25 @@
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Divider,
   Stack,
   Typography,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useSnackbar } from "notistack";
 
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { useMicrocontrollerLive } from "@/features/microcontrollers/hooks/useMicrocontrollerLive";
+import { ActionButton } from "@/components/ActionButton";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
   isAdmin?: boolean;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
 };
 
 export function MicrocontrollerDetails({
@@ -25,23 +28,71 @@ export function MicrocontrollerDetails({
   onDelete,
 }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
+
   const live = useMicrocontrollerLive(microcontroller.uuid);
 
+  /**
+   * Handles delete flow:
+   * - execute delete
+   * - show toast
+   * - redirect to list
+   */
+  const handleDelete = async () => {
+    if (!onDelete) return;
+
+    try {
+      await onDelete();
+
+      enqueueSnackbar(
+        t("microcontroller.deleteSuccess"),
+        { variant: "success" }
+      );
+
+      navigate("/admin/microcontrollers");
+    } catch (error) {
+      enqueueSnackbar(
+        t("microcontroller.deleteError"),
+        { variant: "error" }
+      );
+    }
+  };
+
   return (
-    <Card sx={{ backgroundColor: "#ffffff" }}>
+    <Card>
       <CardContent>
         <Stack spacing={2}>
           {/* HEADER */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Typography variant="h6" fontWeight={700}>
               {microcontroller.name}
             </Typography>
 
-            <Chip
-              size="small"
-              label={live.online ? t("common.online") : t("common.offline")}
-              color={live.online ? "success" : "error"}
-            />
+            {live.status === "pending" && (
+              <CircularProgress size={18} />
+            )}
+
+            {live.status === "online" && (
+              <Chip
+                size="small"
+                label={t("common.online")}
+                color="success"
+              />
+            )}
+
+            {live.status === "offline" && (
+              <Chip
+                size="small"
+                label={t("common.offline")}
+                color="error"
+                variant="outlined"
+              />
+            )}
           </Stack>
 
           <Divider />
@@ -81,7 +132,7 @@ export function MicrocontrollerDetails({
 
           <Divider />
 
-          {/* USER – READ ONLY */}
+          {/* USER */}
           <InfoRow
             label={t("microcontroller.owner")}
             value={
@@ -90,27 +141,6 @@ export function MicrocontrollerDetails({
                 : t("microcontroller.noUserAssigned")
             }
           />
-
-          <Divider />
-
-          {/* SENSORS – READ ONLY */}
-          <Stack spacing={0.5}>
-            <Typography variant="body2" fontWeight={600}>
-              {t("microcontroller.sensorsLabel")}
-            </Typography>
-
-            {microcontroller.assigned_sensors.length > 0 ? (
-              <Typography variant="body2">
-                {microcontroller.assigned_sensors
-                  .map((s) => t(`microcontroller.sensorOptions.${s}`))
-                  .join(", ")}
-              </Typography>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                {t("common.none")}
-              </Typography>
-            )}
-          </Stack>
 
           <Divider />
 
@@ -129,9 +159,15 @@ export function MicrocontrollerDetails({
             <>
               <Divider />
               <Box display="flex" justifyContent="flex-end">
-                <Button color="error" onClick={onDelete}>
-                  {t("common.delete")}
-                </Button>
+                <ActionButton
+                  label={t("common.delete")}
+                  color="error"
+                  variant="text"
+                  confirmRequired
+                  confirmTitle={t("common.confirmDelete")}
+                  confirmMessage={t("microcontroller.confirmDelete")}
+                  onConfirm={handleDelete}
+                />
               </Box>
             </>
           )}

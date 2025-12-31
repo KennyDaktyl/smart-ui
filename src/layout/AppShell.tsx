@@ -15,7 +15,7 @@ export default function AppShell({ mode, children }: AppShellProps) {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: "120vh",
         display: "flex",
         flexDirection: "column",
         backgroundColor: "background.default",
