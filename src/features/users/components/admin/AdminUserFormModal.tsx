@@ -7,8 +7,8 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
-import { UserForm } from "./UserForm";
-import { useUserMutation } from "../hooks/useUserMutation";
+import { AdminUserForm } from "./AdminUserForm";
+import { useUserMutation } from "@/features/admin/hooks/useUserMutation";
 import { UserResponse } from "@/features/users/types/user";
 
 type Props = {
@@ -18,7 +18,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-export function UserFormModal({ open, onClose, user, onSuccess }: Props) {
+export function AdminUserFormModal({ open, onClose, user, onSuccess }: Props) {
   const { t } = useTranslation();
 
   const mode = user ? "edit" : "create";
@@ -40,7 +40,7 @@ export function UserFormModal({ open, onClose, user, onSuccess }: Props) {
       </DialogTitle>
 
       <DialogContent>
-        <UserForm isEdit={!!user} defaultValues={defaultValues} onSubmit={submit} />
+        <AdminUserForm isEdit={!!user} defaultValues={defaultValues} onSubmit={submit} />
       </DialogContent>
 
       <DialogActions>

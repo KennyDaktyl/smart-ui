@@ -11,7 +11,7 @@ import {
 import { UserDetailsResponse } from "@/features/users/types/user";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
-import { UserFormModal } from "@/features/admin/components/UserFormModal";
+import { AdminUserFormModal } from "@/features/users/components/admin/AdminUserFormModal";
 import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
 import { PageShell } from "@/features/admin/components/layout/PageShell";
 
@@ -128,7 +128,7 @@ export function AdminUserDetailsPage() {
         )}
       </PageShell>
 
-      <UserFormModal
+      <AdminUserFormModal
         open={editOpen}
         user={user ?? undefined}
         onClose={() => setEditOpen(false)}

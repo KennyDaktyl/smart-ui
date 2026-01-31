@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -14,7 +14,7 @@ import { microcontrollersApi } from "@/api/microcontrollerApi";
 import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
 import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
 import { DeviceList } from "@/features/devices/components/DeviceList";
-import { useMicrocontrollersLive } from "@/features/microcontrollers/hooks/useMicrocontrollerListLive";
+import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
 export default function MicrocontrollersPage() {
   const { token } = useAuth();
@@ -23,13 +23,6 @@ export default function MicrocontrollersPage() {
   const [items, setItems] = useState<MicrocontrollerWithLive[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const uuids = useMemo(
-    () => items.map((i) => i.mc.uuid),
-    [items]
-  );
-
-  const live = useMicrocontrollersLive(uuids);
 
   useEffect(() => {
     if (!token) return;
@@ -72,48 +65,54 @@ export default function MicrocontrollersPage() {
       {error && <Alert severity="error">{error}</Alert>}
 
       <Grid container spacing={3}>
-        {items.map((item) => {
-          const state = live[item.mc.uuid];
+        {items.map((item) => (
+          <Grid
+            key={item.mc.uuid}
+            size={{ xs: 12, md: 6, lg: 4 }}
+          >
+            <MicrocontrollerLiveStatus uuid={item.mc.uuid}>
+              {(live) => {
+                const isOnline = live.status === "online";
+                const liveInitialized = live.status !== "pending";
 
-          return (
-            <Grid
-              key={item.mc.uuid}
-              size={{ xs: 12, md: 6, lg: 4 }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                }}
-              >
-                <MicrocontrollerCard
-                  microcontroller={item.mc}
-                  isOnline={state?.isOnline ?? false}
-                  lastSeen={state?.lastSeen ?? null}
-                  liveInitialized={!state?.loading}
-                />
+                return (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
+                  >
+                    <MicrocontrollerCard
+                      microcontroller={item.mc}
+                      isOnline={isOnline}
+                      lastSeen={live.lastSeen}
+                      liveInitialized={liveInitialized}
+                      liveState={live}
+                    />
 
-                <Box>
-                  <Stack mb={1}>
-                    <Typography variant="subtitle1">
-                      {t("devices.sectionTitle", {
-                        name: item.mc.name,
-                      })}
-                    </Typography>
-                  </Stack>
+                    <Box>
+                      <Stack mb={1}>
+                        <Typography variant="subtitle1">
+                          {t("devices.sectionTitle", {
+                            name: item.mc.name,
+                          })}
+                        </Typography>
+                      </Stack>
 
-                  <DeviceList
-                    devices={item.mc.devices}
-                    liveInitialized={!state?.loading}
-                    isOnline={state?.isOnline ?? false}
-                    microcontrollerUuid={item.mc.uuid}
-                  />
-                </Box>
-              </Box>
-            </Grid>
-          );
-        })}
+                      <DeviceList
+                        devices={item.mc.devices}
+                        liveInitialized={liveInitialized}
+                        isOnline={isOnline}
+                        microcontrollerUuid={item.mc.uuid}
+                      />
+                    </Box>
+                  </Box>
+                );
+              }}
+            </MicrocontrollerLiveStatus>
+          </Grid>
+        ))}
       </Grid>
     </Box>
   );

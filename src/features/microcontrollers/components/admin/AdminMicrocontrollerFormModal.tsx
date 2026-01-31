@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
-import { MicrocontrollerForm } from "./MicrocontrollerForm";
+import { AdminMicrocontrollerForm } from "./AdminMicrocontrollerForm";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { useMicrocontrollerMutation } from "@/features/microcontrollers/hooks/useMicrocontrollerMutation";
 import SurfacePanel from "@/layout/SurfacePanel";
@@ -20,7 +20,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-export function MicrocontrollerFormModal({
+export function AdminMicrocontrollerFormModal({
   open,
   onClose,
   microcontroller,
@@ -61,7 +61,7 @@ export function MicrocontrollerFormModal({
         )}
 
         <SurfacePanel sx={{ p: 2, boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-          <MicrocontrollerForm
+          <AdminMicrocontrollerForm
             isEdit={!!microcontroller}
             defaultValues={
               microcontroller

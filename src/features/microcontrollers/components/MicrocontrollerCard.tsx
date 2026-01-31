@@ -1,11 +1,14 @@
-import { Card, CardContent, Typography, Chip, Stack } from "@mui/material";
+import { Card, CardContent, Typography, Stack } from "@mui/material";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
+import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
+import type { LiveState } from "@/features/microcontrollers/hooks/useMicrocontrollerLive";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
   isOnline: boolean;
   lastSeen: string | null;
   liveInitialized: boolean;
+  liveState?: LiveState;
 };
 
 export function MicrocontrollerCard({
@@ -13,7 +16,16 @@ export function MicrocontrollerCard({
   isOnline,
   lastSeen,
   liveInitialized,
+  liveState,
 }: Props) {
+  const derivedState: LiveState = liveState ?? {
+    lastSeen,
+    status: liveInitialized ? (isOnline ? "online" : "offline") : "pending",
+  };
+
+  const displayLastSeen = derivedState.lastSeen;
+  const showLastSeen = derivedState.status !== "pending" && Boolean(displayLastSeen);
+
   return (
     <Card variant="outlined">
       <CardContent>
@@ -26,15 +38,14 @@ export function MicrocontrollerCard({
             Type: {microcontroller.type}
           </Typography>
 
-          <Chip
-            size="small"
-            label={isOnline ? "ONLINE" : "OFFLINE"}
-            color={isOnline ? "success" : "default"}
+          <MicrocontrollerLiveStatus
+            uuid={microcontroller.uuid}
+            state={derivedState}
           />
 
-          {liveInitialized && lastSeen && (
+          {showLastSeen && (
             <Typography variant="caption" color="text.secondary">
-              Last seen: {new Date(lastSeen).toLocaleString()}
+              Last seen: {new Date(displayLastSeen!).toLocaleString()}
             </Typography>
           )}
         </Stack>

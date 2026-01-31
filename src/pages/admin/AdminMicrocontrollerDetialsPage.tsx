@@ -16,13 +16,13 @@ import { useTranslation } from "react-i18next";
 import { adminApi } from "@/api/adminApi";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { MicrocontrollerDetails } from "@/features/microcontrollers/components/MicrocontrollerDetails";
-import { MicrocontrollerFormModal } from "@/features/admin/components/MicrocontrollerFormModal";
+import { AdminMicrocontrollerFormModal } from "@/features/microcontrollers/components/admin/AdminMicrocontrollerFormModal";
 import { MicrocontrollerActionsTab } from "@/features/admin/tabs/MicrocontrollerActionsTab";
 import { MicrocontrollerConfigurationTab } from "@/features/admin/tabs/MicrocontrollerConfigurationTab";
 import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
 import SurfacePanel from "@/layout/SurfacePanel";
 import { PageShell } from "@/features/admin/components/layout/PageShell";
-import { useMicrocontrollerLive } from "@/features/microcontrollers/hooks/useMicrocontrollerLive";
+import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
 type TabKey = "details" | "configuration" | "actions";
 
@@ -37,10 +37,6 @@ export default function AdminMicrocontrollerDetailsPage() {
   const [tab, setTab] = useState<TabKey>("details");
 
   const id = Number(microcontrollerId);
-
-  const live = useMicrocontrollerLive(mc?.uuid);
-
-  const canSendCommands = live.status === "online";
 
   useEffect(() => {
     if (!microcontrollerId || Number.isNaN(id)) {
@@ -57,131 +53,141 @@ export default function AdminMicrocontrollerDetailsPage() {
 
   if (!mc && !loading) return null;
 
-  const header = (
-    <AdminPageHeader
-      title={
-        <Stack direction="row" spacing={2} alignItems="center">
-          <span>{mc?.name ?? t("admin.microcontrollers.title")}</span>
-
-          {mc && (
-            <>
-              {live.status === "pending" && <CircularProgress size={16} />}
-
-              {live.status === "online" && (
-                <Chip size="small" label="ONLINE" color="success" />
-              )}
-
-              {live.status === "offline" && (
-                <Chip size="small" label="OFFLINE" variant="outlined" />
-              )}
-            </>
-          )}
-        </Stack>
-      }
-      breadcrumbs={[
-        { label: t("admin.title"), to: "/admin" },
-        { label: t("admin.tabs.microcontrollers"), to: "/admin/microcontrollers" },
-        { label: t("common.details") },
-      ]}
-      startAction={
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/admin/microcontrollers")}
-        >
-          {t("common.backToList")}
-        </Button>
-      }
-      endActions={
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => setEditOpen(true)}
-        >
-          {t("common.edit")}
-        </Button>
-      }
-    />
-  );
-
-  const tabs = (
-    <SurfacePanel sx={{ mt: 2, px: 0, py: 0 }}>
-      <Tabs
-        value={tab}
-        onChange={(_, value) => setTab(value)}
-        variant="scrollable"
-        allowScrollButtonsMobile
-      >
-        <Tab value="details" label={t("common.details")} />
-
-        <Tab
-          value="configuration"
-          label={t("common.configuration")}
-          disabled={!canSendCommands}
-        />
-
-        <Tab
-          value="actions"
-          label={t("common.actions")}
-          disabled={!canSendCommands}
-        />
-      </Tabs>
-    </SurfacePanel>
-  );
-
   return (
-    <>
-      <PageShell header={header} tabs={tabs} loading={loading}>
-        {mc && (
-          <>
-            {tab === "details" && (
-              <MicrocontrollerDetails
-                microcontroller={mc}
-                isAdmin
-                onDelete={async () => {
-                  await adminApi.deleteMicrocontroller(mc.id);
-                  navigate("/admin/microcontrollers");
-                }}
+    <MicrocontrollerLiveStatus uuid={mc?.uuid}>
+      {(live) => {
+        const canSendCommands = live.status === "online";
+
+        const header = (
+          <AdminPageHeader
+            title={
+              <Stack direction="row" spacing={2} alignItems="center">
+                <span>{mc?.name ?? t("admin.microcontrollers.title")}</span>
+
+                {mc && (
+                  <>
+                    {live.status === "pending" && (
+                      <CircularProgress size={16} />
+                    )}
+
+                    {live.status === "online" && (
+                      <Chip size="small" label="ONLINE" color="success" />
+                    )}
+
+                    {live.status === "offline" && (
+                      <Chip size="small" label="OFFLINE" variant="outlined" />
+                    )}
+                  </>
+                )}
+              </Stack>
+            }
+            breadcrumbs={[
+              { label: t("admin.title"), to: "/admin" },
+              { label: t("admin.tabs.microcontrollers"), to: "/admin/microcontrollers" },
+              { label: t("common.details") },
+            ]}
+            startAction={
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate("/admin/microcontrollers")}
+              >
+                {t("common.backToList")}
+              </Button>
+            }
+            endActions={
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => setEditOpen(true)}
+              >
+                {t("common.edit")}
+              </Button>
+            }
+          />
+        );
+
+        const tabs = (
+          <SurfacePanel sx={{ mt: 2, px: 0, py: 0 }}>
+            <Tabs
+              value={tab}
+              onChange={(_, value) => setTab(value)}
+              variant="scrollable"
+              allowScrollButtonsMobile
+            >
+              <Tab value="details" label={t("common.details")} />
+
+              <Tab
+                value="configuration"
+                label={t("common.configuration")}
+                disabled={!canSendCommands}
               />
-            )}
 
-            {tab === "configuration" && (
-              canSendCommands ? (
-                <MicrocontrollerConfigurationTab
-                  microcontroller={mc}
-                  disabled={!canSendCommands}
-                />
-              ) : (
-                <OfflineGuard />
-              )
-            )}
+              <Tab
+                value="actions"
+                label={t("common.actions")}
+                disabled={!canSendCommands}
+              />
+            </Tabs>
+          </SurfacePanel>
+        );
 
-            {tab === "actions" && (
-              canSendCommands ? (
-                <MicrocontrollerActionsTab
-                  microcontroller={mc}
-                  disabled={!canSendCommands}
-                />
-              ) : (
-                <OfflineGuard />
-              )
-            )}
+        return (
+          <>
+            <PageShell header={header} tabs={tabs} loading={loading}>
+              {mc && (
+                <>
+                  {tab === "details" && (
+                    <MicrocontrollerDetails
+                      microcontroller={mc}
+                      isAdmin
+                      onDelete={async () => {
+                        await adminApi.deleteMicrocontroller(mc.id);
+                        navigate("/admin/microcontrollers");
+                      }}
+                    />
+                  )}
+
+                  {tab === "configuration" && (
+                    canSendCommands ? (
+                      <MicrocontrollerConfigurationTab
+                        microcontroller={mc}
+                        disabled={!canSendCommands}
+                      />
+                    ) : (
+                      <OfflineGuard />
+                    )
+                  )}
+
+                  {tab === "actions" && (
+                    canSendCommands ? (
+                      <MicrocontrollerActionsTab
+                        microcontroller={mc}
+                        disabled={!canSendCommands}
+                      />
+                    ) : (
+                      <OfflineGuard />
+                    )
+                  )}
+                </>
+              )}
+            </PageShell>
+
+            <AdminMicrocontrollerFormModal
+              open={editOpen}
+              microcontroller={mc ?? undefined}
+              onClose={() => setEditOpen(false)}
+              onSuccess={async () => {
+                setEditOpen(false);
+                if (mc) {
+                  const res = await adminApi.getMicrocontroller(mc.id);
+                  setMc(res.data);
+                }
+              }}
+            />
           </>
-        )}
-      </PageShell>
-
-      <MicrocontrollerFormModal
-        open={editOpen}
-        microcontroller={mc ?? undefined}
-        onClose={() => setEditOpen(false)}
-        onSuccess={async () => {
-          setEditOpen(false);
-          if (mc) {
-            const res = await adminApi.getMicrocontroller(mc.id);
-            setMc(res.data);
-          }
-        }}
-      />
-    </>
+        );
+      }}
+    </MicrocontrollerLiveStatus>
   );
 }
 

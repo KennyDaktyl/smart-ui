@@ -21,7 +21,7 @@ import { Pagination } from "@/features/paginations/Pagination";
 import { UserResponse } from "@/features/users/types/user";
 import { adminApi } from "@/api/adminApi";
 import { USER_ROLE_COLOR, USER_ROLE_LABEL } from "../../features/admin/utils/userRoleUi";
-import { UserFormModal } from "../../features/admin/components/UserFormModal";
+import { AdminUserFormModal } from "@/features/users/components/admin/AdminUserFormModal";
 import { AdminPageHeader } from "../../features/admin/components/layout/AdminPageLayout";
 import { useDebouncedValue } from "@/components/hooks/useDebouncedValue";
 import { SearchInput } from "@/components/forms/SearchInput";
@@ -204,7 +204,7 @@ export function AdminUsersPage() {
           onNext={() => setOffset((o) => o + limit)}
         />
 
-        <UserFormModal
+        <AdminUserFormModal
           open={isModalOpen}
           user={selectedUser ?? undefined}
           onClose={() => setIsModalOpen(false)}

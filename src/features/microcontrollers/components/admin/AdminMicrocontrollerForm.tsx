@@ -84,7 +84,7 @@ const fieldSx = {
 };
 
 
-export function MicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Props) {
+export function AdminMicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Props) {
   const { t } = useTranslation();
 
   const [users, setUsers] = useState<UserResponse[]>([]);

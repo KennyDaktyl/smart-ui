@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -27,8 +27,8 @@ import { useAdminMicrocontrollersList } from "@/features/admin/hooks/useAdminMic
 import { useMicrocontrollerDeletion } from "@/features/admin/hooks/useMicrocontrollerDeletion";
 import { PageShell } from "@/features/admin/components/layout/PageShell";
 import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
-import { MicrocontrollerFormModal } from "@/features/admin/components/MicrocontrollerFormModal";
-import { useMicrocontrollersLive } from "@/features/microcontrollers/hooks/useMicrocontrollerListLive";
+import { AdminMicrocontrollerFormModal } from "@/features/microcontrollers/components/admin/AdminMicrocontrollerFormModal";
+import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
 export function AdminMicrocontrollersPage() {
   const { t } = useTranslation();
@@ -62,13 +62,6 @@ export function AdminMicrocontrollersPage() {
     message: "",
     severity: "success",
   });
-
-  const uuids = useMemo(
-    () => items.map((mc) => mc.uuid),
-    [items]
-  );
-
-  const live = useMicrocontrollersLive(uuids);
 
   const handleDelete = async (microcontrollerId: number) => {
     try {
@@ -155,11 +148,8 @@ export function AdminMicrocontrollersPage() {
               </TableHead>
 
               <TableBody>
-                {items.map((mc) => {
-                  const state = live[mc.uuid];
-
-                  return (
-                    <TableRow key={mc.uuid} hover>
+                {items.map((mc) => (
+                  <TableRow key={mc.uuid} hover>
                       <TableCell>
                         <Typography fontWeight={600} noWrap>
                           {mc.name}
@@ -182,22 +172,26 @@ export function AdminMicrocontrollersPage() {
 
                       {/* ===== ONLINE STATUS ===== */}
                       <TableCell align="center">
-                        {!state || state.loading ? (
-                          <CircularProgress size={16} />
-                        ) : state.isOnline ? (
-                          <Chip
-                            label="OK"
-                            color="success"
-                            size="small"
-                          />
-                        ) : (
-                          <Chip
-                            label="NO"
-                            color="error"
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
+                        <MicrocontrollerLiveStatus uuid={mc.uuid}>
+                          {(live) =>
+                            live.status === "pending" ? (
+                              <CircularProgress size={16} />
+                            ) : live.status === "online" ? (
+                              <Chip
+                                label="OK"
+                                color="success"
+                                size="small"
+                              />
+                            ) : (
+                              <Chip
+                                label="NO"
+                                color="error"
+                                size="small"
+                                variant="outlined"
+                              />
+                            )
+                          }
+                        </MicrocontrollerLiveStatus>
                       </TableCell>
 
                       <TableCell align="center">
@@ -255,8 +249,7 @@ export function AdminMicrocontrollersPage() {
                         </Stack>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+                ))}
               </TableBody>
             </Table>
           </Box>
@@ -272,7 +265,7 @@ export function AdminMicrocontrollersPage() {
             onNext={() => setOffset((o) => o + limit)}
           />
 
-          <MicrocontrollerFormModal
+          <AdminMicrocontrollerFormModal
             open={modalOpen}
             microcontroller={selected ?? undefined}
             onClose={() => setModalOpen(false)}

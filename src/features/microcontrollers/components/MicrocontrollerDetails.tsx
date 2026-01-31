@@ -13,8 +13,8 @@ import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
-import { useMicrocontrollerLive } from "@/features/microcontrollers/hooks/useMicrocontrollerLive";
 import { ActionButton } from "@/components/ActionButton";
+import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
@@ -30,8 +30,6 @@ export function MicrocontrollerDetails({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-
-  const live = useMicrocontrollerLive(microcontroller.uuid);
 
   /**
    * Handles delete flow:
@@ -73,26 +71,32 @@ export function MicrocontrollerDetails({
               {microcontroller.name}
             </Typography>
 
-            {live.status === "pending" && (
-              <CircularProgress size={18} />
-            )}
+            <MicrocontrollerLiveStatus uuid={microcontroller.uuid}>
+              {(live) => (
+                <>
+                  {live.status === "pending" && (
+                    <CircularProgress size={18} />
+                  )}
 
-            {live.status === "online" && (
-              <Chip
-                size="small"
-                label={t("common.online")}
-                color="success"
-              />
-            )}
+                  {live.status === "online" && (
+                    <Chip
+                      size="small"
+                      label={t("common.online")}
+                      color="success"
+                    />
+                  )}
 
-            {live.status === "offline" && (
-              <Chip
-                size="small"
-                label={t("common.offline")}
-                color="error"
-                variant="outlined"
-              />
-            )}
+                  {live.status === "offline" && (
+                    <Chip
+                      size="small"
+                      label={t("common.offline")}
+                      color="error"
+                      variant="outlined"
+                    />
+                  )}
+                </>
+              )}
+            </MicrocontrollerLiveStatus>
           </Stack>
 
           <Divider />

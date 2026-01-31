@@ -15,7 +15,7 @@ import {
   editUserSchema,
   CreateUserFormSchema,
   EditUserFormSchema,
-} from "../schemas/userFormSchema";
+} from "@/features/admin/schemas/userFormSchema";
 import { UserRole, USER_ROLE_VALUES } from "@/features/users/types/role";
 
 type UserFormValues = CreateUserFormSchema | EditUserFormSchema;
@@ -26,7 +26,7 @@ type Props = {
   isEdit?: boolean;
 };
 
-export function UserForm({ defaultValues, onSubmit, isEdit }: Props) {
+export function AdminUserForm({ defaultValues, onSubmit, isEdit }: Props) {
   const { t } = useTranslation();
 
   const schema = isEdit ? editUserSchema : createUserSchema;
