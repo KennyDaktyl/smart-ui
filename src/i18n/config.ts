@@ -356,13 +356,27 @@ const resources = {
           "unit": "Jednostka",
           "range": "Zakres pracy",
           "lastValue": "Ostatnia wartość",
-          "lastMeasurement": "Ostatni pomiar:"
+          "lastMeasurement": "Ostatni pomiar:",
+          "measurementFresh": "Dane aktualne",
+          "measurementStale": "Dane nie są aktualne",
+          "unknownTime": "Brak informacji o czasie pomiaru"
         },
+        "live": {
+          "title": "Dane inwertera na żywo",
+          "waiting": "Oczekiwanie na dane na żywo",
+          "updatedAt": "Zaktualizowano",
+          "noData": "Brak danych na żywo",
+          "streaming": "Dane napływają w czasie rzeczywistym"
+        },
+        "data_not_fresh": "Dane nie są aktualne.",
         "empty": {
           "title": "Brak skonfigurowanych providerów",
           "description": "Dodaj pierwszego providera, aby rozpocząć.",
           "action": "Dodaj providera"
         }
+      },
+      microcontrollers: {
+        title: "Mikrokontrolery użytkownika"
       },
       microcontroller: {
         uuid: "UUID",
@@ -824,11 +838,22 @@ const resources = {
           "lastValue": "Last value",
           "lastMeasurement": "Last measurement:"
         },
+        "live": {
+          "title": "Live inverter data",
+          "waiting": "Waiting for live data",
+          "updatedAt": "Updated at",
+          "noData": "No live data available",
+          "streaming": "Data is streaming in real time"
+        },
+        "data_not_fresh": "Live data is not fresh.",
         "empty": {
           "title": "No configured providers",
           "description": "Add the first provider to get started.",
           "action": "Add provider"
         }
+      },
+      microcontrollers: {
+        title: "User microcontrollers"
       },
       microcontroller: {
         uuid: "UUID",

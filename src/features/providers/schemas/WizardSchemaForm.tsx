@@ -96,8 +96,12 @@ export default function WizardSchemaForm({
         />
       </Box>
 
-      {Object.entries(schema.properties).map(
-        ([key, field]: any) => {
+      {Object.entries(schema.properties ?? {})
+        .filter(([, field]: any) => {
+          const type = field?.type;
+          return type !== "array" && type !== "object";
+        })
+        .map(([key, field]: any) => {
           const ui = field["x-ui"] ?? {};
           const widget = ui.widget ?? "text";
           const required = schema.required?.includes(key);

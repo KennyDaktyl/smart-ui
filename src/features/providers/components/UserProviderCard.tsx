@@ -5,26 +5,32 @@ import {
   Switch,
   Divider,
   Box,
-  CircularProgress,
 } from "@mui/material";
+import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import { useTranslation } from "react-i18next";
 import { ProviderResponse } from "../types/userProvider";
 import ProviderConfig from "./provider-config/ProviderConfig";
-
-type ProviderLiveState = {
-  power: number | null;
-  timestamp: string | null;
-  loading: boolean;
-  hasWs: boolean;
-};
+import LivePowerStatus from "./LivePowerStatus";
+import ProviderLastMeasurement from "./ProviderLastMeasurement";
+import { ProviderLiveState } from "../hooks/useProvidersLive";
+import { useToggleProviderEnabled } from "../hooks/useToggleProviderEnabled";
+import LiveEnergyStream from "./LiveEnergyStream";
 
 type Props = {
   provider: ProviderResponse;
   live?: ProviderLiveState;
+  onEnabledChange: (uuid: string, enabled: boolean) => void;
 };
 
-export default function UserProviderCard({ provider, live }: Props) {
+export default function UserProviderCard({ provider, live, onEnabledChange }: Props) {
   const { t } = useTranslation();
+
+  const { loading, toggle } = useToggleProviderEnabled(
+    provider.uuid,
+    (enabled) => {
+      onEnabledChange(provider.uuid, enabled);
+    }
+  );
 
   const hasRange =
     provider.value_min != null &&
@@ -53,7 +59,11 @@ export default function UserProviderCard({ provider, live }: Props) {
           </Typography>
         </Box>
 
-        <Switch checked={provider.enabled} disabled />
+         <Switch
+          checked={provider.enabled}
+          disabled={loading}
+          onChange={(_, checked) => toggle(checked)}
+        />
       </Box>
 
       <Divider />
@@ -75,69 +85,55 @@ export default function UserProviderCard({ provider, live }: Props) {
 
       {/* ================= RANGE ================= */}
       {hasRange && (
-        <Box
-          sx={{
-            mt: 1,
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor: provider.enabled
-              ? "primary.light"
-              : "action.hover",
-          }}
-        >
+      <Box
+        sx={{
+          mt: 1,
+          p: 1.5,
+          borderRadius: 1.5,
+          bgcolor: provider.enabled
+            ? "success.light"
+            : "action.hover",
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          <ElectricBoltIcon color="success" />
           <Typography variant="caption">
             {t("providers.card.range")}
           </Typography>
+        </Stack>
 
-          <Typography variant="h6" fontWeight={700}>
-            {provider.value_min} {provider.unit} →{" "}
-            {provider.value_max} {provider.unit}
-          </Typography>
-        </Box>
-      )}
+        <Typography variant="h6" fontWeight={700}>
+          {provider.value_min} {provider.unit} →{" "}
+          {provider.value_max} {provider.unit}
+        </Typography>
+      </Box>
+    )}
+
 
       {/* ================= LIVE POWER ================= */}
       <Divider />
 
-      <Box>
-        <Typography variant="subtitle2" fontWeight={700}>
-          Live inverter data
-        </Typography>
+      <LivePowerStatus provider={provider} live={live} />
 
-        {(!live || live.loading) && (
-          <Stack direction="row" spacing={1} alignItems="center">
-            <CircularProgress size={16} />
-            <Typography variant="body2">
-              {t("providers.live.waiting")}
-            </Typography>
-          </Stack>
-        )}
-
-        {!live?.loading && live?.hasWs && (
-          <>
-            <Typography variant="h6" fontWeight={700}>
-              {live.power ?? "-"} {provider.unit}
-            </Typography>
-
-            {live.timestamp && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                {t("providers.live.updatedAt")}{" "}
-                {new Date(live.timestamp).toLocaleString()}
-              </Typography>
-            )}
-          </>
-        )}
-
-        {!live?.loading && !live?.hasWs && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-          >
-            {t("providers.live.noData")}
-          </Typography>
+      {/* ================= LAST MEASUREMENT ================= */}
+      <Box
+        mt={1}
+        sx={{
+          Height: 112,
+          display: "flex",
+          alignItems: "flex-start",
+        }}
+      >
+        {live?.hasWs ? (
+          <LiveEnergyStream unit={provider.unit ?? null} />
+        ) : (
+          provider.last_value && (
+            <ProviderLastMeasurement
+              measurement={provider.last_value}
+              expectedIntervalSec={provider.default_expected_interval_sec}
+              unit={provider.unit ?? null}
+            />
+          )
         )}
       </Box>
 

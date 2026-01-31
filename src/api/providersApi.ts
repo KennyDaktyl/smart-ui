@@ -15,5 +15,16 @@ export const providersApi = {
   getProviderDefinitions: () =>
     axiosClient.get<ProviderDefinitionsResponse>(
       "/providers/definitions/list"
-    ),
+  ),
+
+  setProviderEnabled: (
+    uuid: string,
+    enabled: boolean
+  ) => {
+    return axiosClient.patch<ProviderResponse>(
+      `/providers/${uuid}/enabled`,
+      { enabled }
+    );
+  },
+  
 };

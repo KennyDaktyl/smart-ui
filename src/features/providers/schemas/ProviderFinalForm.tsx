@@ -56,28 +56,6 @@ export default function ProviderFinalForm({
         helperText={nameHelper}
       />
 
-      <TextField
-        label={t("providers.wizard.finalForm.minValue", {
-          unit: defaultUnit,
-        })}
-        type="number"
-        value={valueMin}
-        onChange={(e) => setValueMin(Number(e.target.value))}
-        error={isMinError}
-        helperText={minHelper}
-      />
-
-      <TextField
-        label={t("providers.wizard.finalForm.maxValue", {
-          unit: defaultUnit,
-        })}
-        type="number"
-        value={valueMax}
-        onChange={(e) => setValueMax(Number(e.target.value))}
-        error={isMaxError}
-        helperText={maxHelper}
-      />
-
       <Button
         variant="contained"
         onClick={() =>

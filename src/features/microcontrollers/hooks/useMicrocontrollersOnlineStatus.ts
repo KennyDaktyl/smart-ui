@@ -1,122 +1,158 @@
-// src/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus.ts
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
-import { HeartbeatPayload } from "@/shared/types/heartbeat";
 
-type OnlineState = {
-  lastSeen: number;
-  online: boolean;
+// ============================================================
+// Config
+// ============================================================
+
+const HEARTBEAT_EVENT = "microcontroller_heartbeat";
+const ONLINE_TIMEOUT_MS = 15_000;
+
+// ============================================================
+// Types
+// ============================================================
+
+export type MicrocontrollerOnlineState = {
+  isOnline: boolean;
+  lastSeen: string | null;
 };
 
-type OnlineStateMap = Record<string, OnlineState>;
+type StateMap = Record<string, MicrocontrollerOnlineState>;
 
-const ONLINE_TIMEOUT_MS = 15_000;
-const CHECK_INTERVAL_MS = 5_000;
+type SubscriptionEntry = {
+  handler: (payload: any) => void;
+  timeoutId: number;
+};
 
-const isDev = process.env.NODE_ENV === "development";
+// ============================================================
+// Hook
+// ============================================================
 
 export function useMicrocontrollersOnlineStatus(uuids: string[]) {
-  const [state, setState] = useState<OnlineStateMap>({});
-  const subscribedRef = useRef<string[]>([]);
+  const [state, setState] = useState<StateMap>({});
+  const subsRef = useRef<Map<string, SubscriptionEntry>>(new Map());
 
-  const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
-    setState((prev) => ({
-      ...prev,
-      [hb.uuid]: {
-        lastSeen: Date.now(),
-        online: true,
-      },
-    }));
-  }, []);
+  // ============================================================
+  // Helpers
+  // ============================================================
 
-  useEffect(() => {
-    const prev = subscribedRef.current;
-    const prevSet = new Set(prev);
-    const nextSet = new Set(uuids);
+  const clearTimeoutFor = (uuid: string) => {
+    const entry = subsRef.current.get(uuid);
+    if (!entry) return;
+    clearTimeout(entry.timeoutId);
+  };
 
-    const added = uuids.filter((id) => !prevSet.has(id));
-    const removed = prev.filter((id) => !nextSet.has(id));
+  const scheduleOffline = (uuid: string) => {
+    clearTimeoutFor(uuid);
 
-    added.forEach((id) => {
-      wsManager.subscribeRaspberry(id, handleHeartbeat);
+    const timeoutId = window.setTimeout(() => {
+      setState((prev) => ({
+        ...prev,
+        [uuid]: {
+          ...prev[uuid],
+          isOnline: false,
+        },
+      }));
+    }, ONLINE_TIMEOUT_MS);
 
-      if (isDev) {
-        console.info(
-          `[MC ONLINE] Subscribed to microcontroller`,
-          id
-        );
-      }
-    });
-
-    removed.forEach((id) => {
-      wsManager.unsubscribeRaspberry(id, handleHeartbeat);
-
-      if (isDev) {
-        console.info(
-          `[MC ONLINE] Unsubscribed from microcontroller`,
-          id
-        );
-      }
-
-      setState((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-    });
-
-    subscribedRef.current = uuids;
-
-    if (isDev) {
-      console.info(
-        `[MC ONLINE] Active subscriptions:`,
-        uuids.length
-      );
+    const entry = subsRef.current.get(uuid);
+    if (entry) {
+      entry.timeoutId = timeoutId;
     }
-  }, [uuids, handleHeartbeat]);
+  };
 
-  /**
-   * Offline detection
-   */
+  // ============================================================
+  // WS handler factory
+  // ============================================================
+
+  const createHandler =
+    (uuid: string) =>
+    (payload: any) => {
+      const sentAt =
+        payload?.sent_at ??
+        payload?.data?.sent_at ??
+        new Date().toISOString();
+
+      setState((prev) => ({
+        ...prev,
+        [uuid]: {
+          isOnline: true,
+          lastSeen: sentAt,
+        },
+      }));
+
+      scheduleOffline(uuid);
+    };
+
+  // ============================================================
+  // DIFF EFFECT (subscribe / unsubscribe)
+  // ============================================================
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setState((prev) => {
-        const now = Date.now();
-        const next: OnlineStateMap = {};
+    const next = new Set(uuids);
 
-        Object.entries(prev).forEach(([uuid, value]) => {
-          next[uuid] = {
-            ...value,
-            online: now - value.lastSeen < ONLINE_TIMEOUT_MS,
-          };
+    // 1️⃣ UNSUBSCRIBE REMOVED
+    subsRef.current.forEach((entry, uuid) => {
+      if (!next.has(uuid)) {
+        clearTimeout(entry.timeoutId);
+        wsManager.unsubscribe(uuid, HEARTBEAT_EVENT, entry.handler);
+        subsRef.current.delete(uuid);
+
+        setState((prev) => {
+          const copy = { ...prev };
+          delete copy[uuid];
+          return copy;
         });
+      }
+    });
 
-        return next;
+    // 2️⃣ SUBSCRIBE NEW
+    uuids.forEach((uuid) => {
+      if (subsRef.current.has(uuid)) return;
+
+      const handler = createHandler(uuid);
+
+      wsManager.subscribe(uuid, HEARTBEAT_EVENT, handler);
+
+      const timeoutId = window.setTimeout(() => {
+        setState((prev) => ({
+          ...prev,
+          [uuid]: {
+            ...prev[uuid],
+            isOnline: false,
+          },
+        }));
+      }, ONLINE_TIMEOUT_MS);
+
+      subsRef.current.set(uuid, {
+        handler,
+        timeoutId,
       });
-    }, CHECK_INTERVAL_MS);
 
-    return () => clearInterval(interval);
-  }, []);
+      setState((prev) => ({
+        ...prev,
+        [uuid]: {
+          isOnline: false,
+          lastSeen: null,
+        },
+      }));
+    });
+  }, [uuids]);
 
-  /**
-   * Cleanup on unmount (leaving page)
-   */
+  // ============================================================
+  // Cleanup ONLY on unmount
+  // ============================================================
+
   useEffect(() => {
     return () => {
-      if (isDev && subscribedRef.current.length > 0) {
-        console.info(
-          `[MC ONLINE] Unsubscribing from all microcontrollers`,
-          subscribedRef.current
-        );
-      }
-
-      subscribedRef.current.forEach((id) => {
-        wsManager.unsubscribeRaspberry(id, handleHeartbeat);
+      subsRef.current.forEach((entry, uuid) => {
+        clearTimeout(entry.timeoutId);
+        wsManager.unsubscribe(uuid, HEARTBEAT_EVENT, entry.handler);
       });
 
-      subscribedRef.current = [];
+      subsRef.current.clear();
     };
-  }, [handleHeartbeat]);
+  }, []);
 
   return state;
 }

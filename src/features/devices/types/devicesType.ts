@@ -1,0 +1,23 @@
+export type DeviceMode = "MANUAL" | "AUTO";
+
+export type Device = {
+  id: number;
+  uuid: string;
+
+  name: string;
+  device_number: number;
+
+  rated_power_w?: number | null;
+
+  mode: DeviceMode;
+  manual_state?: boolean | null;
+  threshold_value?: number | null;
+
+  provider_id?: number | null;
+  microcontroller_id: number;
+
+  last_state_change_at?: string | null;
+
+  created_at: string;
+  updated_at: string;
+};

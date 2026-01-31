@@ -26,7 +26,7 @@ import { parseApiError, ParsedApiError } from "@/api/parseApiError";
 
 type Props = {
   open: boolean;
-  onClose: () => void;
+  onClose: (shouldReload?: boolean) => void;
 };
 
 const steps = [
@@ -189,8 +189,6 @@ export default function AddProviderWizardDialog({
 
   const handleCreateProvider = async (form: {
     name: string;
-    value_min: number;
-    value_max: number;
   }) => {
     if (!selectedVendor) return;
 
@@ -207,15 +205,13 @@ export default function AddProviderWizardDialog({
         vendor: selectedVendor.vendor,
 
         unit: selectedVendor.default_unit,
-        value_min: form.value_min,
-        value_max: form.value_max,
 
         wizard_session_id:
           wizardData?.context?.wizard_session_id,
       });
 
       notifySuccess(t("providers.success.create"));
-      onClose();
+      onClose(true);
     } catch (e: any) {
       const parsed = parseApiError(e);
       const message = translateErrorMessage(
@@ -253,7 +249,12 @@ export default function AddProviderWizardDialog({
    * ------------------------------------------------- */
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={() => onClose(false)}
+      maxWidth="md"
+      fullWidth
+    >
       <DialogTitle>
         {t("providers.actions.add")}
       </DialogTitle>
@@ -338,7 +339,7 @@ export default function AddProviderWizardDialog({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>
+        <Button onClick={() => onClose(false)}>
           {t("common.cancel")}
         </Button>
 

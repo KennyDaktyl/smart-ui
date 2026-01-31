@@ -12,6 +12,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailsPage } from "./pages/admin/AdminUserDetailsPage";
 import { AdminMicrocontrollersPage } from "./pages/admin/AdminMicrocontrollersPage";
 import AdminMicrocontrollerDetailsPage from "./pages/admin/AdminMicrocontrollerDetialsPage";
+import MicrocontrollersPage from "./pages/microcontollers/microcontrollersPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
@@ -106,7 +107,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/microcontrollers"
+            element={
+              <ProtectedRoute>
+                <MicrocontrollersPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={

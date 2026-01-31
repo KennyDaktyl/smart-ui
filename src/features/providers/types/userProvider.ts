@@ -15,6 +15,14 @@ export interface UserProvider {
   created_at: string;
 }
 
+export interface ProviderMeasurement {
+  id: number;
+  measured_at: string;
+  measured_value: number;
+  measured_unit: string | null;
+  metadata_payload: Record<string, any>;
+}
+
 export interface ProviderResponse {
   id: number;
   uuid: string;
@@ -31,11 +39,12 @@ export interface ProviderResponse {
   value_min?: number | null;
   value_max?: number | null;
 
-  last_value?: number | null;
-  last_measurement_at?: string | null;
-  config : Record<string, any>;
+  default_expected_interval_sec: number;
+
+  config: Record<string, any>;
   enabled: boolean;
 
   created_at: string;
   updated_at: string;
+  last_value?: ProviderMeasurement | null;
 }

@@ -14,10 +14,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
 import {
-  MicrocontrollerType,
-  MICROCONTROLLER_TYPE_VALUES,
-} from "@/features/microcontrollers/types/microcontrollerType";
-import {
   createMicrocontrollerSchema,
   editMicrocontrollerSchema,
   CreateMicrocontrollerFormSchema,
@@ -26,6 +22,7 @@ import {
 import { adminApi } from "@/api/adminApi";
 import { UserResponse } from "@/features/users/types/user";
 import { SENSOR_TYPE_VALUES } from "@/features/microcontrollers/types/sensorType";
+import { MICROCONTROLLER_TYPE_VALUES, MicrocontrollerType } from "@/features/microcontrollers/types/microcontroller";
 
 type FormValues = CreateMicrocontrollerFormSchema | EditMicrocontrollerFormSchema;
 

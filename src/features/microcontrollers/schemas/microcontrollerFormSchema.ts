@@ -1,12 +1,7 @@
 import { z } from "zod";
 import i18n from "@/i18n/config";
-import {
-  MICROCONTROLLER_TYPE_VALUES,
-} from "@/features/microcontrollers/types/microcontrollerType";
+import { MICROCONTROLLER_TYPE_VALUES } from "../types/microcontroller";
 
-/* =========================
-   CREATE
-========================= */
 export const createMicrocontrollerSchema = z.object({
   user_id: z
     .number()

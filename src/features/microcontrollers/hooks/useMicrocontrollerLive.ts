@@ -1,17 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
-import { HeartbeatPayload } from "@/shared/types/heartbeat";
 
-type LiveStatus = "pending" | "online" | "offline";
+// ============================================================
+// Config
+// ============================================================
 
-type LiveState = {
-  lastSeen: number | null;
+const HEARTBEAT_EVENT = "microcontroller_heartbeat";
+const ONLINE_TIMEOUT_MS = 15_000;
+
+// ============================================================
+// Types
+// ============================================================
+
+export type LiveStatus = "pending" | "online" | "offline";
+
+export type LiveState = {
+  lastSeen: string | null;
   status: LiveStatus;
 };
 
-const ONLINE_TIMEOUT_MS = 15_000;
-const CHECK_INTERVAL_MS = 5_000;
-const isDev = process.env.NODE_ENV === "development";
+type SubscriptionEntry = {
+  handler: (payload: any) => void;
+  timeoutId: number;
+};
+
+// ============================================================
+// Hook
+// ============================================================
 
 export function useMicrocontrollerLive(uuid?: string) {
   const [state, setState] = useState<LiveState>({
@@ -19,19 +34,40 @@ export function useMicrocontrollerLive(uuid?: string) {
     status: "pending",
   });
 
-  const lastSeenRef = useRef<number | null>(null);
+  const subRef = useRef<SubscriptionEntry | null>(null);
 
-  const handleHeartbeat = useCallback((hb: HeartbeatPayload) => {
-    lastSeenRef.current = Date.now();
+  // ============================================================
+  // Helpers
+  // ============================================================
 
-    setState({
-      lastSeen: lastSeenRef.current,
-      status: "online",
-    });
-  }, []);
+  const clearTimeoutSafe = () => {
+    if (subRef.current) {
+      clearTimeout(subRef.current.timeoutId);
+    }
+  };
+
+  const scheduleOffline = () => {
+    clearTimeoutSafe();
+
+    const timeoutId = window.setTimeout(() => {
+      setState((prev) => ({
+        ...prev,
+        status: "offline",
+      }));
+    }, ONLINE_TIMEOUT_MS);
+
+    if (subRef.current) {
+      subRef.current.timeoutId = timeoutId;
+    }
+  };
+
+  // ============================================================
+  // Effect
+  // ============================================================
 
   useEffect(() => {
     if (!uuid) {
+      clearTimeoutSafe();
       setState({
         lastSeen: null,
         status: "pending",
@@ -39,41 +75,38 @@ export function useMicrocontrollerLive(uuid?: string) {
       return;
     }
 
-    if (isDev) {
-      console.info("[MC LIVE] Subscribed to heartbeat", uuid);
-    }
+    const handler = (payload: any) => {
+      const sentAt =
+        payload?.sent_at ??
+        payload?.data?.sent_at ??
+        new Date().toISOString();
 
-    wsManager.subscribeRaspberry(uuid, handleHeartbeat);
+      setState({
+        lastSeen: sentAt,
+        status: "online",
+      });
 
-    const interval = setInterval(() => {
-      if (!lastSeenRef.current) {
+      scheduleOffline();
+    };
+
+    wsManager.subscribe(uuid, HEARTBEAT_EVENT, handler);
+
+    subRef.current = {
+      handler,
+      timeoutId: window.setTimeout(() => {
         setState((prev) => ({
           ...prev,
           status: "offline",
         }));
-        return;
-      }
-
-      const isOnline =
-        Date.now() - lastSeenRef.current < ONLINE_TIMEOUT_MS;
-
-      setState((prev) => ({
-        ...prev,
-        status: isOnline ? "online" : "offline",
-      }));
-    }, CHECK_INTERVAL_MS);
+      }, ONLINE_TIMEOUT_MS),
+    };
 
     return () => {
-      if (isDev) {
-        console.info("[MC LIVE] Unsubscribed from heartbeat", uuid);
-      }
-
-      wsManager.unsubscribeRaspberry(uuid, handleHeartbeat);
-      clearInterval(interval);
-
-      lastSeenRef.current = null;
+      clearTimeoutSafe();
+      wsManager.unsubscribe(uuid, HEARTBEAT_EVENT, handler);
+      subRef.current = null;
     };
-  }, [uuid, handleHeartbeat]);
+  }, [uuid]);
 
   return state;
 }

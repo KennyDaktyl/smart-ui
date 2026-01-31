@@ -1,5 +1,5 @@
-import { MicrocontrollerType } from "@/features/microcontrollers/types/microcontrollerType";
-import { MicrocontrollerProviderConfig } from "./microcontroller";
+//src/features/microcontrollers/types/microcontrollerPayload.ts
+import { MicrocontrollerProviderConfig, MicrocontrollerType } from "./microcontroller";
 import { DeviceMode } from "@/features/devices/enums/deviceMode";
 
 export type CreateMicrocontrollerPayload = {

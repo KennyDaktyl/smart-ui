@@ -5,17 +5,39 @@ import { useTranslation } from "react-i18next";
 
 import CenteredSpinner from "@/features/common/components/CenteredSpinner";
 import { useProviders } from "@/features/providers/hooks/useProviders";
-import ProvidersList from "@/features/providers/components/ProvidersList";
 import ProvidersEmptyState from "@/features/providers/components/ProvidersEmptyState";
 import AddProviderWizardDialog from "@/features/providers/components/AddProviderWizardDialog";
 import { useToast } from "@/context/ToastContext";
+import ProvidersList from "../../features/providers/components/ProvidersList";
+import { ProviderResponse } from "@/features/providers/types/userProvider";
 
 export default function ProvidersPage() {
   const { t } = useTranslation();
   const { data, loading, error, reload } = useProviders();
-  const { notifyError } = useToast();
+  const [providers, setProviders] = useState<ProviderResponse[]>([]);
 
+  const { notifyError } = useToast();
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  useEffect(() => {
+    setProviders((prev) => {
+      return data.map((p) => {
+        const local = prev.find((x) => x.uuid === p.uuid);
+        return local ? { ...p, enabled: local.enabled } : p;
+      });
+    });
+  }, [data]);
+
+  const handleProviderEnabledChange = useCallback(
+    (uuid: string, enabled: boolean) => {
+      setProviders((prev) =>
+        prev.map((p) =>
+          p.uuid === uuid ? { ...p, enabled } : p
+        )
+      );
+    },
+    []
+  );
 
   useEffect(() => {
     if (error) {
@@ -43,18 +65,12 @@ export default function ProvidersPage() {
 
   return (
     <Box p={3}>
-      {/* HEADER */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
+      <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h4">
           {t("providers.title")}
         </Typography>
 
-        {data.length > 0 && (
+        {providers.length > 0 && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -65,16 +81,15 @@ export default function ProvidersPage() {
         )}
       </Box>
 
-      {/* CONTENT */}
-      {data.length === 0 ? (
-        <ProvidersEmptyState
-          onAdd={() => setWizardOpen(true)}
-        />
+      {providers.length === 0 ? (
+        <ProvidersEmptyState onAdd={() => setWizardOpen(true)} />
       ) : (
-        <ProvidersList providers={data} />
+        <ProvidersList
+          providers={providers}
+          onProviderEnabledChange={handleProviderEnabledChange}
+        />
       )}
 
-      {/* ADD PROVIDER */}
       <AddProviderWizardDialog
         open={wizardOpen}
         onClose={handleWizardClose}

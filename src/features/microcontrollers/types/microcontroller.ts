@@ -1,5 +1,13 @@
+//src/features/microcontrollers/types/microcontroller.ts
+import { Device } from "@/features/devices/types/devicesType";
 import { UserRole } from "@/features/users/types/role";
-import { MicrocontrollerType } from "./microcontrollerType";
+
+export enum MicrocontrollerType {
+  RASPBERRY_PI_ZERO = "raspberry_pi_zero",
+  RASPBERRY_PI_4 = "raspberry_pi_4",
+}
+
+export const MICROCONTROLLER_TYPE_VALUES = Object.values(MicrocontrollerType);
 
 export type MicrocontrollerResponse = {
   id: number;
@@ -16,6 +24,8 @@ export type MicrocontrollerResponse = {
 
   type: MicrocontrollerType;
   max_devices: number;
+
+  devices: Device[]
 
   assigned_sensors: string[];
   config?: MicrocontrollerConfig;
@@ -37,4 +47,12 @@ export type MicrocontrollerConfig = {
 export type MicrocontrollerProviderConfig = {
   uuid?: string;
   external_id?: string;
+};
+
+export type MicrocontrollerWithLive = {
+  mc: MicrocontrollerResponse;
+  liveInitialized: boolean;
+  isOnline: boolean;
+  lastSeen: string | null;
+  live: any[];
 };

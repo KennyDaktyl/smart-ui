@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -22,13 +22,13 @@ import { Pagination } from "@/features/paginations/Pagination";
 import { useDebouncedValue } from "@/components/hooks/useDebouncedValue";
 import { SearchInput } from "@/components/forms/SearchInput";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
-import { useMicrocontrollersOnlineStatus } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
 import { ActionButton } from "@/components/ActionButton";
 import { useAdminMicrocontrollersList } from "@/features/admin/hooks/useAdminMicrocontrollersList";
 import { useMicrocontrollerDeletion } from "@/features/admin/hooks/useMicrocontrollerDeletion";
 import { PageShell } from "@/features/admin/components/layout/PageShell";
 import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
 import { MicrocontrollerFormModal } from "@/features/admin/components/MicrocontrollerFormModal";
+import { useMicrocontrollersLive } from "@/features/microcontrollers/hooks/useMicrocontrollerListLive";
 
 export function AdminMicrocontrollersPage() {
   const { t } = useTranslation();
@@ -50,7 +50,8 @@ export function AdminMicrocontrollersPage() {
   const { remove } = useMicrocontrollerDeletion();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [selected, setSelected] = useState<MicrocontrollerResponse | null>(null);
+  const [selected, setSelected] =
+    useState<MicrocontrollerResponse | null>(null);
 
   const [toast, setToast] = useState<{
     open: boolean;
@@ -62,8 +63,12 @@ export function AdminMicrocontrollersPage() {
     severity: "success",
   });
 
-  const uuids = items.map((mc) => mc.uuid);
-  const onlineState = useMicrocontrollersOnlineStatus(uuids);
+  const uuids = useMemo(
+    () => items.map((mc) => mc.uuid),
+    [items]
+  );
+
+  const live = useMicrocontrollersLive(uuids);
 
   const handleDelete = async (microcontrollerId: number) => {
     try {
@@ -101,7 +106,6 @@ export function AdminMicrocontrollersPage() {
             endActions={
               <Button
                 variant="contained"
-                color="primary"
                 onClick={() => {
                   setSelected(null);
                   setModalOpen(true);
@@ -151,95 +155,108 @@ export function AdminMicrocontrollersPage() {
               </TableHead>
 
               <TableBody>
-                {items.map((mc) => (
-                  <TableRow key={mc.uuid} hover>
-                    <TableCell>
-                      <Typography fontWeight={600} noWrap>
-                        {mc.name}
-                      </Typography>
-                    </TableCell>
+                {items.map((mc) => {
+                  const state = live[mc.uuid];
 
-                    <TableCell>
-                      <Typography variant="body2" noWrap>
-                        {mc.user?.email ?? "-"}
-                      </Typography>
-                    </TableCell>
+                  return (
+                    <TableRow key={mc.uuid} hover>
+                      <TableCell>
+                        <Typography fontWeight={600} noWrap>
+                          {mc.name}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell align="center">
-                      <Chip
-                        label={t(`microcontroller.types.${mc.type}`)}
-                      />
-                    </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" noWrap>
+                          {mc.user?.email ?? "-"}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell align="center">
-                      {!onlineState[mc.uuid] && (
-                        <CircularProgress size={16} />
-                      )}
+                      <TableCell align="center">
+                        <Chip
+                          label={t(
+                            `microcontroller.types.${mc.type}`
+                          )}
+                        />
+                      </TableCell>
 
-                      {onlineState[mc.uuid]?.online && (
-                        <Chip label="OK" color="success" />
-                      )}
-
-                      {onlineState[mc.uuid] &&
-                        onlineState[mc.uuid].online === false && (
+                      {/* ===== ONLINE STATUS ===== */}
+                      <TableCell align="center">
+                        {!state || state.loading ? (
+                          <CircularProgress size={16} />
+                        ) : state.isOnline ? (
+                          <Chip
+                            label="OK"
+                            color="success"
+                            size="small"
+                          />
+                        ) : (
                           <Chip
                             label="NO"
                             color="error"
+                            size="small"
                             variant="outlined"
                           />
                         )}
-                    </TableCell>
+                      </TableCell>
 
-                    <TableCell align="center">
-                      <Typography variant="caption">
-                        {new Date(mc.created_at).toLocaleString()}
-                      </Typography>
-                    </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="caption">
+                          {new Date(
+                            mc.created_at
+                          ).toLocaleString()}
+                        </Typography>
+                      </TableCell>
 
-                    <TableCell align="right">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="flex-end"
-                      >
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() =>
-                            navigate(
-                              `/admin/microcontrollers/${mc.id}`
-                            )
-                          }
+                      <TableCell align="right">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="flex-end"
                         >
-                          {t("common.details")}
-                        </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() =>
+                              navigate(
+                                `/admin/microcontrollers/${mc.id}`
+                              )
+                            }
+                          >
+                            {t("common.details")}
+                          </Button>
 
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => {
-                            setSelected(mc);
-                            setModalOpen(true);
-                          }}
-                        >
-                          {t("common.edit")}
-                        </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              setSelected(mc);
+                              setModalOpen(true);
+                            }}
+                          >
+                            {t("common.edit")}
+                          </Button>
 
-                        <ActionButton
-                          label={t("common.delete")}
-                          color="error"
-                          variant="text"
-                          confirmRequired
-                          confirmTitle={t("common.confirmDelete")}
-                          confirmMessage={t(
-                            "microcontroller.confirmDelete"
-                          )}
-                          onConfirm={() => handleDelete(mc.id)}
-                        />
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <ActionButton
+                            label={t("common.delete")}
+                            color="error"
+                            variant="text"
+                            confirmRequired
+                            confirmTitle={t(
+                              "common.confirmDelete"
+                            )}
+                            confirmMessage={t(
+                              "microcontroller.confirmDelete"
+                            )}
+                            onConfirm={() =>
+                              handleDelete(mc.id)
+                            }
+                          />
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </Box>
@@ -249,7 +266,9 @@ export function AdminMicrocontrollersPage() {
             limit={limit}
             count={items.length}
             total={total}
-            onPrev={() => setOffset((o) => Math.max(0, o - limit))}
+            onPrev={() =>
+              setOffset((o) => Math.max(0, o - limit))
+            }
             onNext={() => setOffset((o) => o + limit)}
           />
 
@@ -265,14 +284,17 @@ export function AdminMicrocontrollersPage() {
         </Stack>
       </PageShell>
 
-      {/* TOAST */}
+      {/* ===== TOAST ===== */}
       <Snackbar
         open={toast.open}
         autoHideDuration={3000}
         onClose={() =>
           setToast((t) => ({ ...t, open: false }))
         }
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
       >
         <Alert
           severity={toast.severity}

@@ -1,27 +1,40 @@
-import { Box } from "@mui/material";
-import { memo } from "react";
-import UserProviderCard from "./UserProviderCard";
-import { ProviderResponse } from "../types/userProvider";
+import UserProviderCard from "@/features/providers/components/UserProviderCard";
+import { useProvidersLive } from "@/features/providers/hooks/useProvidersLive";
+import { ProviderResponse } from "@/features/providers/types/userProvider";
+import { Stack } from "@mui/material";
+import { useMemo } from "react";
 
 type Props = {
   providers: ProviderResponse[];
+  onProviderEnabledChange: (uuid: string, enabled: boolean) => void;
 };
 
-function ProvidersList({ providers }: Props) {
+export default function ProvidersList({ 
+  providers,
+  onProviderEnabledChange
+}: Props) {
+
+  const enabledProviders = useMemo(
+    () => providers.filter((p) => p.enabled),
+    [providers]
+  );
+  
+  const liveState = useProvidersLive(enabledProviders);
+
   return (
-    <Box
-      display="grid"
-      gridTemplateColumns="repeat(auto-fill, minmax(380px, 1fr))"
-      gap={2}
-    >
+    <Stack direction="row" spacing={2}>
       {providers.map((provider) => (
         <UserProviderCard
           key={provider.uuid}
           provider={provider}
+          live={
+            provider.enabled
+              ? liveState[provider.uuid]
+              : undefined
+          }
+          onEnabledChange={onProviderEnabledChange}
         />
       ))}
-    </Box>
+    </Stack>
   );
 }
-
-export default memo(ProvidersList);
