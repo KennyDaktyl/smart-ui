@@ -1,4 +1,4 @@
-export type DeviceMode = "MANUAL" | "AUTO";
+import type { DeviceMode } from "@/features/devices/enums/deviceMode";
 
 export type Device = {
   id: number;

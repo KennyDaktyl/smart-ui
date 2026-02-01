@@ -18,9 +18,13 @@ export interface UserProvider {
 export interface ProviderMeasurement {
   id: number;
   measured_at: string;
-  measured_value: number;
+  measured_value: number | null;
   measured_unit: string | null;
   metadata_payload: Record<string, any>;
+}
+
+export interface ProviderMeasurementSeries {
+  days: Record<string, ProviderMeasurement[]>;
 }
 
 export interface ProviderResponse {

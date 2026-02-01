@@ -28,6 +28,7 @@ const resources = {
         actions: "Akcje",
         send: "Wyślij",
         none: "Brak",
+        notAvailable: "Brak danych",
         next: "Dalej",
         selectPlaceholder: "Wybierz…",
         configuration: "Konfiguracja",
@@ -316,7 +317,8 @@ const resources = {
         "title": "Providery",
         "actions": {
           "add": "Dodaj providera",
-          "create": "Utwórz providera"
+          "create": "Utwórz providera",
+          "telemetry": "Telemetria"
         },
         "wizard": {
           "steps": {
@@ -355,6 +357,7 @@ const resources = {
           "kind": "Rodzaj",
           "unit": "Jednostka",
           "range": "Zakres pracy",
+          "rated_power_w": "Moc znamionowa",
           "lastValue": "Ostatnia wartość",
           "lastMeasurement": "Ostatni pomiar:",
           "measurementFresh": "Dane aktualne",
@@ -368,6 +371,16 @@ const resources = {
           "noData": "Brak danych na żywo",
           "streaming": "Dane napływają w czasie rzeczywistym"
         },
+        "telemetry": {
+          "title": "Telemetria providera",
+          "rangeStart": "Data od",
+          "rangeEnd": "Data do",
+          "loading": "Ładowanie telemetrii...",
+          "error": "Nie udało się pobrać telemetrii.",
+          "noData": "Brak danych telemetrycznych w wybranym zakresie.",
+          "noDayData": "Brak pomiarów w tym dniu.",
+          "zoom": "Powiększenie"
+        },
         "data_not_fresh": "Dane nie są aktualne.",
         "empty": {
           "title": "Brak skonfigurowanych providerów",
@@ -377,6 +390,41 @@ const resources = {
       },
       microcontrollers: {
         title: "Mikrokontrolery użytkownika"
+      },
+      devices: {
+        ratedPower: "Moc znamionowa",
+        sectionTitle: "Lista urządzeń",
+        details: {
+          title: "Szczegóły urządzenia",
+          subtitle: "ID: {{id}}",
+          tabs: {
+            details: "Szczegóły",
+            telemetry: "Telemetria",
+          },
+          fields: {
+            slot: "Slot",
+            power: "Moc",
+            threshold: "Próg",
+            mode: "Tryb",
+            state: "Stan",
+            status: "Status",
+            microcontrollerId: "ID mikrokontrolera",
+            lastUpdate: "Ostatnia aktualizacja",
+          },
+          modes: {
+            manual: "Manual",
+            auto: "Auto",
+            schedule: "Harmonogram",
+          },
+          stateOn: "Włączone",
+          stateOff: "Wyłączone",
+          rangeStart: "Data od",
+          rangeEnd: "Data do",
+          noEvents: "Brak zdarzeń w wybranym zakresie.",
+          loadError: "Nie udało się pobrać urządzenia.",
+          eventsError: "Nie udało się pobrać telemetrii.",
+          missing: "Nie znaleziono urządzenia.",
+        },
       },
       microcontroller: {
         uuid: "UUID",
@@ -400,6 +448,7 @@ const resources = {
           softwareVersion: "Wersja oprogramowania",
           type: "Typ",
           sensors: "Czujniki",
+          noSensors: "Brak przypisanych czujników",
           maxDevices: "Maks. urządzeń",
           enabled: "Aktywny",
         },
@@ -506,6 +555,7 @@ const resources = {
         actions: "Actions",
         send: "Send",
         none: "None",
+        notAvailable: "Not available",
         next: "Next",
         selectPlaceholder: "Select…",
         confirmDelete: "Confirm deletion",
@@ -796,7 +846,8 @@ const resources = {
         "title": "Providers",
         "actions": {
           "add": "Add provider",
-          "create": "Create provider"
+          "create": "Create provider",
+          "telemetry": "Telemetry"
         },
         "wizard": {
           "steps": {
@@ -834,6 +885,7 @@ const resources = {
           "type": "Type",
           "kind": "Kind",
           "unit": "Unit",
+          "rated_power_w": "Rated power",
           "range": "Operating range",
           "lastValue": "Last value",
           "lastMeasurement": "Last measurement:"
@@ -845,6 +897,16 @@ const resources = {
           "noData": "No live data available",
           "streaming": "Data is streaming in real time"
         },
+        "telemetry": {
+          "title": "Provider telemetry",
+          "rangeStart": "Start date",
+          "rangeEnd": "End date",
+          "loading": "Loading telemetry...",
+          "error": "Failed to load telemetry.",
+          "noData": "No telemetry data in the selected range.",
+          "noDayData": "No measurements for this day.",
+          "zoom": "Zoom"
+        },
         "data_not_fresh": "Live data is not fresh.",
         "empty": {
           "title": "No configured providers",
@@ -854,6 +916,41 @@ const resources = {
       },
       microcontrollers: {
         title: "User microcontrollers"
+      },
+      devices: {
+        ratedPower: "Rated power",
+        sectionTitle: "Device list",
+        details: {
+          title: "Device details",
+          subtitle: "ID: {{id}}",
+          tabs: {
+            details: "Details",
+            telemetry: "Telemetry",
+          },
+          fields: {
+            slot: "Slot",
+            power: "Power",
+            threshold: "Threshold",
+            mode: "Mode",
+            state: "State",
+            status: "Status",
+            microcontrollerId: "Microcontroller ID",
+            lastUpdate: "Last update",
+          },
+          modes: {
+            manual: "Manual",
+            auto: "Auto",
+            schedule: "Schedule",
+          },
+          stateOn: "On",
+          stateOff: "Off",
+          rangeStart: "Start date",
+          rangeEnd: "End date",
+          noEvents: "No events in the selected range.",
+          loadError: "Failed to load device.",
+          eventsError: "Failed to load telemetry.",
+          missing: "Device not found.",
+        },
       },
       microcontroller: {
         uuid: "UUID",
@@ -877,6 +974,7 @@ const resources = {
           softwareVersion: "Software version",
           type: "Type",
           sensors: "Sensors",
+          noSensors: "No sensors configurded",
           maxDevices: "Max. devices",
           enabled: "Enabled",
         },

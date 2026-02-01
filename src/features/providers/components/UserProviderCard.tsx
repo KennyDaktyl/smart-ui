@@ -5,9 +5,12 @@ import {
   Switch,
   Divider,
   Box,
+  Button,
 } from "@mui/material";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { ProviderResponse } from "../types/userProvider";
 import ProviderConfig from "./provider-config/ProviderConfig";
 import LivePowerStatus from "./LivePowerStatus";
@@ -24,6 +27,7 @@ type Props = {
 
 export default function UserProviderCard({ provider, live, onEnabledChange }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const { loading, toggle } = useToggleProviderEnabled(
     provider.uuid,
@@ -59,11 +63,26 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
           </Typography>
         </Box>
 
-         <Switch
-          checked={provider.enabled}
-          disabled={loading}
-          onChange={(_, checked) => toggle(checked)}
-        />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<ShowChartIcon />}
+            onClick={() =>
+              navigate(`/providers/${provider.uuid}/telemetry`, {
+                state: { provider },
+              })
+            }
+            sx={{ textTransform: "none" }}
+          >
+            {t("providers.actions.telemetry")}
+          </Button>
+          <Switch
+            checked={provider.enabled}
+            disabled={loading}
+            onChange={(_, checked) => toggle(checked)}
+          />
+        </Stack>
       </Box>
 
       <Divider />

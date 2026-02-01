@@ -8,6 +8,8 @@ import AppShell from "./layout/AppShell";
 import CenteredSpinner from "./features/common/components/CenteredSpinner";
 import { AdminShell } from "./features/admin/components/layout/AdminShell";
 import ProvidersPage from "./pages/providers/ProvidersPage";
+import ProviderTelemetryPage from "./pages/providers/ProviderTelemetryPage";
+import DeviceDetailsPage from "./pages/devices/DeviceDetailsPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailsPage } from "./pages/admin/AdminUserDetailsPage";
 import { AdminMicrocontrollersPage } from "./pages/admin/AdminMicrocontrollersPage";
@@ -108,10 +110,26 @@ export default function App() {
             }
           />
           <Route
+            path="/providers/:providerUuid/telemetry"
+            element={
+              <ProtectedRoute>
+                <ProviderTelemetryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/microcontrollers"
             element={
               <ProtectedRoute>
                 <MicrocontrollersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/devices/:deviceId"
+            element={
+              <ProtectedRoute>
+                <DeviceDetailsPage />
               </ProtectedRoute>
             }
           />

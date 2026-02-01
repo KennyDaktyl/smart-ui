@@ -1,5 +1,6 @@
 //src/features/microcontrollers/types/microcontroller.ts
 import { Device } from "@/features/devices/types/devicesType";
+import { ProviderResponse } from "@/features/providers/types/userProvider";
 import { UserRole } from "@/features/users/types/role";
 
 export enum MicrocontrollerType {
@@ -12,6 +13,7 @@ export const MICROCONTROLLER_TYPE_VALUES = Object.values(MicrocontrollerType);
 export type MicrocontrollerResponse = {
   id: number;
   uuid: string;
+  user_id?: number;
 
   user?: {
     id: number;
@@ -28,6 +30,9 @@ export type MicrocontrollerResponse = {
   devices: Device[]
 
   assigned_sensors: string[];
+  available_api_providers?: ProviderResponse[];
+  power_provider_id?: number | null;
+  power_provider?: ProviderResponse | null;
   config?: MicrocontrollerConfig;
   enabled: boolean;
 

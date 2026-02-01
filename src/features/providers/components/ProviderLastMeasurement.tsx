@@ -23,12 +23,12 @@ export default function ProviderLastMeasurement({
   const isFresh =
     thresholdMs == null ? true : elapsedMs <= thresholdMs;
 
-  const valueParts = [
-    measurement.measured_value.toString(),
-    measurement.measured_unit ?? unit,
-  ].filter(Boolean);
-
-  const valueLabel = valueParts.join(" ");
+  const valueLabel =
+    measurement.measured_value == null
+      ? t("common.none")
+      : [measurement.measured_value.toString(), measurement.measured_unit ?? unit]
+          .filter(Boolean)
+          .join(" ");
   const formattedTime = Number.isNaN(measuredAt.getTime())
     ? t("providers.card.unknownTime")
     : measuredAt.toLocaleString();

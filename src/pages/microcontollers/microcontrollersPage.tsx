@@ -6,15 +6,12 @@ import {
   Alert,
   Stack,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
 import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
 import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
-import { DeviceList } from "@/features/devices/components/DeviceList";
-import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
 export default function MicrocontrollersPage() {
   const { token } = useAuth();
@@ -64,56 +61,11 @@ export default function MicrocontrollersPage() {
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Grid container spacing={3}>
+      <Stack spacing={3}>
         {items.map((item) => (
-          <Grid
-            key={item.mc.uuid}
-            size={{ xs: 12, md: 6, lg: 4 }}
-          >
-            <MicrocontrollerLiveStatus uuid={item.mc.uuid}>
-              {(live) => {
-                const isOnline = live.status === "online";
-                const liveInitialized = live.status !== "pending";
-
-                return (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                    }}
-                  >
-                    <MicrocontrollerCard
-                      microcontroller={item.mc}
-                      isOnline={isOnline}
-                      lastSeen={live.lastSeen}
-                      liveInitialized={liveInitialized}
-                      liveState={live}
-                    />
-
-                    <Box>
-                      <Stack mb={1}>
-                        <Typography variant="subtitle1">
-                          {t("devices.sectionTitle", {
-                            name: item.mc.name,
-                          })}
-                        </Typography>
-                      </Stack>
-
-                      <DeviceList
-                        devices={item.mc.devices}
-                        liveInitialized={liveInitialized}
-                        isOnline={isOnline}
-                        microcontrollerUuid={item.mc.uuid}
-                      />
-                    </Box>
-                  </Box>
-                );
-              }}
-            </MicrocontrollerLiveStatus>
-          </Grid>
+          <MicrocontrollerCard key={item.mc.uuid} microcontroller={item.mc} layout="split" />
         ))}
-      </Grid>
+      </Stack>
     </Box>
   );
 }
