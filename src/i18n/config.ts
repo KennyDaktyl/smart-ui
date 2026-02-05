@@ -25,10 +25,12 @@ const resources = {
         edit: "Edytuj",
         delete: "Usuń",
         search: "Szukaj",
+        status: "Status",
         actions: "Akcje",
         send: "Wyślij",
         none: "Brak",
         notAvailable: "Brak danych",
+        loading: "Ładowanie…",
         next: "Dalej",
         selectPlaceholder: "Wybierz…",
         configuration: "Konfiguracja",
@@ -356,7 +358,7 @@ const resources = {
           "type": "Typ",
           "kind": "Rodzaj",
           "unit": "Jednostka",
-          "range": "Zakres pracy",
+          "range": "Próg automatyki",
           "rated_power_w": "Moc znamionowa",
           "lastValue": "Ostatnia wartość",
           "lastMeasurement": "Ostatni pomiar:",
@@ -379,7 +381,12 @@ const resources = {
           "error": "Nie udało się pobrać telemetrii.",
           "noData": "Brak danych telemetrycznych w wybranym zakresie.",
           "noDayData": "Brak pomiarów w tym dniu.",
-          "zoom": "Powiększenie"
+          "zoom": "Powiększenie",
+          "yMin": "Y min",
+          "yMax": "Y max",
+          "min": "Min:",
+          "max": "Max:",
+          "timezone": "Czas lokalny"
         },
         "data_not_fresh": "Dane nie są aktualne.",
         "empty": {
@@ -394,6 +401,9 @@ const resources = {
       devices: {
         ratedPower: "Moc znamionowa",
         sectionTitle: "Lista urządzeń",
+        form: {
+          gpio: "GPIO",
+        },
         details: {
           title: "Szczegóły urządzenia",
           subtitle: "ID: {{id}}",
@@ -421,6 +431,15 @@ const resources = {
           rangeStart: "Data od",
           rangeEnd: "Data do",
           noEvents: "Brak zdarzeń w wybranym zakresie.",
+          noEventsDay: "Brak zdarzeń w tym dniu (oś czasu pokazuje 24h).",
+          legend: "Legenda:",
+          zoom: "Powiększenie",
+          eventTypes: {
+            autoTrigger: "Auto trigger",
+            heartbeatFailure: "Heartbeat failure",
+            powerMissing: "Power missing",
+            manual: "Manual"
+          },
           loadError: "Nie udało się pobrać urządzenia.",
           eventsError: "Nie udało się pobrać telemetrii.",
           missing: "Nie znaleziono urządzenia.",
@@ -439,6 +458,7 @@ const resources = {
         deleteSuccess: "Mikrokontroler został usunięty.",
         deleteError: "Nie udało się usunąć mikrokontrolera.",
         confirmDelete: "Czy na pewno chcesz usunąć ten mikrokontroler?",
+        offlineWarning: "Akcja dozwolona tylko gdy mikrokontroler jest On-line",
         form: {
           addTitle: "Dodaj mikrokontroler",
           editTitle: "Edytuj mikrokontroler",
@@ -552,10 +572,12 @@ const resources = {
         edit: "Edit",
         delete: "Delete",
         search: "Search",
+        status: "Status",
         actions: "Actions",
         send: "Send",
         none: "None",
         notAvailable: "Not available",
+        loading: "Loading…",
         next: "Next",
         selectPlaceholder: "Select…",
         confirmDelete: "Confirm deletion",
@@ -886,7 +908,7 @@ const resources = {
           "kind": "Kind",
           "unit": "Unit",
           "rated_power_w": "Rated power",
-          "range": "Operating range",
+          "range": "Auto threshold",
           "lastValue": "Last value",
           "lastMeasurement": "Last measurement:"
         },
@@ -905,7 +927,12 @@ const resources = {
           "error": "Failed to load telemetry.",
           "noData": "No telemetry data in the selected range.",
           "noDayData": "No measurements for this day.",
-          "zoom": "Zoom"
+          "zoom": "Zoom",
+          "yMin": "Y min",
+          "yMax": "Y max",
+          "min": "Min:",
+          "max": "Max:",
+          "timezone": "Local time"
         },
         "data_not_fresh": "Live data is not fresh.",
         "empty": {
@@ -920,6 +947,9 @@ const resources = {
       devices: {
         ratedPower: "Rated power",
         sectionTitle: "Device list",
+        form: {
+          gpio: "GPIO",
+        },
         details: {
           title: "Device details",
           subtitle: "ID: {{id}}",
@@ -947,6 +977,15 @@ const resources = {
           rangeStart: "Start date",
           rangeEnd: "End date",
           noEvents: "No events in the selected range.",
+          noEventsDay: "No events this day (timeline still shows 24h scale).",
+          legend: "Legend:",
+          zoom: "Zoom",
+          eventTypes: {
+            autoTrigger: "Auto trigger",
+            heartbeatFailure: "Heartbeat failure",
+            powerMissing: "Power missing",
+            manual: "Manual"
+          },
           loadError: "Failed to load device.",
           eventsError: "Failed to load telemetry.",
           missing: "Device not found.",
@@ -965,6 +1004,7 @@ const resources = {
         deleteSuccess: "Microcontroller has been deleted.",
         deleteError: "Failed to delete microcontroller.",
         confirmDelete: "Are you sure you want to delete this microcontroller?",
+        offlineWarning: "Action only when microcontroller is online",
         form: {
           addTitle: "Add microcontroller",
           editTitle: "Edit microcontroller",

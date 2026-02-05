@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 
 import { adminApi } from "@/api/adminApi";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
-import { MicrocontrollerDetails } from "@/features/microcontrollers/components/MicrocontrollerDetails";
+import { MicrocontrollerDetails } from "@/features/microcontrollers/components/admin/MicrocontrollerDetails";
 import { AdminMicrocontrollerFormModal } from "@/features/microcontrollers/components/admin/AdminMicrocontrollerFormModal";
 import { MicrocontrollerActionsTab } from "@/features/admin/tabs/MicrocontrollerActionsTab";
 import { MicrocontrollerConfigurationTab } from "@/features/admin/tabs/MicrocontrollerConfigurationTab";

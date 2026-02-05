@@ -19,7 +19,6 @@ import { StatusBadge } from "@/features/common/components/atoms/StatusBadge";
 
 type Props = {
   device: Device;
-  isOnline?: boolean;
   liveState?: {
     isOn: boolean;
     mode?: string | null;
@@ -44,21 +43,24 @@ export function DeviceCard({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  /**
+   * Mode resolution
+   */
   const mode = liveState?.mode ?? device.mode;
   const isManual = mode === "MANUAL";
-  const isAuto = mode === "AUTO"
+  const isAuto = mode === "AUTO";
 
   /**
-   * Resolve current ON/OFF state
+   * Single source of truth for ON/OFF
+   * - MANUAL → backend response (device.manual_state)
+   * - AUTO   → live state (WS / NATS)
    */
   const isOn: boolean | undefined = isManual
     ? device.manual_state ?? undefined
     : liveState?.isOn;
 
   /**
-   * Switch behavior:
-   * - MANUAL: full control
-   * - AUTO: can enable, cannot disable
+   * Status badge
    */
   const statusLabel =
     isOn == null
@@ -70,13 +72,20 @@ export function DeviceCard({
   const statusType =
     isOn == null ? "pending" : isOn ? "online" : "offline";
 
-  const lastStateLabel = device.last_state_change_at
-    ? new Date(device.last_state_change_at).toLocaleString()
-    : t("common.none");
+  /**
+   * Switch rules:
+   * - MANUAL: full control
+   * - AUTO: can enable, cannot disable
+   */
+  const switchDisabled = toggleDisabled;
 
   const handleToggle = (_: unknown, next: boolean) => {
     onToggle?.(device, next);
   };
+
+  const lastStateLabel = device.last_state_change_at
+    ? new Date(device.last_state_change_at).toLocaleString()
+    : t("common.none");
 
   return (
     <CardShell
@@ -94,16 +103,25 @@ export function DeviceCard({
           >
             <InfoOutlinedIcon fontSize="small" />
           </IconButton>
+
           <IconButton size="small" onClick={() => onEdit?.(device)}>
             <EditIcon fontSize="small" />
           </IconButton>
+
           <IconButton size="small" onClick={() => onDelete?.(device)}>
             <DeleteIcon fontSize="small" color="error" />
           </IconButton>
         </Stack>
       }
+      sx={{
+        width: "100%",
+        minHeight: 420,
+        display: "flex",
+        flexDirection: "column",
+        overflowX: "hidden",
+      }}
     >
-      <Stack spacing={1.5}>
+      <Stack spacing={2.5} sx={{ flex: 1, justifyContent: "space-between" }}>
         {/* MODE */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="text.secondary">
@@ -112,7 +130,7 @@ export function DeviceCard({
           <Chip size="small" label={mode} />
         </Box>
 
-        {/* SWITCH – always visible */}
+        {/* SWITCH */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="text.secondary">
             {t("common.enabled")}
@@ -120,22 +138,36 @@ export function DeviceCard({
 
           <Switch
             checked={Boolean(isOn)}
+            disabled={switchDisabled}
             onChange={handleToggle}
           />
         </Box>
 
-        {/* STATUS (only informational in AUTO) */}
+        {/* STATUS (AUTO) */}
         {isAuto && (
-          <Box display="flex" justifyContent="space-between">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ gap: 1, flexWrap: "wrap" }}
+          >
             <Typography variant="body2" color="text.secondary">
               {t("common.status")}
             </Typography>
-            <StatusBadge status={statusType} label={statusLabel} />
+
+            <Box sx={{ minWidth: 96, display: "flex", justifyContent: "flex-end" }}>
+              <StatusBadge status={statusType} label={statusLabel} />
+            </Box>
           </Box>
         )}
 
         {/* AUTO DETAILS */}
-        <Box display="flex" justifyContent="space-between">
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ gap: 1, flexWrap: "wrap" }}
+        >
           <Typography variant="body2" color="text.secondary">
             {t("providers.card.range")}
           </Typography>
@@ -145,7 +177,12 @@ export function DeviceCard({
         </Box>
 
         {device.rated_power_w != null && (
-          <Box display="flex" justifyContent="space-between">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ gap: 1, flexWrap: "wrap" }}
+          >
             <Typography variant="body2" color="text.secondary">
               {t("providers.card.rated_power_w")}
             </Typography>
@@ -156,7 +193,12 @@ export function DeviceCard({
         )}
 
         {/* UPDATED AT */}
-        <Box display="flex" justifyContent="space-between">
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ gap: 1, flexWrap: "wrap" }}
+        >
           <Typography variant="caption" color="text.secondary">
             {t("providers.live.updatedAt")}
           </Typography>

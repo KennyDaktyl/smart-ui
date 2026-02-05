@@ -14,8 +14,8 @@ export default function ContentContainer({ children, sx }: ContentContainerProps
         sx={{
           maxWidth: 1320,
           mx: "auto",
-          pt: { xs: 4, sm: 5, md: 4 },
-          px: { xs: 2, sm: 3, md: 4 },
+          pt: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 1, sm: 2, md: 4 },
         }}
       >
         {children}

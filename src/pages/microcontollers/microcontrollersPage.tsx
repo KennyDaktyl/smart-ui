@@ -12,19 +12,20 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
 import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
 import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
+import { flexDirection } from "@mui/system";
 
 export default function MicrocontrollersPage() {
   const { token } = useAuth();
   const { t } = useTranslation();
 
   const [items, setItems] = useState<MicrocontrollerWithLive[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
 
-    (async () => {
+    const fetchMicrocontrollers = async () => {
       try {
         const res = await microcontrollersApi.getUserMicrocontrollers();
 
@@ -37,35 +38,57 @@ export default function MicrocontrollersPage() {
         }));
 
         setItems(mapped);
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch microcontrollers", err);
         setError(t("microcontrollers.fetchError"));
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    fetchMicrocontrollers();
   }, [token, t]);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" height="80vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box p={{ xs: 1.5, md: 3 }}>
+    <Box
+      sx={{
+        px: { xs: 0, sm: 2, md: 2 },
+        py: { xs: 1, sm: 2, md: 2 },
+        maxWidth: { xs: "100%", md: 1320 },
+        mx: "auto",
+        minHeight: "80vh",
+      }}
+    >
       <Typography variant="h4" mb={3}>
         {t("microcontrollers.title")}
       </Typography>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-      <Stack spacing={3}>
-        {items.map((item) => (
-          <MicrocontrollerCard key={item.mc.uuid} microcontroller={item.mc} layout="split" />
-        ))}
-      </Stack>
+      {loading ? (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="60vh"
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Stack spacing={{ xs: 3, md: 4 }}>
+          {items.map((item) => (
+            <MicrocontrollerCard
+              key={item.mc.uuid}
+              microcontroller={item.mc}
+              layout="split"
+            />
+          ))}
+        </Stack>
+      )}
     </Box>
   );
 }

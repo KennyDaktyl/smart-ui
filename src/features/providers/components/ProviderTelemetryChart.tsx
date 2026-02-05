@@ -68,7 +68,7 @@ export function ProviderTelemetryChart({
   unit,
   noDataLabel,
 }: ProviderTelemetryChartProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
   const [zoom, setZoom] = useState(1);
 
@@ -140,7 +140,10 @@ export function ProviderTelemetryChart({
     <Box sx={{ borderRadius: 2, border: "1px solid rgba(15,139,111,0.18)", p: 2 }}>
       <Stack direction="row" justifyContent="space-between" mb={1}>
         <Typography fontWeight={700}  color="text.secondary">{resolvedDayLabel}</Typography>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="caption" color="text.secondary">
+            {t("providers.telemetry.zoom")}
+          </Typography>
           <IconButton onClick={() => setZoom((z) => Math.max(z - 1, MIN_ZOOM))}>
             <ZoomOutIcon />
           </IconButton>
@@ -187,7 +190,7 @@ export function ProviderTelemetryChart({
               title={
                 <Stack spacing={0.25}>
                   <Typography variant="caption" fontWeight={700}>
-                    {p.timeLabel} (Warsaw)
+                    {p.timeLabel} ({t("providers.telemetry.timezone")})
                   </Typography>
                   <Typography variant="caption">
                     {unit ? `${p.value} ${unit}` : p.value}

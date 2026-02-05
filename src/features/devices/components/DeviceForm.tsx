@@ -243,14 +243,14 @@ export function DeviceForm({
                 value={mode}
                 onChange={(event) => setMode(event.target.value as DeviceMode)}
               >
-                <MenuItem value="AUTO">AUTO</MenuItem>
-                <MenuItem value="MANUAL">MANUAL</MenuItem>
-                <MenuItem value="SCHEDULE">SCHEDULE</MenuItem>
+                <MenuItem value="AUTO">{tt("devices.details.modes.auto")}</MenuItem>
+                <MenuItem value="MANUAL">{tt("devices.details.modes.manual")}</MenuItem>
+                <MenuItem value="SCHEDULE">{tt("devices.details.modes.schedule")}</MenuItem>
               </Select>
             </FormControl>
 
             <TextField
-              label="GPIO"
+              label={tt("devices.form.gpio")}
               size="small"
               type="number"
               value={deviceNumber}
