@@ -80,6 +80,8 @@ export function DeviceSection({
             microcontrollerUuid={microcontroller.uuid}
             provider={provider}
             microcontrollerOnline={live.status === "online"}
+            existingDevices={devices}
+            maxDevices={microcontroller.max_devices}
             onSubmit={async () => {
               onCloseAddDialog();
               await reloadDevices();

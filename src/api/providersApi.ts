@@ -1,6 +1,7 @@
 import axiosClient from "@/api/axiosClient";
 import { ProviderDefinitionsResponse } from "@/features/providers/types/provider";
 import {
+  ProviderEnergySeries,
   ProviderMeasurementSeries,
   ProviderResponse,
   UserProvider,
@@ -35,16 +36,15 @@ export const providersApi = {
     );
   },
 
-  getProviderMeasurements: (
+  getProviderEnergy: (
     providerUuid: string,
     params?: {
       date_start?: string;
       date_end?: string;
-      limit?: number;
     }
   ) => {
-    return axiosClient.get<ProviderMeasurementSeries>(
-      `/provider-measurements/provider/${providerUuid}`,
+    return axiosClient.get<ProviderEnergySeries>(
+      `/provider-measurements/provider/${providerUuid}/energy`,
       { params }
     );
   },

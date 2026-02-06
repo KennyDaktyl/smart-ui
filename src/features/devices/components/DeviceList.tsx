@@ -30,6 +30,7 @@ export function DeviceList({
 }: Props) {
   const { t } = useTranslation();
   const liveMap = useDeviceLiveState(microcontrollerUuid);
+  const [localState, setLocalState] = useState<Record<number, boolean | undefined>>({});
 
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
@@ -66,12 +67,24 @@ export function DeviceList({
               provider={provider}
               toggleDisabled={togglingIds.has(device.id) || !isOnline}
               onToggle={async (d, next) => {
+                setLocalState((s) => ({ ...s, [d.id]: next }));
                 setTogglingIds((prev) => new Set(prev).add(d.id));
+
                 try {
                   const res = await devicesApi.setManualState(d.id, next);
                   const updated = res.data?.device ?? res.data;
-                  if (updated?.id != null) onDeviceUpdate?.(updated);
-                  else onReload?.();
+
+                  if (updated?.id != null) {
+                    onDeviceUpdate?.(updated);
+
+                    // backend acknowledged → update local state from response
+                    setLocalState((s) => ({
+                      ...s,
+                      [updated.id]: updated.manual_state,
+                    }));
+                  }
+                } catch {
+                  setLocalState((s) => ({ ...s, [d.id]: undefined }));
                 } finally {
                   setTogglingIds((prev) => {
                     const copy = new Set(prev);

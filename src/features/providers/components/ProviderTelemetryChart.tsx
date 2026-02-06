@@ -3,39 +3,20 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ProviderMeasurement } from "../types/userProvider";
-
-/* ===================== TYPES ===================== */
-
-type ProviderTelemetryChartProps = {
-  dayKey: string;
-  dayLabel?: string;
-  measurements: ProviderMeasurement[];
-  unit?: string | null;
-  noDataLabel: string;
-};
-
-type ChartPoint = {
-  x: number;
-  y: number;
-  value: number;
-  timeLabel: string;
-  dateTimeLabel: string;
-};
+import { DayEnergy } from "@/features/providers/types/providerEnergy";
 
 /* ===================== CONSTANTS ===================== */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 24;
 
 const BASE_WIDTH = 1000;
-const HEIGHT = 240;
+const HEIGHT = 260;
 
 const PADDING_X = 56;
-const PADDING_TOP = 16;
-const PADDING_BOTTOM = 40;
+const PADDING_TOP = 20;
+const PADDING_BOTTOM = 44;
 
 const WARSAW_TZ = "Europe/Warsaw";
 
@@ -62,29 +43,22 @@ const formatDateTimeWarsaw = (ts: number, locale: string) =>
 /* ===================== COMPONENT ===================== */
 
 export function ProviderTelemetryChart({
-  dayKey,
-  dayLabel,
-  measurements,
-  unit,
+  day,
+  unit = "Wh",
   noDataLabel,
-}: ProviderTelemetryChartProps) {
+}: {
+  day: DayEnergy;
+  unit?: string | null;
+  noDataLabel: string;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
   const [zoom, setZoom] = useState(1);
 
   const dayStartMs = useMemo(
-    () => Date.parse(`${dayKey}T00:00:00Z`),
-    [dayKey]
+    () => Date.parse(`${day.date}T00:00:00Z`),
+    [day.date]
   );
-
-  const resolvedDayLabel = useMemo(() => {
-    if (dayLabel) return dayLabel;
-    return new Date(`${dayKey}T00:00:00Z`).toLocaleDateString(locale, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, [dayKey, dayLabel, locale]);
 
   const chart = useMemo(() => {
     const width = BASE_WIDTH * zoom;
@@ -94,13 +68,12 @@ export function ProviderTelemetryChart({
     const timeToX = (ts: number) =>
       PADDING_X + ((ts - dayStartMs) / DAY_MS) * graphWidth;
 
-    const raw = measurements
-      .filter((m) => m.measured_value != null)
-      .map((m) => {
-        const ts = new Date(m.measured_at).getTime();
+    const raw = day.hours
+      .map((h) => {
+        const ts = new Date(h.hour).getTime();
         return {
           ts,
-          value: m.measured_value as number,
+          value: h.energy_wh,
           timeLabel: formatTimeWarsaw(ts, locale),
           dateTimeLabel: formatDateTimeWarsaw(ts, locale),
         };
@@ -108,54 +81,79 @@ export function ProviderTelemetryChart({
       .sort((a, b) => a.ts - b.ts);
 
     if (!raw.length) {
-      return { width, points: [] as ChartPoint[], pathD: "" };
+      return { width, points: [], pathD: "", zeroY: null };
     }
 
-    const min = Math.min(...raw.map((p) => p.value));
-    const max = Math.max(...raw.map((p) => p.value));
-    const padding = Math.max((max - min) * 0.1, 1);
+    // ===== SYMETRIA WOKÓŁ 0 =====
+    const minRaw = Math.min(...raw.map((p) => p.value));
+    const maxRaw = Math.max(...raw.map((p) => p.value));
+    const maxAbs = Math.max(Math.abs(minRaw), Math.abs(maxRaw), 1);
 
-    const range = Math.max(max - min + padding * 2, 1);
+    const min = -maxAbs;
+    const max = maxAbs;
+    const range = max - min;
 
-    const points: ChartPoint[] = raw.map((p) => ({
+    const zeroY =
+      PADDING_TOP + (1 - (0 - min) / range) * graphHeight;
+
+    const points = raw.map((p) => ({
       x: timeToX(p.ts),
       y:
         PADDING_TOP +
-        (1 - (p.value - (min - padding)) / range) * graphHeight,
-      value: p.value,
-      timeLabel: p.timeLabel,
-      dateTimeLabel: p.dateTimeLabel,
+        (1 - (p.value - min) / range) * graphHeight,
+      ...p,
     }));
 
     const pathD = points
       .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
       .join(" ");
 
-    return { width, points, pathD };
-  }, [measurements, locale, zoom, dayStartMs]);
+    return { width, points, pathD, zeroY };
+  }, [day.hours, dayStartMs, locale, zoom]);
 
   const ticks = [0, 6, 12, 18, 24];
 
   return (
     <Box sx={{ borderRadius: 2, border: "1px solid rgba(15,139,111,0.18)", p: 2 }}>
+      {/* ===== HEADER ===== */}
       <Stack direction="row" justifyContent="space-between" mb={1}>
-        <Typography fontWeight={700}  color="text.secondary">{resolvedDayLabel}</Typography>
+        <Typography fontWeight={700} color="text.secondary">
+          {new Date(`${day.date}T00:00:00Z`).toLocaleDateString(locale, {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </Typography>
+
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="caption" color="text.secondary">
-            {t("providers.telemetry.zoom")}
-          </Typography>
+          <Typography variant="caption">{t("providers.telemetry.zoom")}</Typography>
           <IconButton onClick={() => setZoom((z) => Math.max(z - 1, MIN_ZOOM))}>
             <ZoomOutIcon />
           </IconButton>
-          <Typography>{zoom.toFixed(1)}x</Typography>
+          <Typography>{zoom}x</Typography>
           <IconButton onClick={() => setZoom((z) => Math.min(z + 1, MAX_ZOOM))}>
             <ZoomInIcon />
           </IconButton>
         </Stack>
       </Stack>
 
+      {/* ===== SUMMARY ===== */}
+      <Stack direction="row" spacing={3} mb={1}>
+        <Typography color="success.main">
+          +{day.export_wh.toFixed(1)} {unit}
+        </Typography>
+        <Typography color="error.main">
+          -{day.import_wh.toFixed(1)} {unit}
+        </Typography>
+        <Typography fontWeight={700}>
+          Σ {day.total_energy_wh.toFixed(1)} {unit}
+        </Typography>
+      </Stack>
+
+      {/* ===== SVG ===== */}
       <Box sx={{ overflowX: "auto" }}>
         <svg width={chart.width} height={HEIGHT}>
+          {/* GRID */}
           {ticks.map((h) => {
             const ts = dayStartMs + (h / 24) * DAY_MS;
             const x =
@@ -169,19 +167,33 @@ export function ProviderTelemetryChart({
                   y1={PADDING_TOP}
                   x2={x}
                   y2={HEIGHT - PADDING_BOTTOM}
-                  stroke="#ddd"
+                  stroke="#e5e7eb"
                 />
-                <text x={x} y={HEIGHT - 8} fontSize={11} textAnchor="middle">
+                <text x={x} y={HEIGHT - 10} fontSize={11} textAnchor="middle">
                   {`${String(h).padStart(2, "0")}:00`}
                 </text>
               </g>
             );
           })}
 
+          {/* ZERO LINE */}
+          {chart.zeroY != null && (
+            <line
+              x1={PADDING_X}
+              x2={chart.width - PADDING_X}
+              y1={chart.zeroY}
+              y2={chart.zeroY}
+              stroke="#ef4444"
+              strokeDasharray="4 4"
+            />
+          )}
+
+          {/* PATH */}
           {chart.pathD && (
             <path d={chart.pathD} fill="none" stroke="#12b886" strokeWidth={3} />
           )}
 
+          {/* POINTS */}
           {chart.points.map((p, i) => (
             <Tooltip
               key={i}
@@ -190,42 +202,27 @@ export function ProviderTelemetryChart({
               title={
                 <Stack spacing={0.25}>
                   <Typography variant="caption" fontWeight={700}>
-                    {p.timeLabel} ({t("providers.telemetry.timezone")})
+                    {p.timeLabel}
                   </Typography>
                   <Typography variant="caption">
-                    {unit ? `${p.value} ${unit}` : p.value}
+                    {p.value.toFixed(2)} {unit}
                   </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>
                     {p.dateTimeLabel}
                   </Typography>
                 </Stack>
               }
             >
-              <g className="chart-point">
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={10}
-                  fill="transparent"
-                />
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={4}
-                  fill="#12b886"
-                />
-              </g>
+              <circle cx={p.x} cy={p.y} r={4} fill="#12b886" />
             </Tooltip>
           ))}
         </svg>
       </Box>
 
       {!chart.points.length && (
-        <Box textAlign="center" mt={2}>
-          <Typography variant="body2" color="text.secondary">
-            {noDataLabel}
-          </Typography>
-        </Box>
+        <Typography align="center" color="text.secondary" mt={2}>
+          {noDataLabel}
+        </Typography>
       )}
     </Box>
   );

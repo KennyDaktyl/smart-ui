@@ -15,17 +15,22 @@ export interface UserProvider {
   created_at: string;
 }
 
-export interface ProviderMeasurement {
-  id: number;
-  measured_at: string;
-  measured_value: number | null;
-  measured_unit: string | null;
-  metadata_payload: Record<string, any>;
-}
+export type HourlyEnergyPoint = {
+  hour: string;
+  energy_wh: number;
+};
 
-export interface ProviderMeasurementSeries {
-  days: Record<string, ProviderMeasurement[]>;
-}
+export type DayEnergy = {
+  date: string;
+  total_energy_wh: number;
+  import_wh: number;
+  export_wh: number;
+  hours: HourlyEnergyPoint[];
+};
+
+export type ProviderEnergySeries = {
+  days: Record<string, DayEnergy>;
+};
 
 export interface ProviderResponse {
   id: number;

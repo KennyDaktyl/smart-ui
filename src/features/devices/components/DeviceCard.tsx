@@ -17,6 +17,14 @@ import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import { CardShell } from "@/features/common/components/CardShell";
 import { StatusBadge } from "@/features/common/components/atoms/StatusBadge";
 
+/**
+ * UI optimistic override:
+ * - true      → force ON
+ * - false     → force OFF
+ * - undefined → no override (use live/backend state)
+ */
+type LocalOverrideState = boolean | undefined;
+
 type Props = {
   device: Device;
   liveState?: {
@@ -24,6 +32,7 @@ type Props = {
     mode?: string | null;
     threshold?: number | null;
   };
+  localOverride?: LocalOverrideState;
   provider?: ProviderResponse | null;
   onEdit?: (device: Device) => void;
   onDelete?: (device: Device) => void;
@@ -34,6 +43,7 @@ type Props = {
 export function DeviceCard({
   device,
   liveState,
+  localOverride,
   provider,
   onEdit,
   onDelete,
@@ -47,17 +57,19 @@ export function DeviceCard({
    * Mode resolution
    */
   const mode = liveState?.mode ?? device.mode;
-  const isManual = mode === "MANUAL";
   const isAuto = mode === "AUTO";
 
   /**
-   * Single source of truth for ON/OFF
-   * - MANUAL → backend response (device.manual_state)
-   * - AUTO   → live state (WS / NATS)
+   * ON/OFF resolution priority:
+   * 1. local UI override (optimistic / HTTP response)
+   * 2. live state (heartbeat)
+   * 3. backend persisted state
    */
-  const isOn: boolean | undefined = isManual
-    ? device.manual_state ?? undefined
-    : liveState?.isOn;
+  const isOn: boolean | undefined =
+    localOverride ??
+    liveState?.isOn ??
+    device.manual_state ??
+    undefined;
 
   /**
    * Status badge
@@ -71,13 +83,6 @@ export function DeviceCard({
 
   const statusType =
     isOn == null ? "pending" : isOn ? "online" : "offline";
-
-  /**
-   * Switch rules:
-   * - MANUAL: full control
-   * - AUTO: can enable, cannot disable
-   */
-  const switchDisabled = toggleDisabled;
 
   const handleToggle = (_: unknown, next: boolean) => {
     onToggle?.(device, next);
@@ -137,8 +142,8 @@ export function DeviceCard({
           </Typography>
 
           <Switch
-            checked={Boolean(isOn)}
-            disabled={switchDisabled}
+            checked={isOn === true}
+            disabled={toggleDisabled}
             onChange={handleToggle}
           />
         </Box>
