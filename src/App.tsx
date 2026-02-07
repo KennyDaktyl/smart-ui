@@ -33,13 +33,13 @@ export default function App() {
   const auth = useContext(AuthContext);
   const { t } = useTranslation();
 
-  if (auth?.loading) {
+  if (!auth || auth.initializing) {
     return <CenteredSpinner fullscreen />;
   }
 
   const isPublic = !auth?.token;
   const mode = isPublic ? "public" : "app";
-  const authedHome = "/account";
+  const authedHome = "/microcontrollers";
 
   return (
     <AppShell mode={mode}>

@@ -1,4 +1,4 @@
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,23 +64,34 @@ export default function ProvidersPage() {
   }
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" mb={3}>
+    <Box p={{ xs: 2, sm: 3 }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "center" }}
+        mb={3}
+      >
         <Typography variant="h4">
           {t("providers.title")}
         </Typography>
-
+  
         {providers.length > 0 && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setWizardOpen(true)}
+            fullWidth
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              alignSelf: { xs: "stretch", sm: "auto" },
+            }}
           >
             {t("providers.actions.add")}
           </Button>
         )}
-      </Box>
-
+      </Stack>
+  
       {providers.length === 0 ? (
         <ProvidersEmptyState onAdd={() => setWizardOpen(true)} />
       ) : (
@@ -89,7 +100,7 @@ export default function ProvidersPage() {
           onProviderEnabledChange={handleProviderEnabledChange}
         />
       )}
-
+  
       <AddProviderWizardDialog
         open={wizardOpen}
         onClose={handleWizardClose}

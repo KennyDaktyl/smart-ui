@@ -8,7 +8,7 @@ export default function AdminRoute({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   if (!user || user.role !== "admin") {
-    return <Navigate to="/account" replace />;
+    return <Navigate to="/microcontrollerss" replace />;
   }
 
   return <>{children}</>;

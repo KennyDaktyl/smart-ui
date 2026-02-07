@@ -55,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }),
     [notifyError, notifySuccess]
   );
-
+  
   return (
     <ToastContext.Provider value={value}>
       {children}

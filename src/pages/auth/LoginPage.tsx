@@ -1,7 +1,6 @@
 import { useState, useContext } from "react";
 import {
   Alert,
-  AlertColor,
   Box,
   Button,
   IconButton,
@@ -17,21 +16,18 @@ import { useTranslation } from "react-i18next";
 
 import { authApi } from "../../api/authApi";
 import { AuthContext } from "../../context/AuthContext";
-import Toast from "@/components/Toast";
+import { useToast } from "@/context/ToastContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const { t } = useTranslation();
+  const { notifySuccess, notifyError } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ open: boolean; severity: AlertColor; message: string }>(
-    { open: false, severity: "success", message: "" }
-  );
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -45,14 +41,18 @@ export default function LoginPage() {
       const { access_token, refresh_token } = res.data;
 
       auth?.login(access_token, refresh_token);
-      const successMessage = t("auth.login.success");
-      setToast({ open: true, severity: "success", message: successMessage });
-      setTimeout(() => navigate("/"), 300);
+
+      // 🔥 TO JEST KLUCZ
+      notifySuccess(t("auth.login.success"));
+
+      // 🔥 idziemy OD RAZU na docelowy route
+      navigate("/microcontrollers", { replace: true });
     } catch (err: any) {
-      const message = err?.response?.data?.detail || t("auth.login.errorDefault");
+      const message =
+        err?.response?.data?.detail || t("auth.login.errorDefault");
 
       setError(message);
-      setToast({ open: true, severity: "error", message });
+      notifyError(message);
     } finally {
       setLoading(false);
     }
@@ -69,6 +69,7 @@ export default function LoginPage() {
             {t("auth.login.subtitle")}
           </Typography>
         </Box>
+
         <Button
           component={Link}
           to="/"
@@ -85,7 +86,8 @@ export default function LoginPage() {
         sx={{
           p: 3,
           borderRadius: 3,
-          background: "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
+          background:
+            "linear-gradient(145deg, rgba(255,255,255,0.96) 0%, #f3fbf7 100%)",
           boxShadow: "0 18px 40px rgba(0,0,0,0.24)",
           color: "#0d1b2a",
         }}
@@ -136,46 +138,8 @@ export default function LoginPage() {
               ? t("common.waitingForStatus")
               : t("auth.login.submit")}
           </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => navigate("/register")}
-            sx={{ borderRadius: 10 }}
-          >
-            {t("auth.login.goRegister")}
-          </Button>
-
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => navigate("/forgot-password")}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            {t("auth.login.forgotPassword")}
-          </Button>
         </Stack>
       </Box>
-
-      <Typography
-        component={Link}
-        to="/"
-        sx={{
-          alignSelf: "flex-start",
-          color: "rgba(232,241,248,0.8)",
-          textDecoration: "none",
-          fontWeight: 600,
-          "&:hover": { color: "#7cffe0" },
-        }}
-      >
-        {t("common.backToHome")}
-      </Typography>
-
-      <Toast
-        open={toast.open}
-        severity={toast.severity}
-        message={toast.message}
-        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-      />
     </Stack>
   );
 }

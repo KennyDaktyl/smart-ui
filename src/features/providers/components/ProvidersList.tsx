@@ -13,7 +13,11 @@ export default function ProvidersList({
   onProviderEnabledChange,
 }: Props) {
   return (
-    <Stack direction="row" spacing={2}>
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      spacing={2}
+      alignItems="stretch"
+    >
       {providers.map((provider) => (
         <ProviderLiveEnergy key={provider.uuid} provider={provider}>
           {(live) => (

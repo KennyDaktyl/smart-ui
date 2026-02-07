@@ -1,5 +1,4 @@
-import { createContext, useEffect, ReactNode, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { createContext, useEffect, ReactNode, useState, useCallback } from "react";
 import { UserResponse } from "@/features/users/types/user";
 import { userApi } from "@/api/userApi";
 import CenteredSpinner from "@/features/common/components/CenteredSpinner";
@@ -7,118 +6,104 @@ import CenteredSpinner from "@/features/common/components/CenteredSpinner";
 export interface AuthContextProps {
   user: UserResponse | null;
   token: string | null;
+  isAuthenticated: boolean;
+  initializing: boolean;
+  authLoading: boolean;
   login: (token: string, refreshToken?: string) => void;
   logout: () => void;
-  loading: boolean;
-  isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextProps | null>(null);
 
-interface AuthState {
-  user: UserResponse | null;
-  token: string | null;
-  loading: boolean;
-}
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { t } = useTranslation();
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("token")
+  );
 
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    token: localStorage.getItem("token"),
-    loading: true,
-  });
+  const [initializing, setInitializing] = useState(true);
 
-  const login = (jwt: string, refreshToken?: string) => {
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const isAuthenticated = !!token;
+
+  const login = useCallback((jwt: string, refreshToken?: string) => {
     localStorage.setItem("token", jwt);
     if (refreshToken) {
       localStorage.setItem("refresh_token", refreshToken);
     }
 
-    setAuthState((prev) => ({
-      ...prev,
-      token: jwt,
-      loading: true,
-    }));
-  };
+    setToken(jwt);
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("refresh_token");
 
-    setAuthState({
-      user: null,
-      token: null,
-      loading: false,
-    });
-  };
+    setUser(null);
+    setToken(null);
+  }, []);
 
-  const refreshUser = async () => {
-    if (!authState.token) return;
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
 
-    setAuthState((prev) => ({ ...prev, loading: true }));
-
+    setAuthLoading(true);
     try {
       const res = await userApi.getMe();
-      setAuthState((prev) => ({
-        ...prev,
-        user: res.data,
-        loading: false,
-      }));
+      setUser(res.data);
     } catch {
       logout();
+    } finally {
+      setAuthLoading(false);
     }
-  };
+  }, [token, logout]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadUser = async () => {
-      if (!authState.token) {
-        setAuthState((prev) => ({ ...prev, loading: false }));
+    const bootstrap = async () => {
+      if (!token) {
+        setInitializing(false);
         return;
       }
 
       try {
         const res = await userApi.getMe();
         if (!cancelled) {
-          setAuthState({
-            user: res.data,
-            token: authState.token,
-            loading: false,
-          });
+          setUser(res.data);
         }
       } catch {
         if (!cancelled) logout();
+      } finally {
+        if (!cancelled) setInitializing(false);
       }
     };
 
-    loadUser();
-
+    bootstrap();
     return () => {
       cancelled = true;
     };
-  }, [authState.token]);
-
-  if (authState.loading) {
-    return <CenteredSpinner />;
-  }
+  }, [token, logout]);
 
   return (
     <AuthContext.Provider
       value={{
-        user: authState.user,
-        token: authState.token,
+        user,
+        token,
+        isAuthenticated,
+        initializing,
+        authLoading,
         login,
         logout,
-        loading: authState.loading,
-        isAuthenticated: !!authState.token,
         refreshUser,
       }}
     >
       {children}
+
+      {(initializing || authLoading) && (
+        <CenteredSpinner fullscreen />
+      )}
     </AuthContext.Provider>
   );
 };
