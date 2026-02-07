@@ -75,8 +75,7 @@ export default function MicrocontrollersPage() {
   return (
     <Box
       sx={{
-        px: { xs: 0, sm: 2, md: 2 },
-        py: { xs: 1, sm: 2, md: 2 },
+        p: 2,
         maxWidth: { xs: "100%", md: 1320 },
         mx: "auto",
         minHeight: "80vh",
