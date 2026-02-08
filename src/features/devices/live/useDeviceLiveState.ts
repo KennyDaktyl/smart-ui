@@ -3,6 +3,10 @@ import { wsManager } from "@/ws/WebSocketManager";
 
 const HEARTBEAT_EVENT = "microcontroller_heartbeat";
 
+// ============================================================
+// Types
+// ============================================================
+
 export type DeviceLiveState = {
   isOn: boolean;
   mode?: string | null;
@@ -12,20 +16,41 @@ export type DeviceLiveState = {
 
 type DeviceLiveMap = Record<number, DeviceLiveState>;
 
+type MicrocontrollerHeartbeatEvent = {
+  event_type: "HEARTBEAT";
+  payload: {
+    uuid: string;
+    status: "online" | "offline";
+    timestamp: number;
+    devices: Array<{
+      device_id: number;
+      is_on: boolean;
+      mode?: string | null;
+      threshold?: number | null;
+    }>;
+  };
+};
+
+// ============================================================
+// Hook
+// ============================================================
+
 export function useDeviceLiveState(microcontrollerUuid?: string) {
   const [state, setState] = useState<DeviceLiveMap>({});
 
   useEffect(() => {
     if (!microcontrollerUuid) return;
 
-    const handler = (msg: any) => {
-      const devices = msg?.data?.payload?.devices;
+    const handler = (event: MicrocontrollerHeartbeatEvent) => {
+      console.debug("[WS][HEARTBEAT][DEVICES]", event);
+
+      const devices = event.payload?.devices;
       if (!Array.isArray(devices)) return;
 
       const next: DeviceLiveMap = {};
 
-      devices.forEach((device: any) => {
-        if (device?.device_id == null) return;
+      devices.forEach((device) => {
+        if (device.device_id == null) return;
 
         next[device.device_id] = {
           isOn: Boolean(device.is_on),

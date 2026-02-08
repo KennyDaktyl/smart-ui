@@ -6,6 +6,11 @@
 type WsCallback<T = any> = (payload: T) => void;
 type SubscriptionKey = `${string}:${string}`;
 
+type WsEnvelope<T = any> = {
+  subject: string;
+  data: T;
+};
+
 // ============================================================
 // Configuration
 // ============================================================
@@ -103,44 +108,35 @@ class WebSocketManager {
   // ============================================================
 
   private handleMessage(event: MessageEvent) {
-    let msg: any;
-  
+    let envelope: WsEnvelope;
+
     try {
-      msg = JSON.parse(event.data);
+      envelope = JSON.parse(event.data);
     } catch {
       console.warn("[WS] invalid JSON message");
       return;
     }
-  
-    // 🔴 KLUCZOWE – PARSOWANIE data
-    if (typeof msg.data === "string") {
-      try {
-        msg.data = JSON.parse(msg.data);
-      } catch {
-        console.warn("[WS] invalid JSON in msg.data", msg.data);
-        msg.data = null;
-      }
-    }
-  
-    const subject = msg.subject;
-    if (!subject) {
-      console.warn("[WS] message without subject", msg);
+
+    if (!envelope.subject || envelope.data == null) {
+      console.warn("[WS] invalid WS envelope", envelope);
       return;
     }
-  
-    const parsed = this.parseSubject(subject);
+
+    const parsed = this.parseSubject(envelope.subject);
     if (!parsed) {
-      console.warn("[WS] subject not matched", subject);
+      console.warn("[WS] subject not matched", envelope.subject);
       return;
     }
-  
+
     const key: SubscriptionKey = `${parsed.uuid}:${parsed.eventName}`;
-    const set = this.subscribers.get(key);
-  
-    console.log("[WS] incoming", key, msg);
-  
-    if (!set) return;
-    set.forEach((cb) => cb(msg));
+    const callbacks = this.subscribers.get(key);
+
+    if (!callbacks || callbacks.size === 0) return;
+
+    // console.debug("[WS] incoming", key, envelope.data);
+
+    // 🔥 KLUCZOWE: przekazujemy TYLKO payload
+    callbacks.forEach((cb) => cb(envelope.data));
   }
 
   private parseSubject(subject: string) {
@@ -188,11 +184,6 @@ class WebSocketManager {
         action: "subscribe",
         subject,
       });
-    } else {
-      console.debug(
-        "[WS] subscribe skipped (already subscribed)",
-        subject
-      );
     }
   }
 
@@ -226,10 +217,8 @@ class WebSocketManager {
 
   private send(data: any) {
     if (this.ws && this.isConnected) {
-      console.debug("[WS] send", data);
       this.ws.send(JSON.stringify(data));
     } else {
-      console.debug("[WS] queued", data);
       this.pendingMessages.push(data);
     }
   }

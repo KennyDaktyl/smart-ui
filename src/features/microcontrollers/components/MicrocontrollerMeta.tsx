@@ -32,6 +32,9 @@ export function MicrocontrollerMeta({
 
   return (
     <Stack spacing={1}>
+      <Typography variant="subtitle2" color="text.secondary">
+        {t("microcontroller.uuid")}: {microcontroller.uuid}
+      </Typography>
       <Typography variant="body2" color="text.secondary">
         {t("microcontroller.maxDevices")}: {microcontroller.max_devices}
       </Typography>

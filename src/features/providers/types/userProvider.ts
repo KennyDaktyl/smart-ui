@@ -17,19 +17,20 @@ export interface UserProvider {
 
 export type HourlyEnergyPoint = {
   hour: string;
-  energy_wh: number;
+  energy: number;
 };
 
 export type DayEnergy = {
   date: string;
-  total_energy_wh: number;
-  import_wh: number;
-  export_wh: number;
+  total_energy: number;
+  import_energy: number;
+  export_energy: number;
   hours: HourlyEnergyPoint[];
 };
 
 export type ProviderEnergySeries = {
   days: Record<string, DayEnergy>;
+  unit: string
 };
 
 export interface ProviderResponse {

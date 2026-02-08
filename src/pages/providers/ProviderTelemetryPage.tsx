@@ -16,47 +16,74 @@ import { useTranslation } from "react-i18next";
 import { providersApi } from "@/api/providersApi";
 import { DateRangeFields } from "@/features/common/components/DateRangeFields";
 import { ProviderTelemetryChart } from "@/features/providers/components/ProviderTelemetryChart";
-import { ProviderResponse } from "@/features/providers/types/userProvider";
-import {
-  DayEnergy,
-  ProviderEnergySeries,
-} from "@/features/providers/types/providerEnergy";
+import type { ProviderResponse } from "@/features/providers/types/userProvider";
+import type { DayEnergy } from "@/features/providers/types/providerEnergy";
+
+/* ============================================================
+ * Types
+ * ============================================================ */
 
 type ProviderLocationState = {
   provider?: ProviderResponse;
 };
 
+/* ============================================================
+ * Helpers
+ * ============================================================ */
+
+/**
+ * Converts local datetime string (YYYY-MM-DDTHH:mm)
+ * to explicit UTC ISO string without timezone shifting bugs.
+ */
+const toUtcIso = (local: string) => {
+  const [date, time] = local.split("T");
+  return `${date}T${time}:00Z`;
+};
+
+const formatLocalDateTime = (date: Date) => {
+  const pad = (v: number) => String(v).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+/* ============================================================
+ * Page
+ * ============================================================ */
+
 export default function ProviderTelemetryPage() {
   const navigate = useNavigate();
   const { providerUuid } = useParams<{ providerUuid: string }>();
   const location = useLocation();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
-  const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
+  /* ===================== PROVIDER ===================== */
 
-  const locationState = (location.state as ProviderLocationState | undefined) || {};
+  const locationState =
+    (location.state as ProviderLocationState | undefined) || {};
+
   const [provider, setProvider] = useState<ProviderResponse | null>(
     locationState.provider ?? null
   );
-  const [loadingProvider, setLoadingProvider] = useState(!locationState.provider);
+  const [loadingProvider, setLoadingProvider] = useState(
+    !locationState.provider
+  );
+
+  /* ===================== ENERGY ===================== */
 
   const [energyByDay, setEnergyByDay] = useState<Record<string, DayEnergy>>({});
+  const [unit, setUnit] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* ===================== DATE RANGE ===================== */
 
-  const formatLocalDateTime = (date: Date) => {
-    const pad = (v: number) => String(v).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-      date.getDate()
-    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  };
-
   const today = useMemo(() => {
     const now = new Date();
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
+
     return {
       start: formatLocalDateTime(start),
       end: formatLocalDateTime(now),
@@ -93,13 +120,15 @@ export default function ProviderTelemetryPage() {
     const fetchEnergy = async () => {
       setLoading(true);
       setError(null);
+
       try {
         const res = await providersApi.getProviderEnergy(providerUuid, {
-          date_start: new Date(range.start).toISOString(),
-          date_end: new Date(range.end).toISOString(),
+          date_start: toUtcIso(range.start),
+          date_end: toUtcIso(range.end),
         });
 
         setEnergyByDay(res.data.days ?? {});
+        setUnit(res.data.unit ?? null);
       } catch {
         setError(t("providers.telemetry.error"));
         setEnergyByDay({});
@@ -113,11 +142,13 @@ export default function ProviderTelemetryPage() {
 
   /* ===================== DAYS ===================== */
 
-  const days = useMemo(() => {
-    return Object.values(energyByDay).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
-  }, [energyByDay]);
+  const days = useMemo(
+    () =>
+      Object.values(energyByDay).sort((a, b) =>
+        a.date.localeCompare(b.date)
+      ),
+    [energyByDay]
+  );
 
   const [activeDayIndex, setActiveDayIndex] = useState(0);
 
@@ -149,6 +180,7 @@ export default function ProviderTelemetryPage() {
           overflow: "hidden",
         }}
       >
+        {/* HEADER */}
         <Box sx={{ p: { xs: 2, md: 3 } }}>
           <Typography variant="overline" sx={{ opacity: 0.8 }}>
             {t("providers.telemetry.title")}
@@ -158,6 +190,7 @@ export default function ProviderTelemetryPage() {
           </Typography>
         </Box>
 
+        {/* CONTENT */}
         <Box sx={{ background: "#f6fbf8", p: { xs: 2, md: 3 } }}>
           <Stack spacing={2}>
             <DateRangeFields
@@ -165,14 +198,22 @@ export default function ProviderTelemetryPage() {
               endLabel={t("providers.telemetry.rangeEnd")}
               startValue={range.start}
               endValue={range.end}
-              onChangeStart={(v) => setRange((r) => ({ ...r, start: v }))}
-              onChangeEnd={(v) => setRange((r) => ({ ...r, end: v }))}
+              onChangeStart={(v) =>
+                setRange((r) => ({ ...r, start: v }))
+              }
+              onChangeEnd={(v) =>
+                setRange((r) => ({ ...r, end: v }))
+              }
             />
 
             {error && <Alert severity="error">{error}</Alert>}
 
             {loading ? (
-              <Stack alignItems="center" justifyContent="center" sx={{ height: 240 }}>
+              <Stack
+                alignItems="center"
+                justifyContent="center"
+                sx={{ height: 240 }}
+              >
                 <CircularProgress />
               </Stack>
             ) : !activeDay ? (
@@ -181,18 +222,28 @@ export default function ProviderTelemetryPage() {
               </Typography>
             ) : (
               <>
-                <Stack direction="row" spacing={2} justifyContent="space-between">
+                {/* DAY NAVIGATION */}
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  justifyContent="space-between"
+                >
                   <Button
                     startIcon={<ChevronLeftIcon />}
                     disabled={activeDayIndex === 0}
-                    onClick={() => setActiveDayIndex((i) => i - 1)}
+                    onClick={() =>
+                      setActiveDayIndex((i) => i - 1)
+                    }
                   >
                     {t("common.back")}
                   </Button>
+
                   <Button
                     endIcon={<ChevronRightIcon />}
                     disabled={activeDayIndex >= days.length - 1}
-                    onClick={() => setActiveDayIndex((i) => i + 1)}
+                    onClick={() =>
+                      setActiveDayIndex((i) => i + 1)
+                    }
                   >
                     {t("common.next")}
                   </Button>
@@ -200,7 +251,7 @@ export default function ProviderTelemetryPage() {
 
                 <ProviderTelemetryChart
                   day={activeDay}
-                  unit="Wh"
+                  unit={unit}
                   noDataLabel={t("providers.telemetry.noDayData")}
                 />
               </>

@@ -14,6 +14,17 @@ const TICK_MS = 1000;
 // Types
 // ============================================================
 
+type ProviderCurrentEnergyEvent = {
+  event_type: "CURRENT_ENERGY";
+  entity_id: string;
+  timestamp: string;
+  data: {
+    value: number;
+    unit: string;
+    measured_at: string;
+  };
+};
+
 export type ProviderLiveState = {
   loading: boolean;
   hasWs: boolean;
@@ -30,7 +41,7 @@ export type ProviderLiveState = {
 type StateMap = Record<string, ProviderLiveState>;
 
 type SubscriptionEntry = {
-  handler: (payload: any) => void;
+  handler: (event: ProviderCurrentEnergyEvent) => void;
   timerId: number;
 };
 
@@ -63,8 +74,7 @@ export function useProvidersLive(
 
     const measuredAt = new Date(measuredAtIso).getTime();
     const intervalMs =
-      (provider.default_expected_interval_sec + BUFFER_SEC) *
-      1000;
+      (provider.default_expected_interval_sec + BUFFER_SEC) * 1000;
 
     const nextExpectedAt = measuredAt + intervalMs;
 
@@ -123,11 +133,10 @@ export function useProvidersLive(
     enabledProviders.forEach((provider) => {
       if (subsRef.current.has(provider.uuid)) return;
 
-      const handler = (payload: any) => {
-        const measuredAt =
-          payload?.data?.measured_at ??
-          payload?.timestamp ??
-          new Date().toISOString();
+      const handler = (event: ProviderCurrentEnergyEvent) => {
+        if (event.event_type !== "CURRENT_ENERGY") return;
+
+        const measuredAt = event.data.measured_at;
 
         setState((prev) => ({
           ...prev,
@@ -138,8 +147,8 @@ export function useProvidersLive(
             timestamp: measuredAt,
             nextExpectedAt: null,
             countdownSec: null,
-            power: payload?.data?.value ?? null,
-            unit: payload?.data?.unit ?? provider.unit ?? null,
+            power: event.data.value,
+            unit: event.data.unit ?? provider.unit ?? null,
           },
         }));
 
@@ -153,9 +162,10 @@ export function useProvidersLive(
         timerId: 0,
       });
 
+      // ---- bootstrap from last known value
       const lastValue = provider.last_value;
 
-      if (lastValue != null) {
+      if (lastValue) {
         setState((prev) => ({
           ...prev,
           [provider.uuid]: {
@@ -172,7 +182,6 @@ export function useProvidersLive(
 
         startCountdown(provider, lastValue.measured_at);
       }
-
     });
   }, [enabledProviders.map((p) => p.uuid).join(",")]);
 

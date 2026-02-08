@@ -19,6 +19,15 @@ export type LiveState = {
   status: LiveStatus;
 };
 
+type MicrocontrollerHeartbeatEvent = {
+  event_type: "HEARTBEAT";
+  payload: {
+    uuid: string;
+    status: "online" | "offline";
+    timestamp: number; // unix seconds
+  };
+};
+
 // ============================================================
 // Hook
 // ============================================================
@@ -34,8 +43,8 @@ export function useMicrocontrollerLive(uuid?: string) {
   useEffect(() => {
     if (!uuid) return;
 
-    const handler = (msg: any) => {
-      const payload = msg?.data?.payload;
+    const handler = (event: MicrocontrollerHeartbeatEvent) => {
+      const payload = event.payload;
       if (!payload) return;
 
       const lastSeen = new Date(payload.timestamp * 1000).toISOString();
