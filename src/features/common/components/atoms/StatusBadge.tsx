@@ -1,28 +1,54 @@
 import { Chip } from "@mui/material";
 
-export type StatusBadgeStatus = "online" | "offline" | "disabled" | "pending";
+export type StatusBadgeStatus =
+  | "online"
+  | "offline"
+  | "disabled"
+  | "pending";
 
 export type StatusBadgeProps = {
   status: StatusBadgeStatus;
   label?: string;
 };
 
-const STATUS_CONFIG: Record<StatusBadgeStatus, { color: "success" | "default" | "warning"; defaultLabel: string }> = {
-  online: { color: "success", defaultLabel: "Online" },
-  offline: { color: "default", defaultLabel: "Offline" },
-  disabled: { color: "warning", defaultLabel: "Disabled" },
-  pending: { color: "default", defaultLabel: "Pending" },
+type StatusConfig = {
+  color: "success" | "default" | "warning";
+  variant: "filled" | "outlined";
+  defaultLabel: string;
+};
+
+const STATUS_CONFIG: Record<StatusBadgeStatus, StatusConfig> = {
+  online: {
+    color: "success",
+    variant: "filled",
+    defaultLabel: "Online",
+  },
+  offline: {
+    color: "default",
+    variant: "outlined",
+    defaultLabel: "Offline",
+  },
+  pending: {
+    color: "default",
+    variant: "outlined",
+    defaultLabel: "Pending",
+  },
+  disabled: {
+    color: "warning",
+    variant: "filled",
+    defaultLabel: "Disabled",
+  },
 };
 
 export function StatusBadge({ status, label }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status];
+  const { color, variant, defaultLabel } = STATUS_CONFIG[status];
 
   return (
     <Chip
       size="small"
-      label={label ?? config.defaultLabel}
-      color={config.color}
-      variant={status === "offline" || status === "pending" ? "outlined" : "filled"}
+      color={color}
+      variant={variant}
+      label={label ?? defaultLabel}
     />
   );
 }

@@ -104,36 +104,41 @@ class WebSocketManager {
 
   private handleMessage(event: MessageEvent) {
     let msg: any;
+  
     try {
       msg = JSON.parse(event.data);
     } catch {
       console.warn("[WS] invalid JSON message");
       return;
     }
-
+  
+    // 🔴 KLUCZOWE – PARSOWANIE data
+    if (typeof msg.data === "string") {
+      try {
+        msg.data = JSON.parse(msg.data);
+      } catch {
+        console.warn("[WS] invalid JSON in msg.data", msg.data);
+        msg.data = null;
+      }
+    }
+  
     const subject = msg.subject;
     if (!subject) {
       console.warn("[WS] message without subject", msg);
       return;
     }
-
+  
     const parsed = this.parseSubject(subject);
     if (!parsed) {
       console.warn("[WS] subject not matched", subject);
       return;
     }
-
+  
     const key: SubscriptionKey = `${parsed.uuid}:${parsed.eventName}`;
     const set = this.subscribers.get(key);
-
-    console.log(
-      "[WS] incoming",
-      key,
-      "subscribers:",
-      set?.size ?? 0
-    );
-
-    console.log("Event message: ", msg)
+  
+    console.log("[WS] incoming", key, msg);
+  
     if (!set) return;
     set.forEach((cb) => cb(msg));
   }

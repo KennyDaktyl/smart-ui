@@ -17,7 +17,7 @@ import { devicesApi } from "@/api/devicesApi";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
 
 import type { Device } from "@/features/devices/types/devicesType";
-import type { DeviceEvent, DeviceEventsResponse } from "@/features/devices/types/deviceEvents";
+import type { DeviceEventsResponse } from "@/features/devices/types/deviceEvents";
 
 import { DeviceDetailsInfo } from "@/features/devices/components/DeviceDetailsInfo";
 import { DeviceTelemetryTimeline } from "@/features/devices/components/DeviceTelemetryTimeline";
@@ -133,49 +133,14 @@ export default function DeviceDetailsPage() {
     fetchMicrocontroller();
   }, [device?.microcontroller_id, microcontrollerUuid]);
 
-  const liveMap = useDeviceLiveState(microcontrollerUuid || undefined);
-  const liveState = device?.id ? liveMap[device.id] : undefined;
+  /* ===================== LIVE STATES ===================== */
+
+  const deviceLiveMap = useDeviceLiveState(microcontrollerUuid || undefined);
+  const deviceLive = device?.id ? deviceLiveMap[device.id] : undefined;
+
   const microLive = useMicrocontrollerLive(microcontrollerUuid || undefined);
 
-  /* ===================== FETCH EVENTS ===================== */
-
-  useEffect(() => {
-    if (!deviceId || tab !== "telemetry") return;
-
-    const fetchEvents = async () => {
-      setLoadingEvents(true);
-      setEventsError(null);
-
-      try {
-        const res = await devicesApi.getDeviceEvents(Number(deviceId), {
-          limit: 500,
-          date_start: new Date(range.start).toISOString(),
-          date_end: new Date(range.end).toISOString(),
-        });
-
-        const data = res.data;
-
-        setEventsResponse({
-          events: data.events ?? [],
-          total_minutes_on: data.total_minutes_on ?? null,
-          energy_kwh: data.energy_kwh ?? null,
-          rated_power_kw: data.rated_power_kw ?? null,
-        });
-      } catch {
-        setEventsError(t("devices.details.eventsError"));
-        setEventsResponse(null);
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
-
-    fetchEvents();
-  }, [deviceId, range.start, range.end, tab, t]);
-
   /* ===================== DERIVED DATA ===================== */
-
-  const events = eventsResponse?.events ?? [];
-  const summary = eventsResponse;
 
   const formattedLastUpdate = useMemo(() => {
     if (!device?.last_state_change_at) return t("common.notAvailable");
@@ -183,22 +148,28 @@ export default function DeviceDetailsPage() {
   }, [device?.last_state_change_at, locale, t]);
 
   const modeLabel = useMemo(() => {
-    const mode = liveState?.mode ?? device?.mode;
+    const mode = deviceLive?.mode ?? device?.mode;
     if (!mode) return t("common.notAvailable");
     if (mode === "AUTO") return t("devices.details.modes.auto");
     if (mode === "SCHEDULE") return t("devices.details.modes.schedule");
     return t("devices.details.modes.manual");
-  }, [device?.mode, liveState?.mode, t]);
+  }, [device?.mode, deviceLive?.mode, t]);
 
-  const isOn = liveState?.isOn ?? device?.manual_state ?? false;
-  const stateLabel = isOn ? t("devices.details.stateOn") : t("devices.details.stateOff");
+  const isOn = deviceLive?.isOn ?? device?.manual_state ?? false;
+  const stateLabel = isOn
+    ? t("devices.details.stateOn")
+    : t("devices.details.stateOff");
 
-  const onlineLabel =
-    microLive.status === "online"
-      ? t("common.online")
-      : microLive.status === "offline"
-      ? t("common.offline")
-      : t("common.waitingForStatus");
+  // ✅ TO JEST KLUCZOWA ZMIANA
+  const deviceStatusLabel = useMemo(() => {
+    if (!deviceLive) {
+      return t("common.waitingForStatus");
+    }
+
+    return deviceLive.isOn
+      ? t("devices.details.stateOn")
+      : t("devices.details.stateOff");
+  }, [deviceLive, t]);
 
   /* ===================== RENDER ===================== */
 
@@ -253,7 +224,7 @@ export default function DeviceDetailsPage() {
               device={device}
               modeLabel={modeLabel}
               stateLabel={stateLabel}
-              onlineLabel={onlineLabel}
+              onlineLabel={deviceStatusLabel}
               formattedLastUpdate={formattedLastUpdate}
               t={t}
             />
@@ -274,8 +245,8 @@ export default function DeviceDetailsPage() {
                 <DeviceInfoTile
                   label={t("devices.details.fields.energy")}
                   value={
-                    summary?.energy_kwh != null
-                      ? `${summary.energy_kwh.toFixed(2)} kWh`
+                    eventsResponse?.energy_kwh != null
+                      ? `${eventsResponse.energy_kwh.toFixed(2)} kWh`
                       : t("common.notAvailable")
                   }
                 />
@@ -284,24 +255,24 @@ export default function DeviceDetailsPage() {
                     rate: "0.62 zł/kWh",
                   })}
                   value={
-                    summary?.energy_kwh != null
-                      ? formatEnergyCost(summary.energy_kwh)
+                    eventsResponse?.energy_kwh != null
+                      ? formatEnergyCost(eventsResponse.energy_kwh)
                       : t("common.notAvailable")
                   }
                 />
                 <DeviceInfoTile
                   label={t("devices.details.fields.totalMinutes")}
                   value={
-                    summary?.total_minutes_on != null
-                      ? formatMinutesAsHours(summary.total_minutes_on)
+                    eventsResponse?.total_minutes_on != null
+                      ? formatMinutesAsHours(eventsResponse.total_minutes_on)
                       : t("common.notAvailable")
                   }
                 />
                 <DeviceInfoTile
                   label={t("devices.details.fields.ratedPower")}
                   value={
-                    summary?.rated_power_kw != null
-                      ? `${summary.rated_power_kw} kW`
+                    eventsResponse?.rated_power_kw != null
+                      ? `${eventsResponse.rated_power_kw} kW`
                       : t("common.notAvailable")
                   }
                 />
@@ -310,7 +281,7 @@ export default function DeviceDetailsPage() {
               {eventsError && <Alert severity="error">{eventsError}</Alert>}
 
               <DeviceTelemetryTimeline
-                events={events}
+                events={eventsResponse?.events ?? []}
                 loading={loadingEvents}
                 error={eventsError}
                 tNoData={t("devices.details.noEvents")}

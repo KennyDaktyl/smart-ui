@@ -60,29 +60,37 @@ export function DeviceCard({
   const isAuto = mode === "AUTO";
 
   /**
-   * ON/OFF resolution priority:
-   * 1. local UI override (optimistic / HTTP response)
-   * 2. live state (heartbeat)
-   * 3. backend persisted state
+   * Do we have LIVE data from heartbeat?
+   * (false ≠ OFF, false is a valid state)
    */
-  const isOn: boolean | undefined =
-    localOverride ??
-    liveState?.isOn ??
-    device.manual_state ??
-    undefined;
+  const hasLiveState = liveState?.isOn !== undefined;
 
   /**
-   * Status badge
+   * Final ON/OFF resolution (pure state, no "pending" logic here)
    */
-  const statusLabel =
-    isOn == null
-      ? t("common.waitingForStatus")
-      : isOn
-      ? t("common.enabled")
-      : t("common.disabled");
+  const resolvedIsOn: boolean =
+    localOverride ??
+    (hasLiveState ? liveState.isOn : undefined) ??
+    device.manual_state ??
+    false;
 
-  const statusType =
-    isOn == null ? "pending" : isOn ? "online" : "offline";
+  /**
+   * Status badge (AUTO)
+   * pending  → no live data yet
+   * online   → pin ON
+   * offline  → pin OFF
+   */
+  const statusType: "online" | "offline" | "pending" = !hasLiveState
+    ? "pending"
+    : resolvedIsOn
+    ? "online"
+    : "offline";
+
+  const statusLabel = !hasLiveState
+    ? t("common.waitingForStatus")
+    : resolvedIsOn
+    ? t("common.enabled")
+    : t("common.disabled");
 
   const handleToggle = (_: unknown, next: boolean) => {
     onToggle?.(device, next);
@@ -142,13 +150,13 @@ export function DeviceCard({
           </Typography>
 
           <Switch
-            checked={isOn === true}
+            checked={resolvedIsOn}
             disabled={toggleDisabled}
             onChange={handleToggle}
           />
         </Box>
 
-        {/* STATUS (AUTO) */}
+        {/* STATUS (AUTO only) */}
         {isAuto && (
           <Box
             display="flex"

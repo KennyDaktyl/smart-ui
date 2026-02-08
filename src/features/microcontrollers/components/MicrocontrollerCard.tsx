@@ -62,7 +62,7 @@ export function MicrocontrollerCard({
               <Grid size={{ xs: 12, md: 3 }}>
                 {left}
               </Grid>
-              <Grid size={{ xs: 12, md: 9 }} sx={{ minWidth: 0, p: 2 }}>
+              <Grid size={{ xs: 12, md: 9 }} sx={{ minWidth: 0, py: 2 }}>
                 {right}
               </Grid>
             </Grid>
