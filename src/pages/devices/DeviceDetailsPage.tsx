@@ -171,6 +171,33 @@ export default function DeviceDetailsPage() {
       : t("devices.details.stateOff");
   }, [deviceLive, t]);
 
+  /* ===================== FETCH TELEMETRY ===================== */
+
+  useEffect(() => {
+    if (tab !== "telemetry") return;
+    if (!device?.id) return;
+
+    const fetchEvents = async () => {
+      setLoadingEvents(true);
+      setEventsError(null);
+
+      try {
+        const res = await devicesApi.getDeviceEvents(device.id, {
+          limit: 1000,
+          date_start: range.start,
+          date_end: range.end,
+        });
+
+        setEventsResponse(res.data);
+      } catch {
+        setEventsError(t("devices.details.loadEventsError"));
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+
+    fetchEvents();
+  }, [tab, device?.id, range.start, range.end, t]);
   /* ===================== RENDER ===================== */
 
   if (loading) {
