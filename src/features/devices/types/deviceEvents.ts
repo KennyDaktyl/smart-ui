@@ -12,9 +12,11 @@ export type DeviceEvent = {
   created_at: string;
 };
 
-export type DeviceEventsResponse = {
+export interface DeviceEventsResponse {
   events: DeviceEvent[];
-  total_minutes_on: number | null;
-  energy_kwh: number | null;
-  rated_power_kw: number | null;
-};
+  total_minutes_on: number;
+  energy: number | null;
+  energy_unit: string | null;
+  power_unit: string | null;
+  rated_power: number | null;
+}

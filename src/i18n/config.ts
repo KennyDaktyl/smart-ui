@@ -420,6 +420,10 @@ const resources = {
             status: "Status",
             microcontrollerId: "ID mikrokontrolera",
             lastUpdate: "Ostatnia aktualizacja",
+            energy: "Energia",
+            energyCost: "Koszt energii",
+            totalMinutes: "Czas pracy",
+            ratedPower: "Moc znamionowa"
           },
           modes: {
             manual: "Manual",
@@ -966,6 +970,10 @@ const resources = {
             status: "Status",
             microcontrollerId: "Microcontroller ID",
             lastUpdate: "Last update",
+            energy: "Energy",
+            energyCost: "Energy cost",
+            totalMinutes: "Operating time",
+            ratedPower: "Rated power"
           },
           modes: {
             manual: "Manual",

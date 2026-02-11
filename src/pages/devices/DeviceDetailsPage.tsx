@@ -272,21 +272,23 @@ export default function DeviceDetailsPage() {
                 <DeviceInfoTile
                   label={t("devices.details.fields.energy")}
                   value={
-                    eventsResponse?.energy_kwh != null
-                      ? `${eventsResponse.energy_kwh.toFixed(2)} kWh`
+                    eventsResponse?.energy != null && eventsResponse.energy_unit
+                      ? `${eventsResponse.energy.toFixed(2)} ${eventsResponse.energy_unit}`
                       : t("common.notAvailable")
                   }
                 />
+
                 <DeviceInfoTile
                   label={t("devices.details.fields.energyCost", {
                     rate: "0.62 zł/kWh",
                   })}
                   value={
-                    eventsResponse?.energy_kwh != null
-                      ? formatEnergyCost(eventsResponse.energy_kwh)
+                    eventsResponse?.energy != null
+                      ? formatEnergyCost(eventsResponse.energy)
                       : t("common.notAvailable")
                   }
                 />
+
                 <DeviceInfoTile
                   label={t("devices.details.fields.totalMinutes")}
                   value={
@@ -295,15 +297,18 @@ export default function DeviceDetailsPage() {
                       : t("common.notAvailable")
                   }
                 />
+
                 <DeviceInfoTile
                   label={t("devices.details.fields.ratedPower")}
                   value={
-                    eventsResponse?.rated_power_kw != null
-                      ? `${eventsResponse.rated_power_kw} kW`
+                    eventsResponse?.rated_power != null &&
+                    eventsResponse.power_unit
+                      ? `${eventsResponse.rated_power} ${eventsResponse.power_unit}`
                       : t("common.notAvailable")
                   }
                 />
               </Stack>
+
 
               {eventsError && <Alert severity="error">{eventsError}</Alert>}
 

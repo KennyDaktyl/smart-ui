@@ -49,6 +49,12 @@ interface DeviceTelemetryTimelineProps {
   tNoData: string;
   start: string;
   end: string;
+
+  totalMinutesOn?: number | null;
+  energy?: number | null;
+  energyUnit?: string | null;
+  powerUnit?: string | null;
+  ratedPower?: number | null;
 }
 
 interface DayBucket {
@@ -62,7 +68,8 @@ interface Marker {
   pct: number;
   time: string;
   on: boolean;
-  reason?: string | null;
+  eventName: string;
+  triggerReason?: string | null;
   power?: number | null;
   unit?: string | null;
   eventType: EventTypeMeta;
@@ -123,6 +130,7 @@ export function DeviceTelemetryTimeline({
         minHeight: 280,
       }}
     >
+      {/* HEADER */}
       <Stack direction="row" alignItems="center" spacing={1} mb={1}>
         <IconButton
           size="small"
@@ -131,13 +139,20 @@ export function DeviceTelemetryTimeline({
         >
           <ChevronLeftIcon />
         </IconButton>
-        <Typography variant="subtitle2" sx={{ flex: 1, textAlign: "center", color: "#0f172a" }}>
+
+        <Typography
+          variant="subtitle2"
+          sx={{ flex: 1, textAlign: "center", color: "#0f172a" }}
+        >
           {active ? active.label : ""}
         </Typography>
+
         <IconButton
           size="small"
           onClick={() =>
-            setActiveDayIndex((idx) => Math.min(idx + 1, Math.max(nonEmptyBuckets.length - 1, 0)))
+            setActiveDayIndex((idx) =>
+              Math.min(idx + 1, Math.max(nonEmptyBuckets.length - 1, 0))
+            )
           }
           disabled={safeIndex >= nonEmptyBuckets.length - 1}
         >
@@ -147,19 +162,40 @@ export function DeviceTelemetryTimeline({
 
       <Divider sx={{ my: 1 }} />
 
+      {/* LOADING */}
       {loading ? (
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" sx={{ height: 180 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="center"
+          sx={{ height: 180 }}
+        >
           <CircularProgress size={20} />
-          <Typography variant="body2">{t("common.loading")}</Typography>
+          <Typography variant="body2">
+            {t("common.loading")}
+          </Typography>
         </Stack>
       ) : error ? (
+        /* ERROR */
         <Alert severity="error">{error}</Alert>
       ) : (
         <>
-          <Stack direction="row" spacing={2} mb={1.5} flexWrap="wrap" alignItems="center">
-            <Typography variant="caption" sx={{ color: "#0f172a", fontWeight: 700 }}>
+          {/* LEGEND */}
+          <Stack
+            direction="row"
+            spacing={2}
+            mb={1.5}
+            flexWrap="wrap"
+            alignItems="center"
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "#0f172a", fontWeight: 700 }}
+            >
               {t("devices.details.legend")}
             </Typography>
+
             {EVENT_TYPES.map((item) => (
               <FormControlLabel
                 key={item.key}
@@ -182,10 +218,13 @@ export function DeviceTelemetryTimeline({
                         height: 12,
                         borderRadius: "50%",
                         backgroundColor: item.color,
-                        boxShadow: `0 0 10px ${item.color}55`,
                       }}
                     />
-                    <Typography variant="caption" sx={{ color: "#0f172a" }}>
+                    <Typography variant="caption" 
+                      sx={{
+                        color: item.color,
+                        "&.Mui-checked": { color: item.color },
+                    }}>
                       {t(item.labelKey)}
                     </Typography>
                   </Stack>
@@ -194,22 +233,45 @@ export function DeviceTelemetryTimeline({
             ))}
           </Stack>
 
+          {/* ZOOM + TIMELINE */}
           {active ? (
             <>
-              <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center" mb={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+                justifyContent="flex-end"
+                alignItems="center"
+                mb={1}
+              >
                 <Typography variant="caption" color="text.secondary">
                   {t("devices.details.zoom")}
                 </Typography>
-                <IconButton size="small" onClick={zoomOut} disabled={zoom <= 1}>
+
+                <IconButton
+                  size="small"
+                  onClick={zoomOut}
+                  disabled={zoom <= 1}
+                >
                   <ZoomOutIcon fontSize="small" />
                 </IconButton>
-                <Typography variant="caption" sx={{ minWidth: 32, textAlign: "center" }}>
+
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{ minWidth: 32, textAlign: "center" }}
+                >
                   {zoom.toFixed(1)}x
                 </Typography>
-                <IconButton size="small" onClick={zoomIn} disabled={zoom >= 4}>
+
+                <IconButton
+                  size="small"
+                  onClick={zoomIn}
+                  disabled={zoom >= 4}
+                >
                   <ZoomInIcon fontSize="small" />
                 </IconButton>
               </Stack>
+
               <DayTimeline
                 bucket={active}
                 filters={filters}
@@ -219,7 +281,14 @@ export function DeviceTelemetryTimeline({
               />
             </>
           ) : (
-            <Box sx={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Box
+              sx={{
+                height: 220,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Typography variant="body2" color="text.secondary">
                 {tNoData}
               </Typography>
@@ -278,7 +347,8 @@ function DayTimeline({
       pct: ((ts - bucket.startMs) / spanMs) * 100,
       time: new Date(ev.created_at).toLocaleTimeString(),
       on: ev.pin_state,
-      reason: ev.trigger_reason ?? ev.event_type,
+      eventName: ev.event_name,
+      triggerReason: ev.trigger_reason,
       power: ev.measured_value,
       unit: ev.measured_unit,
       eventType,
@@ -382,28 +452,29 @@ function DayTimeline({
           <Tooltip
             key={idx}
             title={
-              <Stack spacing={0.5}>
-                <Typography variant="caption">{m.time}</Typography>
-                <Stack direction="row" spacing={0.75} alignItems="center">
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: m.eventType.color,
-                      boxShadow: `0 0 0 1px ${m.eventType.color}40`,
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ color: "white", fontWeight: 600 }}>
-                    {getLabel(m.eventType.key) || m.reason}
-                  </Typography>
-                </Stack>
-                {m.power != null && (
-                  <Typography variant="caption">{`${m.power} ${m.unit ?? ""}`}</Typography>
-                )}
-              </Stack>
-            }
-            placement="top"
+            <Stack spacing={0.5}>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                {m.eventName}
+              </Typography>
+
+              <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                {m.time}
+              </Typography>
+
+              {m.triggerReason && (
+                <Typography variant="caption" sx={{ opacity: 0.65 }}>
+                  {m.triggerReason}
+                </Typography>
+              )}
+
+              {m.power != null && (
+                <Typography variant="caption">
+                  {`${m.power} ${m.unit ?? ""}`}
+                </Typography>
+              )}
+            </Stack>
+          }
+          placement="top"
           >
             <Box
               sx={{
@@ -484,9 +555,23 @@ function buildDayBuckets(events: DeviceEvent[], start: string, end: string): Day
 }
 
 function resolveEventType(ev: DeviceEvent): EventTypeMeta {
-  const normalized = `${ev.event_type ?? ""} ${ev.trigger_reason ?? ""}`.toUpperCase();
-  if (normalized.includes("AUTO")) return EVENT_TYPES[0];
-  if (normalized.includes("HEARTBEAT")) return EVENT_TYPES[1];
-  if (normalized.includes("POWER")) return EVENT_TYPES[2];
-  return EVENT_TYPES[3];
+  switch (ev.event_type) {
+    case "AUTO_TRIGGER":
+      return EVENT_TYPES[0];
+
+    case "HEARTBEAT":
+      return EVENT_TYPES[1];
+
+    case "ERROR":
+      if (ev.trigger_reason?.includes("POWER")) {
+        return EVENT_TYPES[2];
+      }
+      return EVENT_TYPES[1];
+
+    case "STATE":
+    case "MODE":
+    case "SCHEDULER":
+    default:
+      return EVENT_TYPES[3];
+  }
 }
