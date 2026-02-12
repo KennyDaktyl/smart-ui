@@ -184,8 +184,8 @@ export default function DeviceDetailsPage() {
       try {
         const res = await devicesApi.getDeviceEvents(device.id, {
           limit: 1000,
-          date_start: range.start,
-          date_end: range.end,
+          date_start: new Date(range.start).toISOString(),
+          date_end: new Date(range.end).toISOString(),
         });
 
         setEventsResponse(res.data);
