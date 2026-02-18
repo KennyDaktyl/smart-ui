@@ -179,10 +179,12 @@ class WebSocketManager {
     this.subscribers.get(key)!.add(cb);
 
     if (isFirstSubscriber) {
-      console.info("[WS] subscribe ->", subject);
+      console.info("[WS] subscribe ->", subject, eventName, uuid );
       this.send({
         action: "subscribe",
         subject,
+        uuid: uuid,
+        event: eventName 
       });
     }
   }
