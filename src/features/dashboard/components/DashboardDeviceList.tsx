@@ -32,6 +32,7 @@ export function DashboardDeviceList({
       sx={{
         display: "grid",
         gap: 2,
+        alignItems: "stretch",
         gridTemplateColumns: {
           xs: "1fr",
           sm: "repeat(2, minmax(0, 1fr))",

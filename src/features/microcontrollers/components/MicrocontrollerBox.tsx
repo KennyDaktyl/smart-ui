@@ -24,12 +24,14 @@ export function MicrocontrollerBox({
   onAddDevice,
 }: Props) {
   const { t } = useTranslation();
+  const isOffline = live.status === "offline";
 
   return (
     <CardShell
       title={microcontroller.name}
       subtitle={t(`microcontroller.types.${microcontroller.type}`)}
       actions={<StatusBadge status={live.status} />}
+      visualState={isOffline ? "offline" : "default"}
       sx={{ width: "100%" }}
     >
       <Stack spacing={2}>

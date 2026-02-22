@@ -22,6 +22,7 @@ type Props = {
 
 export function DeviceList({
   devices,
+  liveInitialized,
   isOnline,
   microcontrollerUuid,
   provider,
@@ -29,6 +30,9 @@ export function DeviceList({
   onDeviceUpdate,
 }: Props) {
   const { t } = useTranslation();
+  const microcontrollerStatus: "online" | "offline" | "pending" =
+    !liveInitialized ? "pending" : isOnline ? "online" : "offline";
+
   const deviceHeartbeatSubscriptions = useMemo(
     () =>
       devices
@@ -94,6 +98,7 @@ export function DeviceList({
             <DeviceCard
               device={device}
               liveState={liveMap[device.id]}
+              microcontrollerStatus={microcontrollerStatus}
               localOverride={localState[device.id]}
               provider={provider}
               toggleDisabled={togglingIds.has(device.id) || !isOnline}

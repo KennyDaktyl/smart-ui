@@ -184,11 +184,11 @@ export function DashboardDeviceCard({
     null;
   const thresholdValue = deviceLive?.threshold ?? device.threshold_value ?? null;
   const thresholdUnit = provider?.unit ?? providerUnit ?? "";
-  const autoThresholdLabel = isAutoMode
+  const thresholdDisplayLabel = isAutoMode
     ? thresholdValue != null
       ? `${thresholdValue} ${thresholdUnit}`.trim()
       : t("common.notAvailable")
-    : t("dashboard.cards.thresholdInactive");
+    : "—";
 
   const gaugeBounds = useMemo(
     () => resolveGaugeBounds(provider, providerPower),
@@ -211,34 +211,80 @@ export function DashboardDeviceCard({
   const heartbeatLabel = deviceLive?.seenAt
     ? new Date(deviceLive.seenAt).toLocaleTimeString()
     : t("common.notAvailable");
+  const metaCellSx = {
+    minHeight: 52,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    gap: 0.35,
+  } as const;
+  const metaValueSx = {
+    minHeight: 24,
+    display: "flex",
+    alignItems: "flex-end",
+  } as const;
 
   return (
     <CardShell
       title={device.name}
       subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
+      headerSx={{ minHeight: 88 }}
+      titleSx={{
+        display: "-webkit-box",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: 2,
+        lineHeight: 1.3,
+        minHeight: "2.6em",
+        wordBreak: "break-word",
+      }}
+      subtitleSx={{
+        display: "block",
+        minHeight: 20,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      }}
+      actionsSx={{ flexShrink: 0 }}
       actions={
-        <Stack spacing={0.35} alignItems="flex-end">
-          <Chip size="small" label={modeLabel} color="primary" variant="outlined" />
-          {isAutoMode && (
-            <Stack spacing={0} alignItems="flex-end" sx={{ textAlign: "right" }}>
-              <Typography variant="caption" color="text.secondary">
-                {t("dashboard.cards.autoThreshold")}
-              </Typography>
-              <Typography variant="body2" fontWeight={600} color="text.primary">
-                {autoThresholdLabel}
-              </Typography>
-            </Stack>
-          )}
+        <Stack
+          spacing={0.5}
+          alignItems="flex-end"
+          sx={{ minHeight: 56, justifyContent: "space-between", textAlign: "right" }}
+        >
+          <Chip
+            size="small"
+            label={modeLabel}
+            color="primary"
+            variant="outlined"
+            sx={{ minWidth: 74 }}
+          />
+          <Stack spacing={0} alignItems="flex-end">
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {t("dashboard.cards.autoThreshold")}
+            </Typography>
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              color="text.primary"
+              noWrap
+              sx={{ maxWidth: 132 }}
+            >
+              {thresholdDisplayLabel}
+            </Typography>
+          </Stack>
         </Stack>
       }
       sx={{
         width: "100%",
         minHeight: 420,
+        height: "100%",
         borderColor: alpha("#0f8b6f", 0.28),
         background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,252,249,1) 100%)",
       }}
     >
-      <Stack spacing={2.25} sx={{ height: "100%" }}>
+      <Stack spacing={2} sx={{ height: "100%" }}>
         <ProviderPowerGauge
           power={providerPower}
           unit={providerUnit}
@@ -267,87 +313,127 @@ export function DashboardDeviceCard({
           sx={{
             px: 0.5,
             py: 0.75,
+            minHeight: 44,
             borderRadius: 999,
             border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
             backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" noWrap>
             {t("dashboard.cards.providerLive")}
           </Typography>
-          <Stack direction="row" spacing={0.75} alignItems="center">
+          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
             <Chip
               size="small"
               label={providerStatus.label}
               color={providerStatus.color}
               variant={providerStatus.variant}
+              sx={{
+                minWidth: 108,
+                "& .MuiChip-label": {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
             />
-            <Typography variant="caption" fontWeight={700} color="text.primary">
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              color="text.primary"
+              sx={{ width: 34, textAlign: "right" }}
+            >
               {providerStatus.countdown}
             </Typography>
           </Stack>
         </Stack>
 
-        <Grid container spacing={1.25}>
+        <Grid container columnSpacing={1.25} rowSpacing={1}>
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.microcontroller")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-              {microcontroller.name}
-            </Typography>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.microcontroller")}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                {microcontroller.name}
+              </Typography>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.provider")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-              {provider?.name ?? t("dashboard.cards.providerMissing")}
-            </Typography>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.provider")}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                {provider?.name ?? t("dashboard.cards.providerMissing")}
+              </Typography>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.deviceState")}
-            </Typography>
-            <Typography variant="body2" fontWeight={700} color={stateColor}>
-              {stateLabel}
-            </Typography>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.deviceState")}
+              </Typography>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                color={stateColor}
+                noWrap
+                sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+              >
+                {stateLabel}
+              </Typography>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.microStatus")}
-            </Typography>
-            <Box>
-              <Chip
-                size="small"
-                label={microStatus.label}
-                color={microStatus.color}
-                variant={microStatus.variant}
-              />
-            </Box>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.microStatus")}
+              </Typography>
+              <Box sx={metaValueSx}>
+                <Chip
+                  size="small"
+                  label={microStatus.label}
+                  color={microStatus.color}
+                  variant={microStatus.variant}
+                  sx={{
+                    maxWidth: "100%",
+                    "& .MuiChip-label": {
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    },
+                  }}
+                />
+              </Box>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.ratedPower")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary">
-              {device.rated_power != null
-                ? `${device.rated_power} ${providerUnit ?? "kW"}`
-                : t("common.notAvailable")}
-            </Typography>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.ratedPower")}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                {device.rated_power != null
+                  ? `${device.rated_power} ${providerUnit ?? "kW"}`
+                  : t("common.notAvailable")}
+              </Typography>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 6 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t("dashboard.cards.lastHeartbeat")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.primary">
-              {heartbeatLabel}
-            </Typography>
+            <Stack sx={metaCellSx}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.lastHeartbeat")}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                {heartbeatLabel}
+              </Typography>
+            </Stack>
           </Grid>
         </Grid>
 

@@ -32,6 +32,7 @@ type Props = {
     mode?: string | null;
     threshold?: number | null;
   };
+  microcontrollerStatus?: "online" | "offline" | "pending";
   localOverride?: LocalOverrideState;
   provider?: ProviderResponse | null;
   onEdit?: (device: Device) => void;
@@ -43,6 +44,7 @@ type Props = {
 export function DeviceCard({
   device,
   liveState,
+  microcontrollerStatus = "pending",
   localOverride,
   provider,
   onEdit,
@@ -61,6 +63,7 @@ export function DeviceCard({
   const mode = device.mode ?? liveState?.mode;
   const isAuto = mode === "AUTO";
   const isManual = mode === "MANUAL";
+  const modeLabel = mode ?? t("common.notAvailable");
 
   /**
    * Do we have LIVE data from heartbeat?
@@ -68,6 +71,7 @@ export function DeviceCard({
    */
   const hasLiveState = liveState?.isOn !== undefined;
   const liveIsOn = hasLiveState ? liveState.isOn : undefined;
+  const microcontrollerOffline = microcontrollerStatus === "offline";
 
   /**
    * Final ON/OFF resolution (pure state, no "pending" logic here)
@@ -80,22 +84,43 @@ export function DeviceCard({
     false;
 
   /**
-   * Status badge (AUTO)
+   * Status badge
    * pending  → no live data yet
    * online   → pin ON
    * offline  → pin OFF
    */
   const statusType: "online" | "offline" | "pending" = !hasLiveState
-    ? "pending"
+    ? microcontrollerOffline
+      ? "offline"
+      : "pending"
     : resolvedIsOn
       ? "online"
       : "offline";
 
   const statusLabel = !hasLiveState
-    ? t("common.waitingForStatus")
+    ? microcontrollerOffline
+      ? t("common.offline")
+      : t("common.waitingForStatus")
     : resolvedIsOn
       ? t("common.enabled")
       : t("common.disabled");
+  const thresholdLabel = isAuto
+    ? device.threshold_value != null
+      ? `${device.threshold_value} ${provider?.unit ?? ""}`.trim()
+      : t("common.notAvailable")
+    : "—";
+  const ratedPowerLabel =
+    device.rated_power != null
+      ? `${device.rated_power} ${provider?.unit ?? ""}`
+      : t("common.notAvailable");
+
+  const rowSx = {
+    minHeight: 44,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 1.25,
+  } as const;
 
   const handleToggle = (_: unknown, next: boolean) => {
     onToggle?.(device, next);
@@ -109,6 +134,26 @@ export function DeviceCard({
     <CardShell
       title={device.name}
       subtitle={`GPIO ${device.device_number}`}
+      visualState={microcontrollerOffline ? "offline" : "default"}
+      headerSx={{ minHeight: 76 }}
+      titleSx={{
+        display: "-webkit-box",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: 2,
+        lineHeight: 1.3,
+        minHeight: "2.6em",
+        wordBreak: "break-word",
+      }}
+      subtitleSx={{
+        display: "block",
+        minHeight: 18,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      }}
+      actionsSx={{ flexShrink: 0 }}
       actions={
         <Stack direction="row" spacing={1}>
           <IconButton
@@ -134,23 +179,36 @@ export function DeviceCard({
       sx={{
         width: "100%",
         minHeight: 420,
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         overflowX: "hidden",
       }}
     >
-      <Stack spacing={2.5} sx={{ flex: 1, justifyContent: "space-between" }}>
+      <Stack spacing={1.25} sx={{ flex: 1 }}>
         {/* MODE */}
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={rowSx}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
             {t("common.configuration")}
           </Typography>
-          <Chip size="small" label={mode} />
+          <Chip
+            size="small"
+            label={modeLabel}
+            sx={{
+              minWidth: 112,
+              maxWidth: 152,
+              "& .MuiChip-label": {
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              },
+            }}
+          />
         </Box>
 
         {/* SWITCH */}
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={rowSx}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
             {t("common.enabled")}
           </Typography>
 
@@ -161,72 +219,87 @@ export function DeviceCard({
           />
         </Box>
 
-        {/* STATUS (AUTO only) */}
-        {isAuto && (
+        {/* STATUS */}
+        <Box sx={rowSx}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+            {t("common.status")}
+          </Typography>
           <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ gap: 1, flexWrap: "wrap" }}
+            sx={{
+              width: 164,
+              maxWidth: "60%",
+              flexShrink: 0,
+              "& .MuiChip-root": {
+                width: "100%",
+                justifyContent: "center",
+              },
+              "& .MuiChip-label": {
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              },
+            }}
           >
-            <Typography variant="body2" color="text.secondary">
-              {t("common.status")}
-            </Typography>
-
-            <Box
-              sx={{ minWidth: 96, display: "flex", justifyContent: "flex-end" }}
-            >
-              <StatusBadge status={statusType} label={statusLabel} />
-            </Box>
+            <StatusBadge status={statusType} label={statusLabel} />
           </Box>
-        )}
+        </Box>
 
-        {/* AUTO DETAILS */}
-        {isAuto && (
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ gap: 1, flexWrap: "wrap" }}
+        {/* THRESHOLD */}
+        <Box sx={rowSx}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+            {t("providers.card.range")}
+          </Typography>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            sx={{
+              minWidth: 0,
+              textAlign: "right",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
           >
-            <Typography variant="body2" color="text.secondary">
-              {t("providers.card.range")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600}>
-              {device.threshold_value != null
-                ? `${device.threshold_value} ${provider?.unit ?? ""}`.trim()
-                : t("common.notAvailable")}
-            </Typography>
-          </Box>
-        )}
+            {thresholdLabel}
+          </Typography>
+        </Box>
 
-        {device.rated_power != null && (
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ gap: 1, flexWrap: "wrap" }}
+        {/* RATED POWER */}
+        <Box sx={rowSx}>
+          <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+            {t("providers.card.rated_power")}
+          </Typography>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            sx={{
+              minWidth: 0,
+              textAlign: "right",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
           >
-            <Typography variant="body2" color="text.secondary">
-              {t("providers.card.rated_power")}
-            </Typography>
-            <Typography variant="body2" fontWeight={600}>
-              {device.rated_power} {provider?.unit ?? ""}
-            </Typography>
-          </Box>
-        )}
+            {ratedPowerLabel}
+          </Typography>
+        </Box>
 
         {/* UPDATED AT */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ gap: 1, flexWrap: "wrap" }}
-        >
-          <Typography variant="caption" color="text.secondary">
+        <Box sx={{ ...rowSx, mt: "auto", minHeight: 36 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
             {t("providers.live.updatedAt")}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              minWidth: 0,
+              textAlign: "right",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {lastStateLabel}
           </Typography>
         </Box>
