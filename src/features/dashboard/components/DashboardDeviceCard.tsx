@@ -5,14 +5,14 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import type { DeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
-import type { Device } from "@/features/devices/types/devicesType";
-import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
-import type { MicrocontrollerOnlineState } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
-import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
-import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import { CardShell } from "@/features/common/components/CardShell";
 import { ProviderPowerGauge } from "@/features/dashboard/components/ProviderPowerGauge";
+import type { DeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
+import type { Device } from "@/features/devices/types/devicesType";
+import type { MicrocontrollerOnlineState } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
+import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
+import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
+import type { ProviderResponse } from "@/features/providers/types/userProvider";
 
 type DashboardDeviceCardProps = {
   device: Device;
@@ -95,6 +95,71 @@ const resolveMicroStatus = (
   };
 };
 
+const resolveProviderLiveStatus = (
+  provider: ProviderResponse | null,
+  live: ProviderLiveState | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) => {
+  const countdown =
+    live?.countdownSec != null
+      ? `${live.countdownSec}s`
+      : live?.isStale
+        ? t("dashboard.cards.providerCountdownOverdue")
+        : "--";
+
+  if (!provider) {
+    return {
+      label: t("dashboard.cards.providerLiveMissing"),
+      color: "default" as const,
+      variant: "outlined" as const,
+      countdown,
+    };
+  }
+
+  if (!provider.enabled) {
+    return {
+      label: t("dashboard.cards.providerLiveDisabled"),
+      color: "default" as const,
+      variant: "outlined" as const,
+      countdown,
+    };
+  }
+
+  if (live?.hasWs && !live.isStale) {
+    return {
+      label: t("dashboard.cards.providerLiveOn"),
+      color: "success" as const,
+      variant: "filled" as const,
+      countdown,
+    };
+  }
+
+  if (live?.isStale) {
+    return {
+      label: t("dashboard.cards.providerLiveStale"),
+      color: "warning" as const,
+      variant: "outlined" as const,
+      countdown,
+    };
+  }
+
+  if (live?.loading || live?.timestamp) {
+    return {
+      label: t("dashboard.cards.providerLivePending"),
+      color: "default" as const,
+      variant: "outlined" as const,
+      countdown,
+    };
+  }
+
+  return {
+    label: t("dashboard.cards.providerLiveOff"),
+    color: "default" as const,
+    variant: "outlined" as const,
+    countdown,
+  };
+};
+
 export function DashboardDeviceCard({
   device,
   microcontroller,
@@ -108,6 +173,7 @@ export function DashboardDeviceCard({
 
   const mode = (device.mode ?? deviceLive?.mode ?? null) as string | null;
   const modeLabel = resolveModeLabel(mode, t);
+  const isAutoMode = mode === "AUTO";
 
   const isOn = resolveOnState(device, deviceLive);
   const providerPower = providerLive?.power ?? provider?.last_value?.measured_value ?? null;
@@ -116,6 +182,13 @@ export function DashboardDeviceCard({
     provider?.last_value?.measured_unit ??
     provider?.unit ??
     null;
+  const thresholdValue = deviceLive?.threshold ?? device.threshold_value ?? null;
+  const thresholdUnit = provider?.unit ?? providerUnit ?? "";
+  const autoThresholdLabel = isAutoMode
+    ? thresholdValue != null
+      ? `${thresholdValue} ${thresholdUnit}`.trim()
+      : t("common.notAvailable")
+    : t("dashboard.cards.thresholdInactive");
 
   const gaugeBounds = useMemo(
     () => resolveGaugeBounds(provider, providerPower),
@@ -123,6 +196,7 @@ export function DashboardDeviceCard({
   );
 
   const microStatus = resolveMicroStatus(microcontrollerLive, t);
+  const providerStatus = resolveProviderLiveStatus(provider, providerLive, t);
 
   const stateLabel =
     isOn == null
@@ -141,8 +215,22 @@ export function DashboardDeviceCard({
   return (
     <CardShell
       title={device.name}
-      subtitle={`GPIO ${device.device_number}`}
-      actions={<Chip size="small" label={modeLabel} color="primary" variant="outlined" />}
+      subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
+      actions={
+        <Stack spacing={0.35} alignItems="flex-end">
+          <Chip size="small" label={modeLabel} color="primary" variant="outlined" />
+          {isAutoMode && (
+            <Stack spacing={0} alignItems="flex-end" sx={{ textAlign: "right" }}>
+              <Typography variant="caption" color="text.secondary">
+                {t("dashboard.cards.autoThreshold")}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
+                {autoThresholdLabel}
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
+      }
       sx={{
         width: "100%",
         minHeight: 420,
@@ -161,12 +249,44 @@ export function DashboardDeviceCard({
           offLabel={t("dashboard.cards.stateOff")}
           pendingLabel="--"
           noDataLabel={t("dashboard.cards.noPowerData")}
-          rangeLabel={t("dashboard.cards.providerRange", {
+        />
+
+        <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+          {t("dashboard.cards.providerRange", {
             min: gaugeBounds.min.toFixed(1),
             max: gaugeBounds.max.toFixed(1),
             unit: providerUnit ?? "",
           })}
-        />
+        </Typography>
+
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{
+            px: 0.5,
+            py: 0.75,
+            borderRadius: 999,
+            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {t("dashboard.cards.providerLive")}
+          </Typography>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Chip
+              size="small"
+              label={providerStatus.label}
+              color={providerStatus.color}
+              variant={providerStatus.variant}
+            />
+            <Typography variant="caption" fontWeight={700} color="text.primary">
+              {providerStatus.countdown}
+            </Typography>
+          </Stack>
+        </Stack>
 
         <Grid container spacing={1.25}>
           <Grid size={{ xs: 6 }}>

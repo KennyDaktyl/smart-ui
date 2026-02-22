@@ -19,7 +19,7 @@ type ProviderPowerGaugeProps = {
   offLabel: string;
   pendingLabel: string;
   noDataLabel: string;
-  rangeLabel: string;
+  rangeLabel?: string;
 };
 
 export function ProviderPowerGauge({
@@ -129,9 +129,11 @@ export function ProviderPowerGauge({
         </Box>
       </Box>
 
-      <Typography variant="caption" color="text.secondary">
-        {rangeLabel}
-      </Typography>
+      {rangeLabel && (
+        <Typography variant="caption" color="text.secondary">
+          {rangeLabel}
+        </Typography>
+      )}
     </Box>
   );
 }

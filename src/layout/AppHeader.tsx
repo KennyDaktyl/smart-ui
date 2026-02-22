@@ -1,24 +1,24 @@
-import { useState } from "react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import FlashOnIcon from "@mui/icons-material/FlashOn";
+import MenuIcon from "@mui/icons-material/Menu";
 import {
   AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
+  Box,
   Button,
+  Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
-  Box,
-  Divider,
+  Toolbar,
+  Typography,
 } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import FlashOnIcon from "@mui/icons-material/FlashOn";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useNavigate } from "react-router-dom";
 
 export type HeaderMode = "public" | "app";
 
@@ -69,7 +69,7 @@ export default function AppHeader({ mode }: AppHeaderProps) {
   ];
 
   if (user?.role === "admin") {
-    authenticatedNav.splice(2, 0, {
+    authenticatedNav.splice(3, 0, {
       label: t("header.menu.admin"),
       path: "/admin",
     });
