@@ -13,7 +13,10 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import Toast from "@/components/Toast";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function UserRegisterForm() {
   const navigate = useNavigate();
@@ -23,6 +26,7 @@ export default function UserRegisterForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,24 +41,50 @@ export default function UserRegisterForm() {
   });
 
   const handleRegister = async () => {
-    if (!email || !password) return;
+    const normalizedEmail = email.trim();
+    const missingEmailMessage = t("errors.validation.emailRequired");
+    const invalidEmailMessage = t("errors.validation.emailInvalid");
+
+    if (!normalizedEmail) {
+      setEmailError(missingEmailMessage);
+      setError(missingEmailMessage);
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setEmailError(invalidEmailMessage);
+      setError(invalidEmailMessage);
+      return;
+    }
+
+    if (!password) {
+      return;
+    }
 
     setLoading(true);
+    setEmailError(null);
     setError(null);
     setSuccess(null);
 
     try {
-      await authApi.register({ email, password });
+      await authApi.register({ email: normalizedEmail, password });
       const successMessage = t("auth.register.success");
       setSuccess(successMessage);
       setToast({ open: true, severity: "success", message: successMessage });
 
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ||
-        t("auth.register.error");
+      setTimeout(
+        () =>
+          navigate("/activate-account", {
+            state: { email: normalizedEmail },
+          }),
+        800
+      );
+    } catch (err) {
+      const parsed = parseApiError(err);
+      const emailFieldError = parsed.fieldErrors?.email;
+      const message = emailFieldError || parsed.message || t("auth.register.error");
 
+      setEmailError(emailFieldError ?? null);
       setError(message);
       setToast({ open: true, severity: "error", message });
     } finally {
@@ -70,9 +100,16 @@ export default function UserRegisterForm() {
 
         <TextField
           label={t("auth.fields.email")}
+          type="email"
           fullWidth
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          error={Boolean(emailError)}
+          helperText={emailError ?? " "}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (emailError) setEmailError(null);
+            if (error) setError(null);
+          }}
           autoComplete="email"
         />
 

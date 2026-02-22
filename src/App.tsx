@@ -19,6 +19,7 @@ import MicrocontrollersPage from "./pages/microcontollers/microcontrollersPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
+const ActivateAccountPage = lazy(() => import("./pages/auth/ActivateAccountPage"));
 const AccountPage = lazy(() => import("./pages/user/AccountPage"));
 const HomePage = lazy(() => import("./front/HomePage"));
 const OfferPage = lazy(() => import("./front/OfferPage"));
@@ -48,6 +49,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/activate-account" element={<ActivateAccountPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/confirm-email" element={<ConfirmEmailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />

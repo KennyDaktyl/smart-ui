@@ -2,6 +2,7 @@ import { createContext, useEffect, ReactNode, useState, useCallback } from "reac
 import { UserResponse } from "@/features/users/types/user";
 import { userApi } from "@/api/userApi";
 import CenteredSpinner from "@/features/common/components/CenteredSpinner";
+import { wsManager } from "@/ws/WebSocketManager";
 
 export interface AuthContextProps {
   user: UserResponse | null;
@@ -38,6 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(() => {
+    wsManager.disconnect();
+
     localStorage.removeItem("token");
     localStorage.removeItem("refresh_token");
 

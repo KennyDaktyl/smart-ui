@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -19,13 +19,22 @@ export default function ConfirmEmailError({ message }: Props) {
         {message ?? t("auth.confirmEmail.errorDescription")}
       </Typography>
 
-      <Button
-        component={RouterLink}
-        to="/register"
-        variant="outlined"
-      >
-        {t("auth.confirmEmail.goToRegister")}
-      </Button>
+      <Stack direction="row" spacing={1} justifyContent="center">
+        <Button
+          component={RouterLink}
+          to="/activate-account"
+          variant="contained"
+        >
+          {t("auth.confirmEmail.goToActivation")}
+        </Button>
+        <Button
+          component={RouterLink}
+          to="/register"
+          variant="outlined"
+        >
+          {t("auth.confirmEmail.goToRegister")}
+        </Button>
+      </Stack>
     </Box>
   );
 }

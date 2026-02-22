@@ -1,10 +1,13 @@
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Switch, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { devicesApi } from "@/api/devicesApi";
+import { parseApiError } from "@/api/parseApiError";
+import { useToast } from "@/context/ToastContext";
 import { CardShell } from "@/features/common/components/CardShell";
 import { ProviderPowerGauge } from "@/features/dashboard/components/ProviderPowerGauge";
 import type { DeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
@@ -170,12 +173,45 @@ export function DashboardDeviceCard({
 }: DashboardDeviceCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { notifyError } = useToast();
+  const [manualOverride, setManualOverride] = useState<boolean | undefined>(
+    undefined
+  );
+  const [manualSaving, setManualSaving] = useState(false);
 
   const mode = (device.mode ?? deviceLive?.mode ?? null) as string | null;
   const modeLabel = resolveModeLabel(mode, t);
   const isAutoMode = mode === "AUTO";
+  const isManualMode = mode === "MANUAL";
+  const baseManualState =
+    typeof device.manual_state === "boolean"
+      ? device.manual_state
+      : typeof deviceLive?.isOn === "boolean"
+        ? deviceLive.isOn
+        : false;
+  const resolvedManualState = manualOverride ?? baseManualState;
+  const manualSwitchDisabled =
+    manualSaving || !isManualMode || !microcontrollerLive?.isOnline;
+  const effectiveDevice =
+    manualOverride === undefined
+      ? device
+      : {
+          ...device,
+          manual_state: manualOverride,
+        };
 
-  const isOn = resolveOnState(device, deviceLive);
+  useEffect(() => {
+    if (!isManualMode) {
+      if (manualOverride !== undefined) setManualOverride(undefined);
+      return;
+    }
+
+    if (manualOverride !== undefined && manualOverride === baseManualState) {
+      setManualOverride(undefined);
+    }
+  }, [baseManualState, isManualMode, manualOverride]);
+
+  const isOn = resolveOnState(effectiveDevice, deviceLive);
   const providerPower = providerLive?.power ?? provider?.last_value?.measured_value ?? null;
   const providerUnit =
     providerLive?.unit ??
@@ -223,6 +259,33 @@ export function DashboardDeviceCard({
     display: "flex",
     alignItems: "flex-end",
   } as const;
+  const handleManualSwitchChange = async (_: unknown, next: boolean) => {
+    if (!isManualMode || manualSwitchDisabled) return;
+
+    setManualOverride(next);
+    setManualSaving(true);
+
+    try {
+      const res = await devicesApi.setManualState(device.id, next);
+      const payload = res.data as any;
+      const updated = payload?.device ?? payload;
+      const acknowledgedState =
+        typeof updated?.manual_state === "boolean"
+          ? updated.manual_state
+          : typeof updated?.is_on === "boolean"
+            ? updated.is_on
+            : typeof payload?.is_on === "boolean"
+              ? payload.is_on
+              : next;
+
+      setManualOverride(acknowledgedState);
+    } catch (error) {
+      setManualOverride(undefined);
+      notifyError(parseApiError(error).message || t("common.error.generic"));
+    } finally {
+      setManualSaving(false);
+    }
+  };
 
   return (
     <CardShell
@@ -260,20 +323,53 @@ export function DashboardDeviceCard({
             variant="outlined"
             sx={{ minWidth: 74 }}
           />
-          <Stack spacing={0} alignItems="flex-end">
-            <Typography variant="caption" color="text.secondary" noWrap>
-              {t("dashboard.cards.autoThreshold")}
-            </Typography>
-            <Typography
-              variant="body2"
-              fontWeight={600}
-              color="text.primary"
-              noWrap
-              sx={{ maxWidth: 132 }}
+          {isManualMode ? (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              alignItems="center"
+              justifyContent="flex-end"
+              sx={{ minHeight: 24 }}
             >
-              {thresholdDisplayLabel}
-            </Typography>
-          </Stack>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("common.enabled")}
+              </Typography>
+              <Switch
+                size="small"
+                checked={resolvedManualState}
+                onChange={handleManualSwitchChange}
+                disabled={manualSwitchDisabled}
+                sx={{
+                  ml: 0.25,
+                  "& .MuiSwitch-switchBase": {
+                    p: 0.4,
+                  },
+                  "& .MuiSwitch-thumb": {
+                    width: 14,
+                    height: 14,
+                  },
+                  "& .MuiSwitch-track": {
+                    borderRadius: 8,
+                  },
+                }}
+              />
+            </Stack>
+          ) : (
+            <Stack spacing={0} alignItems="flex-end">
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {t("dashboard.cards.autoThreshold")}
+              </Typography>
+              <Typography
+                variant="body2"
+                fontWeight={600}
+                color="text.primary"
+                noWrap
+                sx={{ maxWidth: 132 }}
+              >
+                {thresholdDisplayLabel}
+              </Typography>
+            </Stack>
+          )}
         </Stack>
       }
       sx={{

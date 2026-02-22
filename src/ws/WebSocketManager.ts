@@ -318,6 +318,20 @@ class WebSocketManager {
     this.subscribers.clear();
   }
 
+  public disconnect() {
+    console.info("[WS] disconnect requested");
+
+    this.pendingUnsubscribes.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    this.pendingUnsubscribes.clear();
+
+    this.subscribers.clear();
+    this.lastMessages.clear();
+
+    this.cleanupSocket();
+  }
+
   // ============================================================
   // Sending
   // ============================================================
