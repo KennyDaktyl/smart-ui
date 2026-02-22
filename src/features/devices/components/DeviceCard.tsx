@@ -56,22 +56,27 @@ export function DeviceCard({
   /**
    * Mode resolution
    */
-  const mode = liveState?.mode ?? device.mode;
+  // Device mode comes from configuration updates (PUT), so it must win over
+  // heartbeat snapshots that can arrive later and still carry an old mode.
+  const mode = device.mode ?? liveState?.mode;
   const isAuto = mode === "AUTO";
+  const isManual = mode === "MANUAL";
 
   /**
    * Do we have LIVE data from heartbeat?
    * (false ≠ OFF, false is a valid state)
    */
   const hasLiveState = liveState?.isOn !== undefined;
+  const liveIsOn = hasLiveState ? liveState.isOn : undefined;
 
   /**
    * Final ON/OFF resolution (pure state, no "pending" logic here)
    */
   const resolvedIsOn: boolean =
     localOverride ??
-    (hasLiveState ? liveState.isOn : undefined) ??
-    device.manual_state ??
+    (isManual
+      ? device.manual_state ?? liveIsOn
+      : liveIsOn) ??
     false;
 
   /**
@@ -83,14 +88,14 @@ export function DeviceCard({
   const statusType: "online" | "offline" | "pending" = !hasLiveState
     ? "pending"
     : resolvedIsOn
-    ? "online"
-    : "offline";
+      ? "online"
+      : "offline";
 
   const statusLabel = !hasLiveState
     ? t("common.waitingForStatus")
     : resolvedIsOn
-    ? t("common.enabled")
-    : t("common.disabled");
+      ? t("common.enabled")
+      : t("common.disabled");
 
   const handleToggle = (_: unknown, next: boolean) => {
     onToggle?.(device, next);
@@ -168,28 +173,16 @@ export function DeviceCard({
               {t("common.status")}
             </Typography>
 
-            <Box sx={{ minWidth: 96, display: "flex", justifyContent: "flex-end" }}>
+            <Box
+              sx={{ minWidth: 96, display: "flex", justifyContent: "flex-end" }}
+            >
               <StatusBadge status={statusType} label={statusLabel} />
             </Box>
           </Box>
         )}
 
         {/* AUTO DETAILS */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ gap: 1, flexWrap: "wrap" }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            {t("providers.card.range")}
-          </Typography>
-          <Typography variant="body2" fontWeight={600}>
-            {device.threshold_value} {provider?.unit ?? ""}
-          </Typography>
-        </Box>
-
-        {device.rated_power_w != null && (
+        {isAuto && (
           <Box
             display="flex"
             justifyContent="space-between"
@@ -197,10 +190,28 @@ export function DeviceCard({
             sx={{ gap: 1, flexWrap: "wrap" }}
           >
             <Typography variant="body2" color="text.secondary">
-              {t("providers.card.rated_power_w")}
+              {t("providers.card.range")}
             </Typography>
             <Typography variant="body2" fontWeight={600}>
-              {device.rated_power_w} {provider?.unit ?? ""}
+              {device.threshold_value != null
+                ? `${device.threshold_value} ${provider?.unit ?? ""}`.trim()
+                : t("common.notAvailable")}
+            </Typography>
+          </Box>
+        )}
+
+        {device.rated_power != null && (
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ gap: 1, flexWrap: "wrap" }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              {t("providers.card.rated_power")}
+            </Typography>
+            <Typography variant="body2" fontWeight={600}>
+              {device.rated_power} {provider?.unit ?? ""}
             </Typography>
           </Box>
         )}

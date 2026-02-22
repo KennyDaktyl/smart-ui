@@ -62,6 +62,7 @@ export default function AppHeader({ mode }: AppHeaderProps) {
   ];
 
   const authenticatedNav: MenuItem[] = [
+    { label: t("header.menu.dashboard"), path: "/dashboard" },
     { label: t("header.menu.microcontrollers"), path: "/microcontrollers" },
     { label: t("header.menu.controllers"), path: "/providers" },
     { label: t("header.menu.account"), path: "/account" },

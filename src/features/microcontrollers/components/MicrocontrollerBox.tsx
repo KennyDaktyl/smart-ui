@@ -13,12 +13,14 @@ import { MicrocontrollerProvider } from "./MicrocontrollerProvider";
 type Props = {
   microcontroller: MicrocontrollerResponse;
   live: LiveState;
+  isAtDeviceCapacity?: boolean;
   onAddDevice: () => void;
 };
 
 export function MicrocontrollerBox({
   microcontroller,
   live,
+  isAtDeviceCapacity = false,
   onAddDevice,
 }: Props) {
   const { t } = useTranslation();
@@ -44,7 +46,7 @@ export function MicrocontrollerBox({
 
         <Button
           variant="contained"
-          disabled={live.status !== "online"}
+          disabled={live.status !== "online" || isAtDeviceCapacity}
           onClick={onAddDevice}
         >
           {t("common.add")}

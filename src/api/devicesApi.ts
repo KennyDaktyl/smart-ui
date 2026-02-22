@@ -7,7 +7,7 @@ export type DeviceCreatePayload = {
   name: string;
   device_number: number;
   mode: DeviceMode;
-  rated_power_w?: number | null;
+  rated_power?: number | null;
   threshold_value?: number | null;
 };
 
@@ -15,7 +15,7 @@ export const devicesApi = {
   createDevice: (microcontrollerUuid: string, payload: DeviceCreatePayload) => {
     return axiosClient.post<Device>(
       `/devices/microcontroller/${microcontrollerUuid}`,
-      payload
+      payload,
     );
   },
   updateDevice: (deviceId: number, payload: Partial<DeviceCreatePayload>) => {
@@ -25,7 +25,9 @@ export const devicesApi = {
     return axiosClient.delete(`/devices/${deviceId}`);
   },
   listForMicrocontroller: (microcontrollerUuid: string) => {
-    return axiosClient.get<Device[]>(`/devices/microcontroller/${microcontrollerUuid}`);
+    return axiosClient.get<Device[]>(
+      `/devices/microcontroller/${microcontrollerUuid}`,
+    );
   },
   getDeviceById: (deviceId: number) => {
     return axiosClient.get<Device>(`/devices/${deviceId}`);
@@ -37,14 +39,13 @@ export const devicesApi = {
     deviceId: number,
     params?: {
       limit?: number;
-      date_start?: string;
-      date_end?: string;
+      date?: string;
       event_type?: string;
-    }
+    },
   ) => {
     return axiosClient.get<DeviceEventsResponse>(
       `/device-events/device/${deviceId}`,
-      { params }
+      { params },
     );
   },
 };

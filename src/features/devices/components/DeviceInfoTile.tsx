@@ -1,11 +1,15 @@
 import { Box, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 
 type DeviceInfoTileProps = {
   label: string;
-  value: string;
+  value: ReactNode;
 };
 
 export function DeviceInfoTile({ label, value }: DeviceInfoTileProps) {
+  const isPrimitiveValue =
+    typeof value === "string" || typeof value === "number";
+
   return (
     <Box
       sx={{
@@ -19,9 +23,17 @@ export function DeviceInfoTile({ label, value }: DeviceInfoTileProps) {
       <Typography variant="caption" sx={{ color: "#475569" }}>
         {label}
       </Typography>
-      <Typography variant="subtitle1" fontWeight={600} sx={{ color: "#0f172a" }}>
-        {value}
-      </Typography>
+      {isPrimitiveValue ? (
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ color: "#0f172a" }}
+        >
+          {value}
+        </Typography>
+      ) : (
+        <Box sx={{ mt: 0.5, color: "#0f172a" }}>{value}</Box>
+      )}
     </Box>
   );
 }

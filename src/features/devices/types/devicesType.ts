@@ -7,7 +7,7 @@ export type Device = {
   name: string;
   device_number: number;
 
-  rated_power_w?: number | null;
+  rated_power?: number | null;
 
   mode: DeviceMode;
   manual_state?: boolean | null;

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
+import {
+  DEFAULT_HEARTBEAT_TIMEOUT_MS,
+  resolveHeartbeatTimeoutMs,
+  resolveHeartbeatTimestampMs,
+} from "@/features/microcontrollers/hooks/heartbeatTiming";
 
 // ============================================================
 // Config
 // ============================================================
 
 const HEARTBEAT_EVENT = "microcontroller_heartbeat";
-const ONLINE_TIMEOUT_MS = 15_000;
 
 // ============================================================
 // Types
@@ -42,7 +46,10 @@ export function useMicrocontrollersOnlineStatus(uuids: string[]) {
     clearTimeout(entry.timeoutId);
   };
 
-  const scheduleOffline = (uuid: string) => {
+  const scheduleOffline = (
+    uuid: string,
+    timeoutMs = DEFAULT_HEARTBEAT_TIMEOUT_MS
+  ) => {
     clearTimeoutFor(uuid);
 
     const timeoutId = window.setTimeout(() => {
@@ -53,7 +60,7 @@ export function useMicrocontrollersOnlineStatus(uuids: string[]) {
           isOnline: false,
         },
       }));
-    }, ONLINE_TIMEOUT_MS);
+    }, timeoutMs);
 
     const entry = subsRef.current.get(uuid);
     if (entry) {
@@ -68,20 +75,21 @@ export function useMicrocontrollersOnlineStatus(uuids: string[]) {
   const createHandler =
     (uuid: string) =>
     (payload: any) => {
-      const sentAt =
-        payload?.sent_at ??
-        payload?.data?.sent_at ??
-        new Date().toISOString();
+      const seenAtMs = resolveHeartbeatTimestampMs(payload);
+      const timeoutMs = resolveHeartbeatTimeoutMs(
+        payload,
+        DEFAULT_HEARTBEAT_TIMEOUT_MS
+      );
 
       setState((prev) => ({
         ...prev,
         [uuid]: {
           isOnline: true,
-          lastSeen: sentAt,
+          lastSeen: new Date(seenAtMs).toISOString(),
         },
       }));
 
-      scheduleOffline(uuid);
+      scheduleOffline(uuid, timeoutMs);
     };
 
   // ============================================================
@@ -122,7 +130,7 @@ export function useMicrocontrollersOnlineStatus(uuids: string[]) {
             isOnline: false,
           },
         }));
-      }, ONLINE_TIMEOUT_MS);
+      }, DEFAULT_HEARTBEAT_TIMEOUT_MS);
 
       subsRef.current.set(uuid, {
         handler,

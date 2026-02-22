@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +16,7 @@ type Props = {
   provider: any;
   openAddDialog: boolean;
   onCloseAddDialog: () => void;
+  onDevicesChange?: (devices: Device[]) => void;
 };
 
 export function DeviceSection({
@@ -24,6 +25,7 @@ export function DeviceSection({
   provider,
   openAddDialog,
   onCloseAddDialog,
+  onDevicesChange,
 }: Props) {
   const { t } = useTranslation();
 
@@ -31,22 +33,34 @@ export function DeviceSection({
     microcontroller.devices ?? []
   );
 
+  const syncDevices = useCallback(
+    (nextDevices: Device[]) => {
+      setDevices(nextDevices);
+      onDevicesChange?.(nextDevices);
+    },
+    [onDevicesChange]
+  );
+
   const handleDeviceUpdate = (updated: Device) => {
-    setDevices((prev) =>
-      prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d))
-    );
+    setDevices((prev) => {
+      const next = prev.map((d) =>
+        d.id === updated.id ? { ...d, ...updated } : d
+      );
+      onDevicesChange?.(next);
+      return next;
+    });
   };
 
   useEffect(() => {
-    setDevices(microcontroller.devices ?? []);
-  }, [microcontroller.devices]);
+    syncDevices(microcontroller.devices ?? []);
+  }, [microcontroller.devices, syncDevices]);
 
   const reloadDevices = async (): Promise<void> => {
     try {
       const res = await devicesApi.listForMicrocontroller(
         microcontroller.uuid
       );
-      setDevices(res.data);
+      syncDevices(res.data);
     } catch (error) {
       console.error("Failed to reload devices", error);
     }

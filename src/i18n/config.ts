@@ -62,12 +62,12 @@ const resources = {
           password: "Hasło",
           role: "Rola",
           isActive: "Aktywny",
-
         },
       },
       header: {
         menu: {
           admin: "Panel administratora",
+          dashboard: "Dashboard",
           microcontrollers: "Mikrokontrolery",
           controllers: "Providery",
           account: "Moje konto",
@@ -118,7 +118,8 @@ const resources = {
             login: "Logowanie",
             register: "Rejestracja",
           },
-          registerHint: "Hasło min. 6 znaków. Konto tworzone jest od razu, bez dodatkowych pól.",
+          registerHint:
+            "Hasło min. 6 znaków. Konto tworzone jest od razu, bez dodatkowych pól.",
           processing: "Przetwarzanie...",
           submitLogin: "Zaloguj się",
           submitRegister: "Utwórz konto",
@@ -133,7 +134,8 @@ const resources = {
       },
       offer: {
         title: "Oferta dla energetyki prosumenckiej",
-        subtitle: "Kompletny stack do monitorowania i automatyzacji urządzeń PV w czasie rzeczywistym.",
+        subtitle:
+          "Kompletny stack do monitorowania i automatyzacji urządzeń PV w czasie rzeczywistym.",
         live: "live",
         cards: {
           devices: {
@@ -156,7 +158,8 @@ const resources = {
       },
       pricing: {
         title: "Cennik",
-        subtitle: "Wybierz pakiet dopasowany do skali Twojej sieci energetycznej.",
+        subtitle:
+          "Wybierz pakiet dopasowany do skali Twojej sieci energetycznej.",
         highlight: "Najczęściej wybierany",
         select: "Wybierz",
         tiers: {
@@ -198,7 +201,8 @@ const resources = {
       },
       contact: {
         title: "Kontakt",
-        subtitle: "Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.",
+        subtitle:
+          "Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.",
         form: {
           name: "Imię i nazwisko",
           email: "Email",
@@ -225,7 +229,8 @@ const resources = {
         },
         register: {
           title: "Rejestracja",
-          subtitle: "Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.",
+          subtitle:
+            "Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.",
           submit: "Zarejestruj się",
           haveAccount: "Mam już konto",
           success: "Konto zostało utworzone. Możesz się zalogować.",
@@ -260,11 +265,9 @@ const resources = {
           subtitle: "Weryfikujemy link aktywacyjny, aby odblokować konto.",
           loadingTitle: "Potwierdzanie adresu e-mail…",
           successTitle: "E-mail potwierdzony 🎉",
-          successDescription:
-            "Twoje konto zostało pomyślnie aktywowane.",
+          successDescription: "Twoje konto zostało pomyślnie aktywowane.",
           errorTitle: "Aktywacja nie powiodła się ❌",
-          errorDescription:
-            "Link aktywacyjny jest nieprawidłowy lub wygasł.",
+          errorDescription: "Link aktywacyjny jest nieprawidłowy lub wygasł.",
           missingToken: "Brak tokenu aktywacyjnego.",
           goToLogin: "Przejdź do logowania",
           goToRegister: "Utwórz konto ponownie",
@@ -315,88 +318,119 @@ const resources = {
           },
         },
       },
-      providers:{
-        "title": "Providery",
-        "actions": {
-          "add": "Dodaj providera",
-          "create": "Utwórz providera",
-          "telemetry": "Telemetria"
+      providers: {
+        title: "Providery",
+        actions: {
+          add: "Dodaj providera",
+          create: "Utwórz providera",
+          telemetry: "Telemetria",
         },
-        "wizard": {
-          "steps": {
-            "provider": "Wybór providera",
-            "config": "Konfiguracja",
-            "summary": "Podsumowanie"
+        wizard: {
+          steps: {
+            provider: "Wybór providera",
+            config: "Konfiguracja",
+            summary: "Podsumowanie",
           },
-          "selectVendor": "Wybierz dostawcę",
-          "vendorMeta": "{{kind}} • {{unit}}",
-          "final": "Podsumowanie",
-          "actions": {
-            "next": "Dalej"
+          selectVendor: "Wybierz dostawcę",
+          vendorMeta: "{{kind}} • {{unit}}",
+          final: "Podsumowanie",
+          actions: {
+            next: "Dalej",
           },
-          "finalForm": {
-            "name": "Nazwa providera",
-            "minValue": "Minimalna wartość ({{unit}})",
-            "maxValue": "Maksymalna wartość ({{unit}})"
-          }
+          finalForm: {
+            name: "Nazwa providera",
+            minValue: "Minimalna wartość ({{unit}})",
+            maxValue: "Maksymalna wartość ({{unit}})",
+          },
         },
-        "errors": {
-          "load": "Nie udało się pobrać providerów.",
-          "loadDetail": "Błąd ładowania providerów: {{message}}",
-          "wizardStart": "Nie udało się rozpocząć kreatora: {{message}}",
-          "wizardStep": "Błąd podczas kroku kreatora: {{message}}",
-          "final": "Nie udało się dodać providera: {{message}}"
+        errors: {
+          load: "Nie udało się pobrać providerów.",
+          loadDetail: "Błąd ładowania providerów: {{message}}",
+          wizardStart: "Nie udało się rozpocząć kreatora: {{message}}",
+          wizardStep: "Błąd podczas kroku kreatora: {{message}}",
+          final: "Nie udało się dodać providera: {{message}}",
         },
-        "success": {
-          "create": "Provider został dodany."
+        success: {
+          create: "Provider został dodany.",
         },
-        "validation": {
-          "backendError": "Błąd walidacji: {{message}}"
+        validation: {
+          backendError: "Błąd walidacji: {{message}}",
         },
-        "card": {
-          "vendor": "Dostawca",
-          "type": "Typ",
-          "kind": "Rodzaj",
-          "unit": "Jednostka",
-          "range": "Próg automatyki",
-          "rated_power_w": "Moc znamionowa",
-          "lastValue": "Ostatnia wartość",
-          "lastMeasurement": "Ostatni pomiar:",
-          "measurementFresh": "Dane aktualne",
-          "measurementStale": "Dane nie są aktualne",
-          "unknownTime": "Brak informacji o czasie pomiaru"
+        card: {
+          vendor: "Dostawca",
+          type: "Typ",
+          kind: "Rodzaj",
+          unit: "Jednostka",
+          range: "Próg automatyki",
+          rated_power: "Moc znamionowa",
+          lastValue: "Ostatnia wartość",
+          lastMeasurement: "Ostatni pomiar:",
+          measurementFresh: "Dane aktualne",
+          measurementStale: "Dane nie są aktualne",
+          unknownTime: "Brak informacji o czasie pomiaru",
         },
-        "live": {
-          "title": "Dane inwertera na żywo",
-          "waiting": "Oczekiwanie na dane na żywo",
-          "updatedAt": "Zaktualizowano",
-          "noData": "Brak danych na żywo",
-          "streaming": "Dane napływają w czasie rzeczywistym"
+        live: {
+          title: "Dane inwertera na żywo",
+          waiting: "Oczekiwanie na dane na żywo",
+          updatedAt: "Zaktualizowano",
+          noData: "Brak danych na żywo",
+          streaming: "Dane napływają w czasie rzeczywistym",
         },
-        "telemetry": {
-          "title": "Telemetria providera",
-          "rangeStart": "Data od",
-          "rangeEnd": "Data do",
-          "loading": "Ładowanie telemetrii...",
-          "error": "Nie udało się pobrać telemetrii.",
-          "noData": "Brak danych telemetrycznych w wybranym zakresie.",
-          "noDayData": "Brak pomiarów w tym dniu.",
-          "zoom": "Powiększenie",
-          "yMin": "Y min",
-          "yMax": "Y max",
-          "min": "Min:",
-          "max": "Max:",
-          "timezone": "Czas lokalny"
+        telemetry: {
+          title: "Telemetria providera",
+          rangeStart: "Data od",
+          rangeEnd: "Data do",
+          dayLabel: "Data",
+          previousDay: "Poprzedni dzień",
+          nextDay: "Następny dzień",
+          loading: "Ładowanie telemetrii...",
+          error: "Nie udało się pobrać telemetrii.",
+          noData: "Brak danych telemetrycznych w wybranym zakresie.",
+          noDayData: "Brak pomiarów w tym dniu.",
+          noEntriesData: "Brak szczegółowych wpisów energii w tym dniu.",
+          liveStreaming: "Aktualizacja live",
+          liveMergedEntries:
+            "Wykres uzupełniono o {{count}} wpisów live dla wybranej daty.",
+          liveTodayHint: "Live aktualizuje tylko bieżący dzień.",
+          hourlyChart: "Produkcja godzinowa (słupki)",
+          entriesChart: "Wpisy energii (linia)",
+          zoom: "Powiększenie",
+          yMin: "Y min",
+          yMax: "Y max",
+          min: "Min:",
+          max: "Max:",
+          timezone: "Czas lokalny",
         },
-        "data_not_fresh": "Dane nie są aktualne.",
-        "empty": {
-          "title": "Brak skonfigurowanych providerów",
-          "description": "Dodaj pierwszego providera, aby rozpocząć.",
-          "action": "Dodaj providera"
-        }
+        data_not_fresh: "Dane nie są aktualne.",
+        empty: {
+          title: "Brak skonfigurowanych providerów",
+          description: "Dodaj pierwszego providera, aby rozpocząć.",
+          action: "Dodaj providera",
+        },
       },
       microcontrollers: {
-        title: "Mikrokontrolery użytkownika"
+        title: "Mikrokontrolery użytkownika",
+      },
+      dashboard: {
+        title: "Dashboard urządzeń",
+        subtitle:
+          "Live podgląd urządzeń, mikrokontrolerów i mocy providerów w jednym miejscu.",
+        itemsCount: "Urządzenia: {{count}}",
+        fetchError: "Nie udało się pobrać danych dashboardu.",
+        empty: "Brak urządzeń do wyświetlenia.",
+        cards: {
+          microcontroller: "Mikrokontroler",
+          provider: "Provider",
+          providerMissing: "Brak providera",
+          stateOn: "ON",
+          stateOff: "OFF",
+          noPowerData: "Brak danych mocy",
+          providerRange: "Zakres providera: {{min}} - {{max}} {{unit}}",
+          deviceState: "Stan urządzenia",
+          microStatus: "Status mikrokontrolera",
+          ratedPower: "Moc znamionowa",
+          lastHeartbeat: "Heartbeat",
+        },
       },
       devices: {
         ratedPower: "Moc znamionowa",
@@ -423,7 +457,7 @@ const resources = {
             energy: "Energia",
             energyCost: "Koszt energii",
             totalMinutes: "Czas pracy",
-            ratedPower: "Moc znamionowa"
+            ratedPower: "Moc znamionowa",
           },
           modes: {
             manual: "Manual",
@@ -432,17 +466,40 @@ const resources = {
           },
           stateOn: "Włączone",
           stateOff: "Wyłączone",
+          dayLabel: "Data",
+          previousDay: "Poprzedni dzień",
+          nextDay: "Następny dzień",
           rangeStart: "Data od",
           rangeEnd: "Data do",
           noEvents: "Brak zdarzeń w wybranym zakresie.",
           noEventsDay: "Brak zdarzeń w tym dniu (oś czasu pokazuje 24h).",
+          noFilteredEvents: "Brak zdarzeń dla aktywnych filtrów.",
+          eventsListTitle: "Ostatnie zdarzenia",
           legend: "Legenda:",
           zoom: "Powiększenie",
+          sources: {
+            live: "Live event",
+            history: "Dane historyczne",
+          },
+          live: {
+            deviceHeartbeat: "Heartbeat urządzenia",
+            lastHeartbeat: "Ostatni heartbeat",
+            microcontroller: "Status mikrokontrolera",
+            providerPower: "Moc providera (live)",
+            noProvider: "Brak przypiętego providera",
+            eventsMerged:
+              "Wykres zawiera dane historyczne i live eventy urządzenia ({{count}} nowych eventów).",
+            events: {
+              switchOn: "Heartbeat: urządzenie włączone",
+              switchOff: "Heartbeat: urządzenie wyłączone",
+              triggerReason: "Aktualizacja na podstawie heartbeat",
+            },
+          },
           eventTypes: {
             autoTrigger: "Auto trigger",
-            heartbeatFailure: "Heartbeat failure",
+            heartbeat: "Heartbeat",
             powerMissing: "Power missing",
-            manual: "Manual"
+            manual: "Manual",
           },
           loadError: "Nie udało się pobrać urządzenia.",
           eventsError: "Nie udało się pobrać telemetrii.",
@@ -541,7 +598,8 @@ const resources = {
           emailRequired: "Podaj adres e-mail.",
           passwordTooShort: "Hasło musi mieć co najmniej 8 znaków.",
           required: "To pole jest wymagane.",
-          minDevices: "Mikrokontroler musi obsługiwać co najmniej 1 urządzenie.",
+          minDevices:
+            "Mikrokontroler musi obsługiwać co najmniej 1 urządzenie.",
         },
         api: {
           generic: "Wystąpił błąd. Spróbuj ponownie później.",
@@ -605,6 +663,7 @@ const resources = {
       header: {
         menu: {
           admin: "Admin",
+          dashboard: "Dashboard",
           microcontrollers: "Microcontrollers",
           controllers: "Providers",
           account: "My account",
@@ -622,7 +681,6 @@ const resources = {
           password: "Password",
           role: "Role",
           isActive: "Active",
-
         },
       },
       landing: {
@@ -669,7 +727,8 @@ const resources = {
             login: "Login",
             register: "Register",
           },
-          registerHint: "Minimum 6 characters. The account is created immediately.",
+          registerHint:
+            "Minimum 6 characters. The account is created immediately.",
           processing: "Processing...",
           submitLogin: "Log in",
           submitRegister: "Create account",
@@ -684,7 +743,8 @@ const resources = {
       },
       offer: {
         title: "Offer for prosumer energy",
-        subtitle: "A complete stack for monitoring and automating PV devices in real time.",
+        subtitle:
+          "A complete stack for monitoring and automating PV devices in real time.",
         live: "live",
         cards: {
           devices: {
@@ -749,7 +809,8 @@ const resources = {
       },
       contact: {
         title: "Contact",
-        subtitle: "Tell us about your infrastructure — we’ll prepare a demo tailored to your inverters and Raspberry devices.",
+        subtitle:
+          "Tell us about your infrastructure — we’ll prepare a demo tailored to your inverters and Raspberry devices.",
         form: {
           name: "Full name",
           email: "Email",
@@ -787,7 +848,8 @@ const resources = {
           subtitle: "Send a password reset link to your email.",
           emptyEmail: "Please enter your email address.",
           submit: "Send reset link",
-          success: "If the account exists, we sent password reset instructions.",
+          success:
+            "If the account exists, we sent password reset instructions.",
           error: "Failed to send the message.",
         },
         reset: {
@@ -811,11 +873,9 @@ const resources = {
           subtitle: "We are validating the confirmation link sent to you.",
           loadingTitle: "Confirming your email…",
           successTitle: "Email confirmed 🎉",
-          successDescription:
-            "Your account has been successfully activated.",
+          successDescription: "Your account has been successfully activated.",
           errorTitle: "Activation failed ❌",
-          errorDescription:
-            "The activation link is invalid or expired.",
+          errorDescription: "The activation link is invalid or expired.",
           missingToken: "Missing activation token.",
           goToLogin: "Go to login",
           goToRegister: "Create account again",
@@ -868,85 +928,116 @@ const resources = {
           },
         },
       },
-      providers:{
-        "title": "Providers",
-        "actions": {
-          "add": "Add provider",
-          "create": "Create provider",
-          "telemetry": "Telemetry"
+      providers: {
+        title: "Providers",
+        actions: {
+          add: "Add provider",
+          create: "Create provider",
+          telemetry: "Telemetry",
         },
-        "wizard": {
-          "steps": {
-            "provider": "Select vendor",
-            "config": "Configuration",
-            "summary": "Summary"
+        wizard: {
+          steps: {
+            provider: "Select vendor",
+            config: "Configuration",
+            summary: "Summary",
           },
-          "selectVendor": "Pick a vendor",
-          "vendorMeta": "{{kind}} • {{unit}}",
-          "final": "Summary",
-          "actions": {
-            "next": "Next"
+          selectVendor: "Pick a vendor",
+          vendorMeta: "{{kind}} • {{unit}}",
+          final: "Summary",
+          actions: {
+            next: "Next",
           },
-          "finalForm": {
-            "name": "Provider name",
-            "minValue": "Min value ({{unit}})",
-            "maxValue": "Max value ({{unit}})"
-          }
+          finalForm: {
+            name: "Provider name",
+            minValue: "Min value ({{unit}})",
+            maxValue: "Max value ({{unit}})",
+          },
         },
-        "errors": {
-          "load": "Failed to load providers.",
-          "loadDetail": "Failed to load providers: {{message}}",
-          "wizardStart": "Unable to start wizard: {{message}}",
-          "wizardStep": "Wizard step failed: {{message}}",
-          "final": "Failed to create provider: {{message}}"
+        errors: {
+          load: "Failed to load providers.",
+          loadDetail: "Failed to load providers: {{message}}",
+          wizardStart: "Unable to start wizard: {{message}}",
+          wizardStep: "Wizard step failed: {{message}}",
+          final: "Failed to create provider: {{message}}",
         },
-        "success": {
-          "create": "Provider has been added."
+        success: {
+          create: "Provider has been added.",
         },
-        "validation": {
-          "backendError": "Validation error: {{message}}"
+        validation: {
+          backendError: "Validation error: {{message}}",
         },
-        "card": {
-          "vendor": "Vendor",
-          "type": "Type",
-          "kind": "Kind",
-          "unit": "Unit",
-          "rated_power_w": "Rated power",
-          "range": "Auto threshold",
-          "lastValue": "Last value",
-          "lastMeasurement": "Last measurement:"
+        card: {
+          vendor: "Vendor",
+          type: "Type",
+          kind: "Kind",
+          unit: "Unit",
+          rated_power: "Rated power",
+          range: "Auto threshold",
+          lastValue: "Last value",
+          lastMeasurement: "Last measurement:",
         },
-        "live": {
-          "title": "Live inverter data",
-          "waiting": "Waiting for live data",
-          "updatedAt": "Updated at",
-          "noData": "No live data available",
-          "streaming": "Data is streaming in real time"
+        live: {
+          title: "Live inverter data",
+          waiting: "Waiting for live data",
+          updatedAt: "Updated at",
+          noData: "No live data available",
+          streaming: "Data is streaming in real time",
         },
-        "telemetry": {
-          "title": "Provider telemetry",
-          "rangeStart": "Start date",
-          "rangeEnd": "End date",
-          "loading": "Loading telemetry...",
-          "error": "Failed to load telemetry.",
-          "noData": "No telemetry data in the selected range.",
-          "noDayData": "No measurements for this day.",
-          "zoom": "Zoom",
-          "yMin": "Y min",
-          "yMax": "Y max",
-          "min": "Min:",
-          "max": "Max:",
-          "timezone": "Local time"
+        telemetry: {
+          title: "Provider telemetry",
+          rangeStart: "Start date",
+          rangeEnd: "End date",
+          dayLabel: "Date",
+          previousDay: "Previous day",
+          nextDay: "Next day",
+          loading: "Loading telemetry...",
+          error: "Failed to load telemetry.",
+          noData: "No telemetry data in the selected range.",
+          noDayData: "No measurements for this day.",
+          noEntriesData: "No detailed energy entries for this day.",
+          liveStreaming: "Live updates",
+          liveMergedEntries:
+            "Chart includes {{count}} live entries for the selected date.",
+          liveTodayHint: "Live updates apply only to the current day.",
+          hourlyChart: "Hourly production (bars)",
+          entriesChart: "Energy entries (line)",
+          zoom: "Zoom",
+          yMin: "Y min",
+          yMax: "Y max",
+          min: "Min:",
+          max: "Max:",
+          timezone: "Local time",
         },
-        "data_not_fresh": "Live data is not fresh.",
-        "empty": {
-          "title": "No configured providers",
-          "description": "Add the first provider to get started.",
-          "action": "Add provider"
-        }
+        data_not_fresh: "Live data is not fresh.",
+        empty: {
+          title: "No configured providers",
+          description: "Add the first provider to get started.",
+          action: "Add provider",
+        },
       },
       microcontrollers: {
-        title: "User microcontrollers"
+        title: "User microcontrollers",
+      },
+      dashboard: {
+        title: "Device dashboard",
+        subtitle:
+          "Live overview of devices, microcontrollers, and provider power in one place.",
+        itemsCount: "Devices: {{count}}",
+        fetchError: "Failed to load dashboard data.",
+        empty: "No devices to display.",
+        cards: {
+          microcontroller: "Microcontroller",
+          provider: "Provider",
+          providerMissing: "No provider",
+          stateOn: "ON",
+          stateOff: "OFF",
+          noPowerData: "No power data",
+          providerRange: "Provider range: {{min}} - {{max}} {{unit}}",
+          deviceState: "Device state",
+          microStatus: "Microcontroller status",
+          ratedPower: "Rated power",
+          lastHeartbeat: "Heartbeat",
+        },
       },
       devices: {
         ratedPower: "Rated power",
@@ -973,7 +1064,7 @@ const resources = {
             energy: "Energy",
             energyCost: "Energy cost",
             totalMinutes: "Operating time",
-            ratedPower: "Rated power"
+            ratedPower: "Rated power",
           },
           modes: {
             manual: "Manual",
@@ -982,17 +1073,40 @@ const resources = {
           },
           stateOn: "On",
           stateOff: "Off",
+          dayLabel: "Date",
+          previousDay: "Previous day",
+          nextDay: "Next day",
           rangeStart: "Start date",
           rangeEnd: "End date",
           noEvents: "No events in the selected range.",
           noEventsDay: "No events this day (timeline still shows 24h scale).",
+          noFilteredEvents: "No events for active filters.",
+          eventsListTitle: "Recent events",
           legend: "Legend:",
           zoom: "Zoom",
+          sources: {
+            live: "Live event",
+            history: "Historical data",
+          },
+          live: {
+            deviceHeartbeat: "Device heartbeat",
+            lastHeartbeat: "Last heartbeat",
+            microcontroller: "Microcontroller status",
+            providerPower: "Provider power (live)",
+            noProvider: "No provider assigned",
+            eventsMerged:
+              "Timeline combines historical data and live device events ({{count}} new events).",
+            events: {
+              switchOn: "Heartbeat: device switched on",
+              switchOff: "Heartbeat: device switched off",
+              triggerReason: "Updated from heartbeat stream",
+            },
+          },
           eventTypes: {
             autoTrigger: "Auto trigger",
-            heartbeatFailure: "Heartbeat failure",
+            heartbeat: "Heartbeat",
             powerMissing: "Power missing",
-            manual: "Manual"
+            manual: "Manual",
           },
           loadError: "Failed to load device.",
           eventsError: "Failed to load telemetry.",

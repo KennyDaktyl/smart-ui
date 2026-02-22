@@ -15,8 +15,27 @@ export interface UserProvider {
   created_at: string;
 }
 
+export type ProviderMeasurement = {
+  id?: number;
+  provider_uuid?: string;
+  measured_at: string;
+  measured_value: number;
+  measured_unit?: string | null;
+  created_at?: string;
+};
+
+export type ProviderMeasurementSeries = {
+  unit: string | null;
+  entries: ProviderMeasurement[];
+};
+
 export type HourlyEnergyPoint = {
   hour: string;
+  energy: number;
+};
+
+export type EnergyEntryPoint = {
+  timestamp: string;
   energy: number;
 };
 
@@ -26,11 +45,12 @@ export type DayEnergy = {
   import_energy: number;
   export_energy: number;
   hours: HourlyEnergyPoint[];
+  entries?: EnergyEntryPoint[];
 };
 
 export type ProviderEnergySeries = {
   days: Record<string, DayEnergy>;
-  unit: string
+  unit: string | null;
 };
 
 export interface ProviderResponse {

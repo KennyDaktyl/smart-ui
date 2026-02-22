@@ -21,6 +21,7 @@ export function MicrocontrollerMeta({
   live,
 }: Props) {
   const { t } = useTranslation();
+  const deviceCount = microcontroller.devices?.length ?? 0;
 
   const backendMeasuredAt =
     microcontroller.power_provider?.last_value?.measured_at ?? null;
@@ -36,7 +37,7 @@ export function MicrocontrollerMeta({
         {t("microcontroller.uuid")}: {microcontroller.uuid}
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        {t("microcontroller.maxDevices")}: {microcontroller.max_devices}
+        {t("microcontroller.maxDevices")}: {deviceCount}/{microcontroller.max_devices}
       </Typography>
 
       {microcontroller.software_version && (

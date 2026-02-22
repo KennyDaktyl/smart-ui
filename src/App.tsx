@@ -10,6 +10,7 @@ import { AdminShell } from "./features/admin/components/layout/AdminShell";
 import ProvidersPage from "./pages/providers/ProvidersPage";
 import ProviderTelemetryPage from "./pages/providers/ProviderTelemetryPage";
 import DeviceDetailsPage from "./pages/devices/DeviceDetailsPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailsPage } from "./pages/admin/AdminUserDetailsPage";
 import { AdminMicrocontrollersPage } from "./pages/admin/AdminMicrocontrollersPage";
@@ -39,7 +40,7 @@ export default function App() {
 
   const isPublic = !auth?.token;
   const mode = isPublic ? "public" : "app";
-  const authedHome = "/microcontrollers";
+  const authedHome = "/dashboard";
 
   return (
     <AppShell mode={mode}>
@@ -89,6 +90,15 @@ export default function App() {
               ) : (
                 <Navigate to={authedHome} replace />
               )
+            }
+          />
+
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
             }
           />
 
