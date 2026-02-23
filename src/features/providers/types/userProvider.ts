@@ -21,6 +21,7 @@ export type ProviderMeasurement = {
   measured_at: string;
   measured_value: number;
   measured_unit?: string | null;
+  metadata_payload?: Record<string, unknown> | null;
   created_at?: string;
 };
 
@@ -34,23 +35,39 @@ export type HourlyEnergyPoint = {
   energy: number;
 };
 
-export type EnergyEntryPoint = {
+export type LegacyEnergyEntryPoint = {
   timestamp: string;
   energy: number;
 };
 
+export type ProviderTelemetryEntry =
+  | LegacyEnergyEntryPoint
+  | ProviderMeasurement;
+
 export type DayEnergy = {
   date: string;
-  total_energy: number;
-  import_energy: number;
-  export_energy: number;
-  hours: HourlyEnergyPoint[];
-  entries?: EnergyEntryPoint[];
+  total_energy?: number;
+  import_energy?: number;
+  export_energy?: number;
+  hours?: HourlyEnergyPoint[];
+  entries: ProviderTelemetryEntry[];
 };
 
 export type ProviderEnergySeries = {
-  days: Record<string, DayEnergy>;
-  unit: string | null;
+  days?: Record<
+    string,
+    {
+      date?: string;
+      entries?: ProviderTelemetryEntry[];
+      total_energy?: number;
+      import_energy?: number;
+      export_energy?: number;
+      hours?: HourlyEnergyPoint[];
+    }
+  >;
+  entries?: ProviderTelemetryEntry[];
+  date?: string;
+  unit?: string | null;
 };
 
 export interface ProviderResponse {

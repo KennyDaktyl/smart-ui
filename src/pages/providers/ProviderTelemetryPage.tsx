@@ -13,7 +13,10 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { LiveIndicator } from "@/features/common/components/atoms/LiveIndicator";
 import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
-import { ProviderTelemetryChart } from "@/features/providers/components/ProviderTelemetryChart";
+import {
+  ProviderTelemetryChart,
+  type TelemetryChartPoint,
+} from "@/features/providers/components/ProviderTelemetryChart";
 import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
 import { TelemetryDateNavigator } from "@/features/providers/telemetry/components/TelemetryDateNavigator";
 import { TelemetryPanel } from "@/features/providers/telemetry/components/TelemetryPanel";
@@ -25,7 +28,7 @@ import {
   isFutureDate,
 } from "@/features/providers/telemetry/utils/date";
 import type {
-  EnergyEntryPoint,
+  ProviderTelemetryEntry,
   ProviderResponse,
 } from "@/features/providers/types/userProvider";
 
@@ -40,15 +43,23 @@ type ProviderLocationState = {
 const MAX_LIVE_ENTRIES_PER_DAY = 1440;
 
 const normalizeEntry = (
-  entry: EnergyEntryPoint
-): EnergyEntryPoint | null => {
-  const timestampMs = Date.parse(entry.timestamp);
+  entry: ProviderTelemetryEntry | TelemetryChartPoint
+): TelemetryChartPoint | null => {
+  const timestamp = "measured_at" in entry ? entry.measured_at : entry.timestamp;
+  const value =
+    "measured_at" in entry
+      ? entry.measured_value
+      : "energy" in entry
+        ? entry.energy
+        : entry.value;
+
+  const timestampMs = Date.parse(timestamp);
   if (!Number.isFinite(timestampMs)) return null;
-  if (!Number.isFinite(entry.energy)) return null;
+  if (!Number.isFinite(value)) return null;
 
   return {
     timestamp: new Date(timestampMs).toISOString(),
-    energy: entry.energy,
+    value,
   };
 };
 
@@ -74,7 +85,7 @@ export default function ProviderTelemetryPage() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [liveUnit, setLiveUnit] = useState<string | null>(null);
   const [liveEntriesByDate, setLiveEntriesByDate] = useState<
-    Record<string, EnergyEntryPoint[]>
+    Record<string, TelemetryChartPoint[]>
   >({});
 
   const { provider } = useProviderDetails({
@@ -121,15 +132,15 @@ export default function ProviderTelemetryPage() {
 
         if (
           existingIndex >= 0 &&
-          existingForDay[existingIndex]?.energy === livePower
+          existingForDay[existingIndex]?.value === livePower
         ) {
           return prev;
         }
 
         const nextForDay = [...existingForDay];
-        const nextEntry: EnergyEntryPoint = {
+        const nextEntry: TelemetryChartPoint = {
           timestamp: normalizedTimestamp,
-          energy: livePower,
+          value: livePower,
         };
 
         if (existingIndex >= 0) {
@@ -163,19 +174,19 @@ export default function ProviderTelemetryPage() {
   );
 
   const dayWithLiveEntries = useMemo(() => {
-    if (!day) return null;
+    if (!day) return [] as TelemetryChartPoint[];
 
-    const historicalEntries = (day.entries ?? [])
+    const historicalEntries = day.entries
       .map(normalizeEntry)
-      .filter((entry): entry is EnergyEntryPoint => entry != null);
+      .filter((entry): entry is TelemetryChartPoint => entry != null);
 
     const liveEntries = (liveEntriesByDate[day.date] ?? [])
       .map(normalizeEntry)
-      .filter((entry): entry is EnergyEntryPoint => entry != null);
+      .filter((entry): entry is TelemetryChartPoint => entry != null);
 
-    if (!liveEntries.length) return day;
+    if (!liveEntries.length) return historicalEntries;
 
-    const merged = new Map<string, EnergyEntryPoint>();
+    const merged = new Map<string, TelemetryChartPoint>();
 
     historicalEntries.forEach((entry) => {
       merged.set(entry.timestamp, entry);
@@ -185,13 +196,9 @@ export default function ProviderTelemetryPage() {
       merged.set(entry.timestamp, entry);
     });
 
-    return {
-      ...day,
-      entries: [...merged.values()].sort(
-        (left, right) =>
-          Date.parse(left.timestamp) - Date.parse(right.timestamp)
-      ),
-    };
+    return [...merged.values()].sort(
+      (left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)
+    );
   }, [day, liveEntriesByDate]);
 
   const nextDayDisabled = selectedDate >= today;
@@ -230,18 +237,6 @@ export default function ProviderTelemetryPage() {
         providerName={providerName}
       >
         <Stack spacing={2}>
-          <TelemetryDateNavigator
-            dateLabel={t("providers.telemetry.dayLabel")}
-            previousDayLabel={t("providers.telemetry.previousDay")}
-            nextDayLabel={t("providers.telemetry.nextDay")}
-            selectedDate={selectedDate}
-            maxDate={today}
-            nextDisabled={nextDayDisabled}
-            onDateChange={handleDateChange}
-            onPreviousDay={goPreviousDay}
-            onNextDay={goNextDay}
-          />
-
           <Stack spacing={0.75}>
             <ProviderLiveWidget
               uuid={providerUuid}
@@ -313,6 +308,18 @@ export default function ProviderTelemetryPage() {
 
           {error && <Alert severity="error">{error}</Alert>}
 
+          <TelemetryDateNavigator
+            dateLabel={t("providers.telemetry.dayLabel")}
+            previousDayLabel={t("providers.telemetry.previousDay")}
+            nextDayLabel={t("providers.telemetry.nextDay")}
+            selectedDate={selectedDate}
+            maxDate={today}
+            nextDisabled={nextDayDisabled}
+            onDateChange={handleDateChange}
+            onPreviousDay={goPreviousDay}
+            onNextDay={goNextDay}
+          />
+
           {loading ? (
             <Stack
               alignItems="center"
@@ -327,7 +334,8 @@ export default function ProviderTelemetryPage() {
             </Typography>
           ) : (
             <ProviderTelemetryChart
-              day={dayWithLiveEntries ?? day}
+              day={day}
+              points={dayWithLiveEntries}
               unit={chartUnit}
               noDataLabel={t("providers.telemetry.noDayData")}
               noEntriesLabel={t("providers.telemetry.noEntriesData")}

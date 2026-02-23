@@ -23,6 +23,11 @@ const PADDING_BOTTOM = 44;
 
 const WARSAW_TZ = "Europe/Warsaw";
 
+export type TelemetryChartPoint = {
+  timestamp: string;
+  value: number;
+};
+
 type HourBar = {
   ts: number;
   value: number;
@@ -46,7 +51,6 @@ type EntryPoint = {
 type ChartGeometry = {
   width: number;
   graphWidth: number;
-  graphHeight: number;
   min: number;
   max: number;
   yTicks: number[];
@@ -57,6 +61,7 @@ type ChartGeometry = {
 
 type ProviderTelemetryChartProps = {
   day: DayEnergy;
+  points: TelemetryChartPoint[];
   unit?: string | null;
   noDataLabel: string;
   noEntriesLabel?: string;
@@ -83,7 +88,7 @@ const formatDateTimeWarsaw = (ts: number, locale: string) =>
     second: "2-digit",
   }).format(ts);
 
-const formatEnergy = (value: number) => {
+const formatValue = (value: number) => {
   const abs = Math.abs(value);
   if (abs < 1) return value.toFixed(3);
   if (abs < 10) return value.toFixed(2);
@@ -126,9 +131,7 @@ const buildGeometry = (
   const graphWidth = width - PADDING_LEFT - PADDING_RIGHT;
   const graphHeight = height - PADDING_TOP - PADDING_BOTTOM;
 
-  const safeMax = max;
-  const safeMin = min;
-  const safeRange = Math.abs(safeMax - safeMin) < 1e-9 ? 1 : safeMax - safeMin;
+  const safeRange = Math.abs(max - min) < 1e-9 ? 1 : max - min;
 
   const xFor = (ts: number) => {
     const ratio = clamp((ts - dayStartMs) / DAY_MS, 0, 1);
@@ -136,15 +139,14 @@ const buildGeometry = (
   };
 
   const yFor = (value: number) =>
-    PADDING_TOP + (1 - (value - safeMin) / safeRange) * graphHeight;
+    PADDING_TOP + (1 - (value - min) / safeRange) * graphHeight;
 
   return {
     width,
     graphWidth,
-    graphHeight,
-    min: safeMin,
-    max: safeMax,
-    yTicks: buildLinearTicks(safeMin, safeMax, 4),
+    min,
+    max,
+    yTicks: buildLinearTicks(min, max, 4),
     zeroY: yFor(0),
     xFor,
     yFor,
@@ -160,7 +162,8 @@ const buildLinePath = (points: EntryPoint[]) =>
 
 export function ProviderTelemetryChart({
   day,
-  unit = "kWh",
+  points,
+  unit = "kW",
   noDataLabel,
   noEntriesLabel,
 }: ProviderTelemetryChartProps) {
@@ -168,10 +171,7 @@ export function ProviderTelemetryChart({
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
   const [zoom, setZoom] = useState(1);
 
-  const dayStartMs = useMemo(
-    () => Date.parse(`${day.date}T00:00:00Z`),
-    [day.date]
-  );
+  const dayStartMs = useMemo(() => Date.parse(`${day.date}T00:00:00Z`), [day.date]);
 
   const chartWidth = BASE_WIDTH * zoom;
   const xTickHours = useMemo(
@@ -180,7 +180,7 @@ export function ProviderTelemetryChart({
   );
 
   const barsChart = useMemo(() => {
-    const hours = day.hours
+    const hours = (day.hours ?? [])
       .map((point) => {
         const hourStartMs = Date.parse(point.hour);
         if (Number.isNaN(hourStartMs)) return null;
@@ -207,8 +207,8 @@ export function ProviderTelemetryChart({
     let max = Math.max(0, ...values);
 
     if (Math.abs(max - min) < 1e-9) {
-      max = max + 1;
-      min = min - 1;
+      max += 1;
+      min -= 1;
     }
 
     const geometry = buildGeometry(chartWidth, BAR_HEIGHT, min, max, dayStartMs);
@@ -238,13 +238,13 @@ export function ProviderTelemetryChart({
   }, [chartWidth, day.hours, dayStartMs, locale]);
 
   const entriesChart = useMemo(() => {
-    const entries = (day.entries ?? [])
+    const normalizedEntries = points
       .map((point) => {
         const ts = Date.parse(point.timestamp);
-        if (Number.isNaN(ts)) return null;
+        if (!Number.isFinite(ts) || !Number.isFinite(point.value)) return null;
         return {
           ts,
-          value: point.energy,
+          value: point.value,
           timeLabel: formatTimeWarsaw(ts, locale),
           dateTimeLabel: formatDateTimeWarsaw(ts, locale),
         };
@@ -252,7 +252,7 @@ export function ProviderTelemetryChart({
       .filter((point): point is NonNullable<typeof point> => point != null)
       .sort((a, b) => a.ts - b.ts);
 
-    if (!entries.length) {
+    if (!normalizedEntries.length) {
       return {
         points: [] as EntryPoint[],
         path: "",
@@ -260,7 +260,7 @@ export function ProviderTelemetryChart({
       };
     }
 
-    const values = entries.map((entry) => entry.value);
+    const values = normalizedEntries.map((entry) => entry.value);
     let min = Math.min(...values);
     let max = Math.max(...values);
 
@@ -273,20 +273,23 @@ export function ProviderTelemetryChart({
     }
 
     const geometry = buildGeometry(chartWidth, LINE_HEIGHT, min, max, dayStartMs);
-    const points = entries.map((entry) => ({
+    const linePoints = normalizedEntries.map((entry) => ({
       ...entry,
       x: geometry.xFor(entry.ts),
       y: geometry.yFor(entry.value),
     }));
 
     return {
-      points,
-      path: buildLinePath(points),
+      points: linePoints,
+      path: buildLinePath(linePoints),
       geometry,
     };
-  }, [chartWidth, day.entries, dayStartMs, locale]);
+  }, [chartWidth, dayStartMs, locale, points]);
 
-  const unitLabel = unit ?? "kWh";
+  const unitLabel = unit ?? "kW";
+  const totalEnergy = day.total_energy ?? 0;
+  const importEnergy = day.import_energy ?? 0;
+  const exportEnergy = day.export_energy ?? 0;
 
   return (
     <Box sx={{ borderRadius: 2, border: "1px solid rgba(15,139,111,0.18)", p: 2 }}>
@@ -331,13 +334,13 @@ export function ProviderTelemetryChart({
 
       <Stack direction="row" spacing={3} mb={1} flexWrap="wrap">
         <Typography color="success.main">
-          +{formatEnergy(day.export_energy)} {unitLabel}
+          +{formatValue(exportEnergy)} {unitLabel}
         </Typography>
         <Typography color="error.main">
-          -{formatEnergy(day.import_energy)} {unitLabel}
+          -{formatValue(importEnergy)} {unitLabel}
         </Typography>
         <Typography fontWeight={700} color="primary">
-          Σ {formatEnergy(day.total_energy)} {unitLabel}
+          Σ {formatValue(totalEnergy)} {unitLabel}
         </Typography>
       </Stack>
 
@@ -365,7 +368,7 @@ export function ProviderTelemetryChart({
                   textAnchor="end"
                   fill="#6b7280"
                 >
-                  {formatEnergy(value)}
+                  {formatValue(value)}
                 </text>
               </g>
             );
@@ -416,7 +419,7 @@ export function ProviderTelemetryChart({
                 fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
               >
                 <title>
-                  {`${bar.timeLabel}: ${formatEnergy(bar.value)} ${unitLabel}/h (${bar.dateTimeLabel})`}
+                  {`${bar.timeLabel}: ${formatValue(bar.value)} ${unitLabel}/h (${bar.dateTimeLabel})`}
                 </title>
               </rect>
               <text
@@ -426,41 +429,17 @@ export function ProviderTelemetryChart({
                 textAnchor="middle"
                 fill="#0f172a"
               >
-                {formatEnergy(bar.value)}
+                {formatValue(bar.value)}
               </text>
             </g>
           ))}
         </svg>
       </Box>
 
-      {!barsChart.bars.length ? (
+      {!barsChart.bars.length && (
         <Typography align="center" color="text.secondary" mt={1.5}>
           {noDataLabel}
         </Typography>
-      ) : (
-        <Stack
-          direction="row"
-          flexWrap="wrap"
-          gap={0.75}
-          mt={1}
-          sx={{ color: "text.secondary" }}
-        >
-          {barsChart.bars.map((bar, index) => (
-            <Typography
-              key={`bar-label-${index}`}
-              variant="caption"
-              sx={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 1,
-                px: 0.75,
-                py: 0.25,
-                backgroundColor: "#f8fafc",
-              }}
-            >
-              {bar.timeLabel}: {formatEnergy(bar.value)} {unitLabel}
-            </Typography>
-          ))}
-        </Stack>
       )}
 
       <Typography
@@ -493,7 +472,7 @@ export function ProviderTelemetryChart({
                   textAnchor="end"
                   fill="#6b7280"
                 >
-                  {formatEnergy(value)}
+                  {formatValue(value)}
                 </text>
               </g>
             );
@@ -544,7 +523,7 @@ export function ProviderTelemetryChart({
               fill="#0f8b6f"
             >
               <title>
-                {`${point.timeLabel}: ${formatEnergy(point.value)} ${unitLabel} (${point.dateTimeLabel})`}
+                {`${point.timeLabel}: ${formatValue(point.value)} ${unitLabel} (${point.dateTimeLabel})`}
               </title>
             </circle>
           ))}
