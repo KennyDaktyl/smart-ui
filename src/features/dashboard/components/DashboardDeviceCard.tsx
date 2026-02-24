@@ -38,7 +38,9 @@ const resolveModeLabel = (
 
 const resolveGaugeBounds = (
   provider: ProviderResponse | null,
-  currentPower: number | null
+  currentPower: number | null,
+  threshold: number | null,
+  ratedPower: number | null
 ) => {
   const min = provider?.value_min ?? 0;
 
@@ -47,12 +49,14 @@ const resolveGaugeBounds = (
     return { min, max: explicitMax };
   }
 
-  const observedPower = Math.abs(currentPower ?? 0);
-  const lastPower = Math.abs(provider?.last_value?.measured_value ?? 0);
+  const observedPower = currentPower ?? 0;
+  const lastPower = provider?.last_value?.measured_value ?? 0;
+  const thresholdValue = threshold ?? 0;
+  const ratedValue = ratedPower ?? 0;
 
   return {
     min,
-    max: Math.max(min + 1, observedPower, lastPower, 10),
+    max: Math.max(min + 1, observedPower, lastPower, thresholdValue, ratedValue, 10),
   };
 };
 
@@ -227,8 +231,14 @@ export function DashboardDeviceCard({
     : "—";
 
   const gaugeBounds = useMemo(
-    () => resolveGaugeBounds(provider, providerPower),
-    [provider, providerPower]
+    () =>
+      resolveGaugeBounds(
+        provider,
+        providerPower,
+        isAutoMode ? thresholdValue : null,
+        device.rated_power ?? null
+      ),
+    [device.rated_power, isAutoMode, provider, providerPower, thresholdValue]
   );
 
   const microStatus = resolveMicroStatus(microcontrollerLive, t);
@@ -248,11 +258,11 @@ export function DashboardDeviceCard({
     ? new Date(deviceLive.seenAt).toLocaleTimeString()
     : t("common.notAvailable");
   const metaCellSx = {
-    minHeight: 52,
+    minHeight: 56,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    gap: 0.35,
+    gap: 0.45,
   } as const;
   const metaValueSx = {
     minHeight: 24,
@@ -291,7 +301,7 @@ export function DashboardDeviceCard({
     <CardShell
       title={device.name}
       subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
-      headerSx={{ minHeight: 88 }}
+      headerSx={{ minHeight: 94 }}
       titleSx={{
         display: "-webkit-box",
         overflow: "hidden",
@@ -314,7 +324,7 @@ export function DashboardDeviceCard({
         <Stack
           spacing={0.5}
           alignItems="flex-end"
-          sx={{ minHeight: 56, justifyContent: "space-between", textAlign: "right" }}
+          sx={{ minHeight: 62, justifyContent: "space-between", textAlign: "right" }}
         >
           <Chip
             size="small"
@@ -374,32 +384,37 @@ export function DashboardDeviceCard({
       }
       sx={{
         width: "100%",
-        minHeight: 420,
+        minHeight: 560,
         height: "100%",
         borderColor: alpha("#0f8b6f", 0.28),
         background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,252,249,1) 100%)",
       }}
     >
-      <Stack spacing={2} sx={{ height: "100%" }}>
-        <ProviderPowerGauge
-          power={providerPower}
-          unit={providerUnit}
-          min={gaugeBounds.min}
-          max={gaugeBounds.max}
-          isOn={isOn}
-          onLabel={t("dashboard.cards.stateOn")}
-          offLabel={t("dashboard.cards.stateOff")}
-          pendingLabel="--"
-          noDataLabel={t("dashboard.cards.noPowerData")}
-        />
+      <Stack spacing={1.8} sx={{ height: "100%" }}>
+        <Stack spacing={0.8} sx={{ minHeight: 286 }}>
+          <ProviderPowerGauge
+            power={providerPower}
+            unit={providerUnit}
+            min={gaugeBounds.min}
+            max={gaugeBounds.max}
+            threshold={isAutoMode ? thresholdValue : null}
+            isOn={isOn}
+            onLabel={t("dashboard.cards.stateOn")}
+            offLabel={t("dashboard.cards.stateOff")}
+            pendingLabel="--"
+            noDataLabel={t("dashboard.cards.noPowerData")}
+            powerLabel={t("devices.details.fields.power")}
+            thresholdLabel={t("devices.details.fields.threshold")}
+          />
 
-        <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
-          {t("dashboard.cards.providerRange", {
-            min: gaugeBounds.min.toFixed(1),
-            max: gaugeBounds.max.toFixed(1),
-            unit: providerUnit ?? "",
-          })}
-        </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+            {t("dashboard.cards.providerRange", {
+              min: gaugeBounds.min.toFixed(1),
+              max: gaugeBounds.max.toFixed(1),
+              unit: providerUnit ?? "",
+            })}
+          </Typography>
+        </Stack>
 
         <Stack
           direction="row"
