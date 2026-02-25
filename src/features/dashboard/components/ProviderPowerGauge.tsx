@@ -9,6 +9,12 @@ const formatPower = (value: number | null, unit: string | null | undefined) => {
   return `${value.toFixed(2)} ${unit ?? ""}`.trim();
 };
 
+const formatPowerCompact = (value: number, unit: string | null | undefined) =>
+  `${value.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  })} ${unit ?? ""}`.trim();
+
 const formatScaleValue = (value: number) =>
   Number(value.toFixed(2)).toLocaleString(undefined, {
     minimumFractionDigits: 0,
@@ -21,13 +27,14 @@ type ProviderPowerGaugeProps = {
   min: number;
   max: number;
   threshold?: number | null;
+  ratedPower?: number | null;
+  providerPowerLabel?: string;
+  ratedPowerLabel?: string;
   isOn: boolean | null;
   onLabel: string;
   offLabel: string;
   pendingLabel: string;
   noDataLabel: string;
-  powerLabel?: string;
-  thresholdLabel?: string;
   rangeLabel?: string;
 };
 
@@ -37,13 +44,14 @@ export function ProviderPowerGauge({
   min,
   max,
   threshold,
+  ratedPower,
+  providerPowerLabel,
+  ratedPowerLabel,
   isOn,
   onLabel,
   offLabel,
   pendingLabel,
   noDataLabel,
-  powerLabel,
-  thresholdLabel,
   rangeLabel,
 }: ProviderPowerGaugeProps) {
   const theme = useTheme();
@@ -58,6 +66,10 @@ export function ProviderPowerGauge({
     threshold != null && Number.isFinite(threshold)
       ? clamp(Number(threshold), gaugeMin, gaugeMax)
       : null;
+  const normalizedRatedPower =
+    ratedPower != null && Number.isFinite(ratedPower)
+      ? clamp(Number(ratedPower), gaugeMin, gaugeMax)
+      : null;
 
   const ratio =
     normalizedPower == null
@@ -67,6 +79,10 @@ export function ProviderPowerGauge({
     normalizedThreshold == null
       ? null
       : clamp((normalizedThreshold - gaugeMin) / gaugeRange, 0, 1);
+  const ratedPowerRatio =
+    normalizedRatedPower == null
+      ? null
+      : clamp((normalizedRatedPower - gaugeMin) / gaugeRange, 0, 1);
 
   const missingToThreshold =
     normalizedPower != null && normalizedThreshold != null
@@ -142,6 +158,8 @@ export function ProviderPowerGauge({
   };
   const thresholdAngle =
     thresholdRatio == null ? null : arcStartDeg + arcSpanDeg * thresholdRatio;
+  const ratedPowerAngle =
+    ratedPowerRatio != null ? arcStartDeg + arcSpanDeg * ratedPowerRatio : null;
   const powerAngle = arcStartDeg + arcSpanDeg * ratio;
   const scaleTickCount = 5;
   const scaleStep = (gaugeMax - gaugeMin) / scaleTickCount;
@@ -158,6 +176,18 @@ export function ProviderPowerGauge({
     thresholdAngle == null ? null : pointOnCircle(thresholdAngle, -strokeWidth / 2 - 2);
   const thresholdOuterPoint =
     thresholdAngle == null ? null : pointOnCircle(thresholdAngle, strokeWidth / 2 + 7);
+  const ratedInnerPoint =
+    ratedPowerAngle == null
+      ? null
+      : pointOnCircle(ratedPowerAngle, -strokeWidth / 2 - 2);
+  const ratedOuterPoint =
+    ratedPowerAngle == null ? null : pointOnCircle(ratedPowerAngle, strokeWidth / 2 + 7);
+  const providerValueText =
+    normalizedPower == null ? noDataLabel : formatPower(normalizedPower, unit);
+  const ratedValueText =
+    normalizedRatedPower == null
+      ? noDataLabel
+      : formatPowerCompact(normalizedRatedPower, unit);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.75 }}>
@@ -246,6 +276,18 @@ export function ProviderPowerGauge({
             />
           )}
 
+          {ratedInnerPoint && ratedOuterPoint && (
+            <line
+              x1={ratedInnerPoint.x}
+              y1={ratedInnerPoint.y}
+              x2={ratedOuterPoint.x}
+              y2={ratedOuterPoint.y}
+              stroke={alpha(theme.palette.info.main, 0.96)}
+              strokeWidth={3}
+              strokeLinecap="round"
+            />
+          )}
+
         </svg>
 
         <Box
@@ -266,8 +308,29 @@ export function ProviderPowerGauge({
           <Typography variant="h5" fontWeight={800} sx={{ color: stateColor, lineHeight: 1 }}>
             {stateLabel}
           </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {normalizedPower == null ? noDataLabel : formatPower(normalizedPower, unit)}
+          <Typography
+            variant="caption"
+            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.58rem", mt: 0.45 }}
+          >
+            {providerPowerLabel ?? "Moc providera"}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", fontSize: "0.72rem", fontWeight: 500, lineHeight: 1.2 }}
+          >
+            {providerValueText}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.58rem", mt: 0.25 }}
+          >
+            {ratedPowerLabel ?? "Moc znamionowa"}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: alpha(theme.palette.info.main, 0.96), fontSize: "0.7rem", fontWeight: 600, lineHeight: 1.2 }}
+          >
+            {ratedValueText}
           </Typography>
         </Box>
       </Box>
@@ -295,23 +358,6 @@ export function ProviderPowerGauge({
           {`${gaugeMax.toFixed(1)} ${unit ?? ""}`.trim()}
         </Typography>
       </Box>
-
-      {normalizedThreshold != null && (
-        <Typography
-          variant="caption"
-          sx={{ color: alpha(theme.palette.warning.dark, 0.95), lineHeight: 1.2 }}
-        >
-          {`${thresholdLabel ?? "Threshold"}: ${normalizedThreshold.toFixed(2)} ${
-            unit ?? ""
-          }`.trim()}
-        </Typography>
-      )}
-
-      {normalizedPower != null && (
-        <Typography variant="caption" color="text.secondary">
-          {`${powerLabel ?? "Power"}: ${formatPower(normalizedPower, unit)}`}
-        </Typography>
-      )}
 
       {rangeLabel && (
         <Typography variant="caption" color="text.secondary">

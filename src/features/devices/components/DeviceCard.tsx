@@ -253,6 +253,10 @@ export function DeviceCard({
             variant="body2"
             fontWeight={600}
             sx={{
+              color:
+                isAuto && device.threshold_value != null
+                  ? (theme) => theme.palette.warning.dark
+                  : "text.secondary",
               minWidth: 0,
               textAlign: "right",
               whiteSpace: "nowrap",
@@ -273,6 +277,10 @@ export function DeviceCard({
             variant="body2"
             fontWeight={600}
             sx={{
+              color:
+                device.rated_power != null
+                  ? (theme) => theme.palette.info.main
+                  : "text.secondary",
               minWidth: 0,
               textAlign: "right",
               whiteSpace: "nowrap",

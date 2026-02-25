@@ -513,7 +513,7 @@ const resources = {
             deviceHeartbeat: "Heartbeat urządzenia",
             lastHeartbeat: "Ostatni heartbeat",
             microcontroller: "Status mikrokontrolera",
-            providerPower: "Moc providera (live)",
+            providerPower: "Moc providera",
             noProvider: "Brak przypiętego providera",
             eventsMerged:
               "Wykres zawiera dane historyczne i live eventy urządzenia ({{count}} nowych eventów).",

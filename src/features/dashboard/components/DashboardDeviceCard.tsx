@@ -216,10 +216,15 @@ export function DashboardDeviceCard({
   }, [baseManualState, isManualMode, manualOverride]);
 
   const isOn = resolveOnState(effectiveDevice, deviceLive);
-  const providerPower = providerLive?.power ?? provider?.last_value?.measured_value ?? null;
+  const livePower = providerLive?.power;
+  const hasFiniteLivePower = livePower != null && Number.isFinite(livePower);
+  const providerPower = hasFiniteLivePower
+    ? Number(livePower)
+    : provider?.last_value?.measured_value ?? null;
   const providerUnit =
-    providerLive?.unit ??
+    (hasFiniteLivePower ? providerLive?.unit : null) ??
     provider?.last_value?.measured_unit ??
+    providerLive?.unit ??
     provider?.unit ??
     null;
   const thresholdValue = deviceLive?.threshold ?? device.threshold_value ?? null;
@@ -372,9 +377,14 @@ export function DashboardDeviceCard({
               <Typography
                 variant="body2"
                 fontWeight={600}
-                color="text.primary"
                 noWrap
-                sx={{ maxWidth: 132 }}
+                sx={{
+                  maxWidth: 132,
+                  color:
+                    isAutoMode && thresholdValue != null
+                      ? (theme) => theme.palette.warning.dark
+                      : "text.primary",
+                }}
               >
                 {thresholdDisplayLabel}
               </Typography>
@@ -384,36 +394,29 @@ export function DashboardDeviceCard({
       }
       sx={{
         width: "100%",
-        minHeight: 560,
+        minHeight: 528,
         height: "100%",
         borderColor: alpha("#0f8b6f", 0.28),
         background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,252,249,1) 100%)",
       }}
     >
       <Stack spacing={1.8} sx={{ height: "100%" }}>
-        <Stack spacing={0.8} sx={{ minHeight: 286 }}>
+        <Stack spacing={0.8} sx={{ minHeight: 246 }}>
           <ProviderPowerGauge
             power={providerPower}
             unit={providerUnit}
             min={gaugeBounds.min}
             max={gaugeBounds.max}
             threshold={isAutoMode ? thresholdValue : null}
+            ratedPower={device.rated_power ?? null}
             isOn={isOn}
             onLabel={t("dashboard.cards.stateOn")}
             offLabel={t("dashboard.cards.stateOff")}
             pendingLabel="--"
             noDataLabel={t("dashboard.cards.noPowerData")}
-            powerLabel={t("devices.details.fields.power")}
-            thresholdLabel={t("devices.details.fields.threshold")}
+            providerPowerLabel={t("devices.details.live.providerPower")}
+            ratedPowerLabel={t("dashboard.cards.ratedPower")}
           />
-
-          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
-            {t("dashboard.cards.providerRange", {
-              min: gaugeBounds.min.toFixed(1),
-              max: gaugeBounds.max.toFixed(1),
-              unit: providerUnit ?? "",
-            })}
-          </Typography>
         </Stack>
 
         <Stack
@@ -528,7 +531,17 @@ export function DashboardDeviceCard({
               <Typography variant="caption" color="text.secondary" noWrap>
                 {t("dashboard.cards.ratedPower")}
               </Typography>
-              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+              <Typography
+                variant="body2"
+                fontWeight={600}
+                noWrap
+                sx={{
+                  color:
+                    device.rated_power != null
+                      ? (theme) => theme.palette.info.main
+                      : "text.secondary",
+                }}
+              >
                 {device.rated_power != null
                   ? `${device.rated_power} ${providerUnit ?? "kW"}`
                   : t("common.notAvailable")}

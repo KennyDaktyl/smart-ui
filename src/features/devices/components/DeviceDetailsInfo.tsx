@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import Grid from "@mui/material/Grid2";
+import { Typography } from "@mui/material";
 
 import { DeviceInfoTile } from "./DeviceInfoTile";
 import type { Device } from "@/features/devices/types/devicesType";
@@ -36,8 +37,20 @@ export function DeviceDetailsInfo({
           label={String(t("devices.details.fields.power"))}
           value={
             device.rated_power != null
-              ? `${device.rated_power} W`
-              : String(t("common.notAvailable"))
+              ? (
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{ color: (theme) => theme.palette.info.main }}
+                  >
+                    {`${device.rated_power} W`}
+                  </Typography>
+                )
+              : (
+                  <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                    {String(t("common.notAvailable"))}
+                  </Typography>
+                )
           }
         />
       </Grid>
@@ -46,8 +59,20 @@ export function DeviceDetailsInfo({
           label={String(t("devices.details.fields.threshold"))}
           value={
             isAutoMode && device.threshold_value != null
-              ? `${device.threshold_value} W`
-              : String(t("common.notAvailable"))
+              ? (
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{ color: (theme) => theme.palette.warning.dark }}
+                  >
+                    {`${device.threshold_value} W`}
+                  </Typography>
+                )
+              : (
+                  <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                    {String(t("common.notAvailable"))}
+                  </Typography>
+                )
           }
         />
       </Grid>

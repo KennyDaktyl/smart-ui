@@ -601,8 +601,20 @@ export default function DeviceDetailsPage() {
                     label={String(t("devices.details.fields.ratedPower"))}
                     value={
                       eventsResponse?.rated_power != null && eventsResponse.power_unit
-                        ? `${eventsResponse.rated_power} ${eventsResponse.power_unit}`
-                        : t("common.notAvailable")
+                        ? (
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight={600}
+                              sx={{ color: (theme) => theme.palette.info.main }}
+                            >
+                              {`${eventsResponse.rated_power} ${eventsResponse.power_unit}`}
+                            </Typography>
+                          )
+                        : (
+                            <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                              {t("common.notAvailable")}
+                            </Typography>
+                          )
                     }
                   />
                 </Box>
