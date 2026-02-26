@@ -1,7 +1,7 @@
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
-import { Box, IconButton, Stack, Typography } from "@mui/material";
-import { useMemo, useState } from "react";
+import { Box, IconButton, Popover, Stack, Typography } from "@mui/material";
+import { type MouseEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayEnergy } from "../types/userProvider";
 
@@ -15,8 +15,9 @@ const ZOOM_STEP = 0.5;
 const BASE_WIDTH = 960;
 const BAR_HEIGHT = 280;
 const LINE_HEIGHT = 280;
+const Y_AXIS_WIDTH = 58;
 
-const PADDING_LEFT = 60;
+const PADDING_LEFT = 14;
 const PADDING_RIGHT = 20;
 const PADDING_TOP = 20;
 const PADDING_BOTTOM = 44;
@@ -57,6 +58,14 @@ type ChartGeometry = {
   zeroY: number;
   xFor: (ts: number) => number;
   yFor: (value: number) => number;
+};
+
+type HoverTooltipState = {
+  top: number;
+  left: number;
+  value: number;
+  timeLabel: string;
+  dateTimeLabel: string;
 };
 
 type ProviderTelemetryChartProps = {
@@ -160,6 +169,49 @@ const buildLinePath = (points: EntryPoint[]) =>
     )
     .join(" ");
 
+type StickyYAxisProps = {
+  ticks: number[];
+  yFor: (value: number) => number;
+  height: number;
+};
+
+const StickyYAxis = ({ ticks, yFor, height }: StickyYAxisProps) => (
+  <Box
+    sx={{
+      width: Y_AXIS_WIDTH,
+      minWidth: Y_AXIS_WIDTH,
+      flexShrink: 0,
+      borderRight: "1px solid #eef2f7",
+    }}
+  >
+    <svg width={Y_AXIS_WIDTH} height={height}>
+      {ticks.map((value, index) => {
+        const y = yFor(value);
+        return (
+          <g key={`axis-y-${index}`}>
+            <line
+              x1={Y_AXIS_WIDTH - 6}
+              x2={Y_AXIS_WIDTH}
+              y1={y}
+              y2={y}
+              stroke="#d1d5db"
+            />
+            <text
+              x={Y_AXIS_WIDTH - 10}
+              y={y + 4}
+              fontSize={11}
+              textAnchor="end"
+              fill="#6b7280"
+            >
+              {formatValue(value)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  </Box>
+);
+
 export function ProviderTelemetryChart({
   day,
   points,
@@ -170,6 +222,9 @@ export function ProviderTelemetryChart({
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
   const [zoom, setZoom] = useState(1);
+  const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(
+    null
+  );
 
   const dayStartMs = useMemo(() => Date.parse(`${day.date}T00:00:00Z`), [day.date]);
 
@@ -291,6 +346,23 @@ export function ProviderTelemetryChart({
   const importEnergy = day.import_energy ?? 0;
   const exportEnergy = day.export_energy ?? 0;
 
+  const showTooltip = (
+    event: MouseEvent<SVGGraphicsElement>,
+    value: number,
+    timeLabel: string,
+    dateTimeLabel: string
+  ) => {
+    setHoverTooltip({
+      top: Math.round(event.clientY + 12),
+      left: Math.round(event.clientX + 12),
+      value,
+      timeLabel,
+      dateTimeLabel,
+    });
+  };
+
+  const hideTooltip = () => setHoverTooltip(null);
+
   return (
     <Box sx={{ borderRadius: 2, border: "1px solid rgba(15,139,111,0.18)", p: 2 }}>
       <Stack
@@ -348,92 +420,93 @@ export function ProviderTelemetryChart({
         {t("providers.telemetry.hourlyChart")}
       </Typography>
 
-      <Box sx={{ overflowX: "auto" }}>
-        <svg width={barsChart.geometry.width} height={BAR_HEIGHT}>
-          {barsChart.geometry.yTicks.map((value, index) => {
-            const y = barsChart.geometry.yFor(value);
-            return (
-              <g key={`bar-y-${index}`}>
+      <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
+        <StickyYAxis
+          ticks={barsChart.geometry.yTicks}
+          yFor={barsChart.geometry.yFor}
+          height={BAR_HEIGHT}
+        />
+        <Box sx={{ overflowX: "auto", flex: 1 }} onMouseLeave={hideTooltip}>
+          <svg width={barsChart.geometry.width} height={BAR_HEIGHT}>
+            {barsChart.geometry.yTicks.map((value, index) => {
+              const y = barsChart.geometry.yFor(value);
+              return (
                 <line
+                  key={`bar-y-${index}`}
                   x1={PADDING_LEFT}
                   x2={barsChart.geometry.width - PADDING_RIGHT}
                   y1={y}
                   y2={y}
                   stroke="#e5e7eb"
                 />
-                <text
-                  x={PADDING_LEFT - 8}
-                  y={y + 4}
-                  fontSize={11}
-                  textAnchor="end"
-                  fill="#6b7280"
-                >
-                  {formatValue(value)}
-                </text>
-              </g>
-            );
-          })}
+              );
+            })}
 
-          {xTickHours.map((hour) => {
-            const ts = dayStartMs + hour * HOUR_MS;
-            const x = barsChart.geometry.xFor(ts);
-            return (
-              <g key={`bar-x-${hour}`}>
-                <line
-                  x1={x}
-                  y1={PADDING_TOP}
-                  x2={x}
-                  y2={BAR_HEIGHT - PADDING_BOTTOM}
-                  stroke="#eef2f7"
+            {xTickHours.map((hour) => {
+              const ts = dayStartMs + hour * HOUR_MS;
+              const x = barsChart.geometry.xFor(ts);
+              return (
+                <g key={`bar-x-${hour}`}>
+                  <line
+                    x1={x}
+                    y1={PADDING_TOP}
+                    x2={x}
+                    y2={BAR_HEIGHT - PADDING_BOTTOM}
+                    stroke="#eef2f7"
+                  />
+                  <text
+                    x={x}
+                    y={BAR_HEIGHT - 10}
+                    fontSize={11}
+                    textAnchor="middle"
+                    fill="#6b7280"
+                  >
+                    {formatTimeWarsaw(ts, locale)}
+                  </text>
+                </g>
+              );
+            })}
+
+            <line
+              x1={PADDING_LEFT}
+              x2={barsChart.geometry.width - PADDING_RIGHT}
+              y1={barsChart.geometry.zeroY}
+              y2={barsChart.geometry.zeroY}
+              stroke="#94a3b8"
+              strokeDasharray="4 4"
+            />
+
+            {barsChart.bars.map((bar, index) => (
+              <g key={`bar-${index}`}>
+                <rect
+                  x={bar.x - barsChart.barWidth / 2}
+                  y={bar.y}
+                  width={barsChart.barWidth}
+                  height={bar.height}
+                  rx={2}
+                  fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={(event) =>
+                    showTooltip(event, bar.value, bar.timeLabel, bar.dateTimeLabel)
+                  }
+                  onMouseMove={(event) =>
+                    showTooltip(event, bar.value, bar.timeLabel, bar.dateTimeLabel)
+                  }
+                  onMouseLeave={hideTooltip}
                 />
                 <text
-                  x={x}
-                  y={BAR_HEIGHT - 10}
-                  fontSize={11}
+                  x={bar.x}
+                  y={bar.labelY}
+                  fontSize={10}
                   textAnchor="middle"
-                  fill="#6b7280"
+                  fill="#0f172a"
                 >
-                  {formatTimeWarsaw(ts, locale)}
+                  {formatValue(bar.value)}
                 </text>
               </g>
-            );
-          })}
-
-          <line
-            x1={PADDING_LEFT}
-            x2={barsChart.geometry.width - PADDING_RIGHT}
-            y1={barsChart.geometry.zeroY}
-            y2={barsChart.geometry.zeroY}
-            stroke="#94a3b8"
-            strokeDasharray="4 4"
-          />
-
-          {barsChart.bars.map((bar, index) => (
-            <g key={`bar-${index}`}>
-              <rect
-                x={bar.x - barsChart.barWidth / 2}
-                y={bar.y}
-                width={barsChart.barWidth}
-                height={bar.height}
-                rx={2}
-                fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
-              >
-                <title>
-                  {`${bar.timeLabel}: ${formatValue(bar.value)} ${unitLabel}/h (${bar.dateTimeLabel})`}
-                </title>
-              </rect>
-              <text
-                x={bar.x}
-                y={bar.labelY}
-                fontSize={10}
-                textAnchor="middle"
-                fill="#0f172a"
-              >
-                {formatValue(bar.value)}
-              </text>
-            </g>
-          ))}
-        </svg>
+            ))}
+          </svg>
+        </Box>
       </Box>
 
       {!barsChart.bars.length && (
@@ -452,82 +525,87 @@ export function ProviderTelemetryChart({
         {t("providers.telemetry.entriesChart")}
       </Typography>
 
-      <Box sx={{ overflowX: "auto" }}>
-        <svg width={entriesChart.geometry.width} height={LINE_HEIGHT}>
-          {entriesChart.geometry.yTicks.map((value, index) => {
-            const y = entriesChart.geometry.yFor(value);
-            return (
-              <g key={`line-y-${index}`}>
+      <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
+        <StickyYAxis
+          ticks={entriesChart.geometry.yTicks}
+          yFor={entriesChart.geometry.yFor}
+          height={LINE_HEIGHT}
+        />
+        <Box sx={{ overflowX: "auto", flex: 1 }} onMouseLeave={hideTooltip}>
+          <svg width={entriesChart.geometry.width} height={LINE_HEIGHT}>
+            {entriesChart.geometry.yTicks.map((value, index) => {
+              const y = entriesChart.geometry.yFor(value);
+              return (
                 <line
+                  key={`line-y-${index}`}
                   x1={PADDING_LEFT}
                   x2={entriesChart.geometry.width - PADDING_RIGHT}
                   y1={y}
                   y2={y}
                   stroke="#e5e7eb"
                 />
-                <text
-                  x={PADDING_LEFT - 8}
-                  y={y + 4}
-                  fontSize={11}
-                  textAnchor="end"
-                  fill="#6b7280"
-                >
-                  {formatValue(value)}
-                </text>
-              </g>
-            );
-          })}
+              );
+            })}
 
-          {xTickHours.map((hour) => {
-            const ts = dayStartMs + hour * HOUR_MS;
-            const x = entriesChart.geometry.xFor(ts);
-            return (
-              <g key={`line-x-${hour}`}>
-                <line
-                  x1={x}
-                  y1={PADDING_TOP}
-                  x2={x}
-                  y2={LINE_HEIGHT - PADDING_BOTTOM}
-                  stroke="#eef2f7"
+            {xTickHours.map((hour) => {
+              const ts = dayStartMs + hour * HOUR_MS;
+              const x = entriesChart.geometry.xFor(ts);
+              return (
+                <g key={`line-x-${hour}`}>
+                  <line
+                    x1={x}
+                    y1={PADDING_TOP}
+                    x2={x}
+                    y2={LINE_HEIGHT - PADDING_BOTTOM}
+                    stroke="#eef2f7"
+                  />
+                  <text
+                    x={x}
+                    y={LINE_HEIGHT - 10}
+                    fontSize={11}
+                    textAnchor="middle"
+                    fill="#6b7280"
+                  >
+                    {formatTimeWarsaw(ts, locale)}
+                  </text>
+                </g>
+              );
+            })}
+
+            {entriesChart.points.length > 1 && (
+              <path
+                d={entriesChart.path}
+                fill="none"
+                stroke="#0f8b6f"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            )}
+
+            {entriesChart.points.map((point, index) => (
+              <g
+                key={`entry-point-${index}`}
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(event) =>
+                  showTooltip(event, point.value, point.timeLabel, point.dateTimeLabel)
+                }
+                onMouseMove={(event) =>
+                  showTooltip(event, point.value, point.timeLabel, point.dateTimeLabel)
+                }
+                onMouseLeave={hideTooltip}
+              >
+                <circle cx={point.x} cy={point.y} r={8} fill="transparent" />
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={zoom >= 3 ? 2.2 : 1.8}
+                  fill="#0f8b6f"
                 />
-                <text
-                  x={x}
-                  y={LINE_HEIGHT - 10}
-                  fontSize={11}
-                  textAnchor="middle"
-                  fill="#6b7280"
-                >
-                  {formatTimeWarsaw(ts, locale)}
-                </text>
               </g>
-            );
-          })}
-
-          {entriesChart.points.length > 1 && (
-            <path
-              d={entriesChart.path}
-              fill="none"
-              stroke="#0f8b6f"
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {entriesChart.points.map((point, index) => (
-            <circle
-              key={`entry-point-${index}`}
-              cx={point.x}
-              cy={point.y}
-              r={zoom >= 3 ? 2.2 : 1.8}
-              fill="#0f8b6f"
-            >
-              <title>
-                {`${point.timeLabel}: ${formatValue(point.value)} ${unitLabel} (${point.dateTimeLabel})`}
-              </title>
-            </circle>
-          ))}
-        </svg>
+            ))}
+          </svg>
+        </Box>
       </Box>
 
       {!entriesChart.points.length && (
@@ -539,6 +617,36 @@ export function ProviderTelemetryChart({
       <Typography variant="caption" color="text.secondary" mt={1.5} display="block">
         {unitLabel}
       </Typography>
+
+      <Popover
+        open={hoverTooltip != null}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          hoverTooltip
+            ? { top: hoverTooltip.top, left: hoverTooltip.left }
+            : undefined
+        }
+        onClose={hideTooltip}
+        disableRestoreFocus
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{
+          paper: {
+            sx: {
+              pointerEvents: "none",
+              px: 1,
+              py: 0.75,
+              borderRadius: 1,
+            },
+          },
+        }}
+      >
+        <Typography variant="caption" fontWeight={700} display="block">
+          {hoverTooltip ? `${formatValue(hoverTooltip.value)} ${unitLabel}` : ""}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block">
+          {hoverTooltip?.dateTimeLabel ?? ""}
+        </Typography>
+      </Popover>
     </Box>
   );
 }
