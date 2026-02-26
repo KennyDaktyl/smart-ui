@@ -1,6 +1,6 @@
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
-import { Box, IconButton, Popover, Stack, Typography } from "@mui/material";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
 import { type MouseEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DayEnergy } from "../types/userProvider";
@@ -16,6 +16,7 @@ const BASE_WIDTH = 960;
 const BAR_HEIGHT = 280;
 const LINE_HEIGHT = 280;
 const Y_AXIS_WIDTH = 58;
+const TOOLTIP_OFFSET = 12;
 
 const PADDING_LEFT = 14;
 const PADDING_RIGHT = 20;
@@ -64,7 +65,6 @@ type HoverTooltipState = {
   top: number;
   left: number;
   value: number;
-  timeLabel: string;
   dateTimeLabel: string;
 };
 
@@ -349,14 +349,12 @@ export function ProviderTelemetryChart({
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
     value: number,
-    timeLabel: string,
     dateTimeLabel: string
   ) => {
     setHoverTooltip({
-      top: Math.round(event.clientY + 12),
-      left: Math.round(event.clientX + 12),
+      top: Math.round(event.clientY + TOOLTIP_OFFSET),
+      left: Math.round(event.clientX + TOOLTIP_OFFSET),
       value,
-      timeLabel,
       dateTimeLabel,
     });
   };
@@ -487,10 +485,10 @@ export function ProviderTelemetryChart({
                   fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(event) =>
-                    showTooltip(event, bar.value, bar.timeLabel, bar.dateTimeLabel)
+                    showTooltip(event, bar.value, bar.dateTimeLabel)
                   }
                   onMouseMove={(event) =>
-                    showTooltip(event, bar.value, bar.timeLabel, bar.dateTimeLabel)
+                    showTooltip(event, bar.value, bar.dateTimeLabel)
                   }
                   onMouseLeave={hideTooltip}
                 />
@@ -588,10 +586,10 @@ export function ProviderTelemetryChart({
                 key={`entry-point-${index}`}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={(event) =>
-                  showTooltip(event, point.value, point.timeLabel, point.dateTimeLabel)
+                  showTooltip(event, point.value, point.dateTimeLabel)
                 }
                 onMouseMove={(event) =>
-                  showTooltip(event, point.value, point.timeLabel, point.dateTimeLabel)
+                  showTooltip(event, point.value, point.dateTimeLabel)
                 }
                 onMouseLeave={hideTooltip}
               >
@@ -618,35 +616,36 @@ export function ProviderTelemetryChart({
         {unitLabel}
       </Typography>
 
-      <Popover
-        open={hoverTooltip != null}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          hoverTooltip
-            ? { top: hoverTooltip.top, left: hoverTooltip.left }
-            : undefined
-        }
-        onClose={hideTooltip}
-        disableRestoreFocus
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-        slotProps={{
-          paper: {
-            sx: {
-              pointerEvents: "none",
-              px: 1,
-              py: 0.75,
-              borderRadius: 1,
-            },
-          },
-        }}
-      >
-        <Typography variant="caption" fontWeight={700} display="block">
-          {hoverTooltip ? `${formatValue(hoverTooltip.value)} ${unitLabel}` : ""}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" display="block">
-          {hoverTooltip?.dateTimeLabel ?? ""}
-        </Typography>
-      </Popover>
+      {hoverTooltip && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: hoverTooltip.top,
+            left: hoverTooltip.left,
+            zIndex: 1500,
+            pointerEvents: "none",
+            px: 1,
+            py: 0.75,
+            borderRadius: 1,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: 3,
+          }}
+        >
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            color="#000"
+            display="block"
+          >
+            {`${formatValue(hoverTooltip.value)} ${unitLabel}`}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {hoverTooltip.dateTimeLabel}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }
