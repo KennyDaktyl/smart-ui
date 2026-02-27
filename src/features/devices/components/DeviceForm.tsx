@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Card,
   CardContent,
@@ -14,21 +15,25 @@ import {
   Typography,
   Button,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Device } from "@/features/devices/types/devicesType";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
-import { ProviderLiveEnergy } from "@/features/providers/live/ProviderLiveEnergy";
+import type { Scheduler } from "@/features/schedulers/types/scheduler";
 import { DeviceThresholdControl } from "@/features/devices/components/DeviceThresholdControl";
 import { useDeviceActions } from "@/features/devices/hooks/useDeviceActions";
 import { devicesApi } from "@/api/devicesApi";
+import { parseApiError } from "@/api/parseApiError";
+import { useToast } from "@/context/ToastContext";
+import { schedulersApi } from "@/api/schedulersApi";
 
 export type DeviceFormValues = {
   name: string;
   mode: DeviceMode;
   thresholdValue?: number | null;
+  schedulerId?: number | null;
 };
 
 type Props = {
@@ -36,6 +41,8 @@ type Props = {
   provider?: ProviderResponse | null;
   microcontrollerOnline: boolean;
   onSubmit?: (values: DeviceFormValues) => Promise<void> | void;
+  formId?: string;
+  hideActions?: boolean;
   variant?: "panel" | "modal";
   microcontrollerUuid?: string;
   onCancel?: () => void;
@@ -59,12 +66,15 @@ const getNextDeviceNumber = (
   }
   return upperBound + 1;
 };
+const BLANK_HELPER = " ";
 
 export function DeviceForm({
   device,
   provider,
   microcontrollerOnline,
   onSubmit,
+  formId,
+  hideActions = false,
   variant = "panel",
   microcontrollerUuid,
   onCancel,
@@ -73,9 +83,13 @@ export function DeviceForm({
 }: Props) {
   const { t } = useTranslation();
   const tt = t as (key: string, options?: Record<string, unknown>) => string;
+  const { notifyError } = useToast();
   const { setManualState, manualSaving, error, clearError } =
     useDeviceActions();
   const hasError = Boolean(error);
+  const manualErrorMessage = hasError
+    ? parseApiError(error).message || tt("errors.api.generic")
+    : null;
 
   const [name, setName] = useState(device?.name ?? "");
   const [mode, setMode] = useState<DeviceMode>(device?.mode ?? "AUTO");
@@ -91,8 +105,17 @@ export function DeviceForm({
   const [thresholdValue, setThresholdValue] = useState<number>(
     device?.threshold_value ?? provider?.value_min ?? 0,
   );
+  const [schedulerId, setSchedulerId] = useState<number | "">(
+    device?.scheduler_id ?? "",
+  );
+  const [schedulers, setSchedulers] = useState<Scheduler[]>([]);
+  const [schedulersLoading, setSchedulersLoading] = useState(true);
+  const [schedulersLoadError, setSchedulersLoadError] = useState<string | null>(
+    null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     setName(device?.name ?? "");
@@ -103,10 +126,42 @@ export function DeviceForm({
     );
     setManualStateValue(device?.manual_state ?? false);
     setThresholdValue(device?.threshold_value ?? provider?.value_min ?? 0);
+    setSchedulerId(device?.scheduler_id ?? "");
     setSubmitted(false);
+    setSubmitError(null);
   }, [device, existingDevices, maxDevices, provider?.value_min]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSchedulers = async () => {
+      setSchedulersLoading(true);
+      setSchedulersLoadError(null);
+
+      try {
+        const response = await schedulersApi.list();
+        if (cancelled) return;
+        setSchedulers(response.data);
+      } catch (error) {
+        if (cancelled) return;
+        setSchedulersLoadError(parseApiError(error).message || tt("errors.api.generic"));
+      } finally {
+        if (!cancelled) {
+          setSchedulersLoading(false);
+        }
+      }
+    };
+
+    void loadSchedulers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tt]);
+
   const isManual = mode === "MANUAL";
+  const isAuto = mode === "AUTO";
+  const isSchedule = mode === "SCHEDULE";
   const canUseForm = microcontrollerOnline && Boolean(provider);
   const isAtCapacity =
     !device &&
@@ -155,33 +210,39 @@ export function DeviceForm({
   const handleManualToggle = async (next: boolean) => {
     if (!device?.id) return;
     clearError();
-    const res = await setManualState(device.id, next);
-    const payload = res ?? null;
-    const nextDevice = payload?.device ?? null;
-    const nextState =
-      typeof nextDevice?.manual_state === "boolean"
-        ? nextDevice.manual_state
-        : typeof nextDevice?.is_on === "boolean"
-          ? nextDevice.is_on
-          : typeof payload?.is_on === "boolean"
-            ? payload.is_on
-        : next;
-    setManualStateValue(nextState);
-    if (nextDevice?.mode) {
-      setMode(nextDevice.mode as DeviceMode);
+    try {
+      const res = await setManualState(device.id, next);
+      const payload = res ?? null;
+      const nextDevice = payload?.device ?? null;
+      const nextState =
+        typeof nextDevice?.manual_state === "boolean"
+          ? nextDevice.manual_state
+          : typeof nextDevice?.is_on === "boolean"
+            ? nextDevice.is_on
+            : typeof payload?.is_on === "boolean"
+              ? payload.is_on
+              : next;
+      setManualStateValue(nextState);
+      if (nextDevice?.mode) {
+        setMode(nextDevice.mode as DeviceMode);
+      }
+    } catch (err) {
+      notifyError(parseApiError(err).message || tt("errors.api.generic"));
     }
   };
 
   const handleSubmit = async () => {
     if (!onSubmit) return;
+    setSubmitError(null);
     setSubmitted(true);
     if (isAtCapacity) return;
     if (!name.trim()) return;
-    if (
-      mode === "AUTO" &&
-      (thresholdValue == null || Number.isNaN(thresholdValue))
-    )
+    if (isAuto && (thresholdValue == null || Number.isNaN(thresholdValue))) {
       return;
+    }
+    if (isSchedule && (schedulerId === "" || Number.isNaN(Number(schedulerId)))) {
+      return;
+    }
     if (deviceNumber == null || Number.isNaN(deviceNumber)) return;
     if (!isRatedPowerValid) return;
     setSubmitting(true);
@@ -191,7 +252,8 @@ export function DeviceForm({
           name: name.trim(),
           device_number: deviceNumber,
           mode,
-          threshold_value: isManual ? null : thresholdValue,
+          threshold_value: isAuto ? thresholdValue : null,
+          scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
       } else if (microcontrollerUuid) {
@@ -199,18 +261,32 @@ export function DeviceForm({
           name: name.trim(),
           device_number: deviceNumber,
           mode,
-          threshold_value: isManual ? null : thresholdValue,
+          threshold_value: isAuto ? thresholdValue : null,
+          scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
       }
       await onSubmit({
         name: name.trim(),
         mode,
-        thresholdValue: isManual ? null : thresholdValue,
+        thresholdValue: isAuto ? thresholdValue : null,
+        schedulerId: isSchedule ? Number(schedulerId) : null,
       });
+    } catch (err) {
+      const parsed = parseApiError(err);
+      const message = tt("devices.form.submitError", {
+        message: parsed.message || tt("errors.api.generic"),
+      });
+      setSubmitError(message);
+      notifyError(message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSubmit();
   };
 
   if (!microcontrollerOnline) {
@@ -230,7 +306,8 @@ export function DeviceForm({
   }
 
   const content = (
-    <Stack spacing={2.5}>
+    <Box component="form" id={formId} onSubmit={handleFormSubmit}>
+      <Stack spacing={2.5}>
       <Stack spacing={0.5}>
         <Typography variant="subtitle1" fontWeight={700}>
           {tt("common.add")}
@@ -328,47 +405,110 @@ export function DeviceForm({
             }
             label={manualState ? tt("common.enabled") : tt("common.disabled")}
           />
-          {hasError && (
+          {manualErrorMessage && (
             <Typography variant="caption" color="error">
-              {tt("common.error.generic")}
+              {manualErrorMessage}
             </Typography>
           )}
         </Stack>
-      ) : (
+      ) : isAuto ? (
         <Stack spacing={2}>
-          {/* <Typography variant="subtitle2" fontWeight={600}>
-                {tt("microcontroller.maxDevices")}
-              </Typography> */}
           <DeviceThresholdControl
             value={thresholdValue}
             min={thresholdMin}
             max={thresholdMax}
             unit={thresholdUnit}
+            label={
+              thresholdUnit
+                ? `${tt("devices.form.threshold")} (${thresholdUnit})`
+                : tt("devices.form.threshold")
+            }
             step={thresholdStep}
             disabled={!canUseForm}
             onChange={setThresholdValue}
           />
           <Divider />
         </Stack>
+      ) : (
+        <Stack spacing={2}>
+          <FormControl
+            fullWidth
+            size="small"
+            sx={fieldSx}
+            error={
+              submitted &&
+              isSchedule &&
+              (schedulerId === "" || Number.isNaN(Number(schedulerId)))
+            }
+          >
+            <InputLabel>{tt("devices.form.scheduler")}</InputLabel>
+            <Select
+              label={tt("devices.form.scheduler")}
+              value={schedulerId}
+              onChange={(event) =>
+                setSchedulerId(
+                  event.target.value === "" ? "" : Number(event.target.value),
+                )
+              }
+              disabled={schedulersLoading || schedulers.length === 0}
+            >
+              <MenuItem value="">
+                <em>{tt("common.selectPlaceholder")}</em>
+              </MenuItem>
+              {schedulers.map((scheduler) => (
+                <MenuItem key={scheduler.id} value={scheduler.id}>
+                  {scheduler.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {schedulersLoadError && (
+            <Alert severity="warning">{schedulersLoadError}</Alert>
+          )}
+
+          {schedulers.length === 0 && !schedulersLoading && (
+            <Typography variant="caption" color="text.secondary">
+              {tt("devices.form.noSchedulers")}
+            </Typography>
+          )}
+          <Divider />
+        </Stack>
       )}
 
-      {onSubmit && (
-        <Box display="flex" justifyContent="flex-end" gap={1}>
-          {onCancel && (
-            <Button variant="outlined" onClick={onCancel}>
-              {tt("common.cancel")}
-            </Button>
-          )}
-          <Button
-            variant="contained"
-            disabled={submitting || isAtCapacity}
-            onClick={handleSubmit}
+      {onSubmit && hideActions && (
+        <Box sx={{ minHeight: 20 }}>
+          <Typography
+            variant="caption"
+            color="error"
+            sx={{ visibility: submitError ? "visible" : "hidden" }}
           >
-            {tt("common.save")}
-          </Button>
+            {submitError || BLANK_HELPER}
+          </Typography>
         </Box>
       )}
-    </Stack>
+
+        {onSubmit && !hideActions && (
+          <Stack spacing={1}>
+            {submitError && <Alert severity="error">{submitError}</Alert>}
+            <Box display="flex" justifyContent="flex-end" gap={1}>
+              {onCancel && (
+                <Button variant="outlined" onClick={onCancel}>
+                  {tt("common.cancel")}
+                </Button>
+              )}
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting || isAtCapacity}
+              >
+                {tt("common.save")}
+              </Button>
+            </Box>
+          </Stack>
+        )}
+      </Stack>
+    </Box>
   );
 
   if (variant === "modal") {

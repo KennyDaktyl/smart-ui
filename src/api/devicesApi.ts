@@ -9,6 +9,7 @@ export type DeviceCreatePayload = {
   mode: DeviceMode;
   rated_power?: number | null;
   threshold_value?: number | null;
+  scheduler_id?: number | null;
 };
 
 export const devicesApi = {

@@ -124,19 +124,18 @@ export function ProviderPowerGauge({
   const stateLabel =
     isOn == null ? pendingLabel : isOn ? onLabel : offLabel;
 
+  // Center state badge must reflect pin state (ON/OFF), not power-vs-threshold progress.
   const stateColor =
-    normalizedPower == null
-      ? isOn == null
-        ? theme.palette.text.secondary
-        : isOn
-          ? theme.palette.success.main
-          : theme.palette.error.main
-      : progressColor;
+    isOn == null
+      ? theme.palette.text.secondary
+      : isOn
+        ? theme.palette.success.main
+        : theme.palette.error.main;
 
   const stateBackground =
-    normalizedPower == null
+    isOn == null
       ? alpha(theme.palette.text.secondary, 0.12)
-      : alpha(progressColor, 0.14);
+      : alpha(stateColor, 0.14);
 
   const size = 192;
   const strokeWidth = 13;

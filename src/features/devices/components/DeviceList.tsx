@@ -1,4 +1,4 @@
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 
@@ -9,6 +9,7 @@ import { DeviceCard } from "@/features/devices/components/DeviceCard";
 import { useDeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
 import { DeviceForm } from "@/features/devices/components/DeviceForm";
 import { devicesApi } from "@/api/devicesApi";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   devices: Device[];
@@ -158,29 +159,38 @@ export function DeviceList({
         ))}
       </Box>
 
-      <Dialog
+      <StickyDialog
         open={Boolean(editingDevice)}
         onClose={() => setEditingDevice(null)}
-        fullWidth
         maxWidth="sm"
+        title={t("common.edit")}
+        actions={
+          <>
+            <Button variant="outlined" onClick={() => setEditingDevice(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="edit-device-form" variant="contained">
+              {t("common.save")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("common.edit")}</DialogTitle>
-        <DialogContent dividers>
-          {editingDevice && (
-            <DeviceForm
-              device={editingDevice}
-              provider={provider}
-              microcontrollerOnline={isOnline}
-              onSubmit={() => {
-                setEditingDevice(null);
-                onReload?.();
-              }}
-              onCancel={() => setEditingDevice(null)}
-              variant="modal"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {editingDevice && (
+          <DeviceForm
+            device={editingDevice}
+            provider={provider}
+            microcontrollerOnline={isOnline}
+            formId="edit-device-form"
+            hideActions
+            onSubmit={() => {
+              setEditingDevice(null);
+              onReload?.();
+            }}
+            onCancel={() => setEditingDevice(null)}
+            variant="modal"
+          />
+        )}
+      </StickyDialog>
     </>
   );
 }

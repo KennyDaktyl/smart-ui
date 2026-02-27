@@ -18,6 +18,8 @@ type WizardSchemaFormProps = {
   loading: boolean;
   onSubmit: (values: Record<string, any>) => void;
   fieldErrors?: Record<string, string>;
+  formId?: string;
+  hideSubmitButton?: boolean;
 };
 
 /**
@@ -38,6 +40,8 @@ export default function WizardSchemaForm({
   onSubmit,
   loading,
   fieldErrors = {},
+  formId,
+  hideSubmitButton = false,
 }: WizardSchemaFormProps) {
   const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, any>>({});
@@ -64,6 +68,7 @@ export default function WizardSchemaForm({
   return (
     <Box
       component="form"
+      id={formId}
       autoComplete="off"
       onSubmit={(e) => {
         e.preventDefault();
@@ -208,13 +213,15 @@ export default function WizardSchemaForm({
         }
       )}
 
-      <Button
-        type="submit"
-        variant="contained"
-        disabled={loading}
-      >
-        {t("providers.wizard.actions.next")}
-      </Button>
+      {!hideSubmitButton && (
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={loading}
+        >
+          {t("providers.wizard.actions.next")}
+        </Button>
+      )}
     </Box>
   );
 }

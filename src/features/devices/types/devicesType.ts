@@ -12,6 +12,7 @@ export type Device = {
   mode: DeviceMode;
   manual_state?: boolean | null;
   threshold_value?: number | null;
+  scheduler_id?: number | null;
 
   provider_id?: number | null;
   microcontroller_id: number;

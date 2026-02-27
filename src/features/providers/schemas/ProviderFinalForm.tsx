@@ -1,5 +1,5 @@
 import { Box, TextField, Button } from "@mui/material";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   }) => void;
   loading?: boolean;
   errors?: Record<string, string>;
+  formId?: string;
+  hideSubmitButton?: boolean;
 };
 
 export default function ProviderFinalForm({
@@ -18,6 +20,8 @@ export default function ProviderFinalForm({
   onSubmit,
   loading = false,
   errors = {},
+  formId,
+  hideSubmitButton = false,
 }: Props) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -45,8 +49,18 @@ export default function ProviderFinalForm({
       })
     : undefined;
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim()) return;
+    onSubmit({
+      name,
+      value_min: valueMin,
+      value_max: valueMax,
+    });
+  };
+
   return (
-    <Box display="flex" flexDirection="column" gap={2}>
+    <Box component="form" id={formId} onSubmit={handleSubmit} display="flex" flexDirection="column" gap={2}>
       <TextField
         label={t("providers.wizard.finalForm.name")}
         required
@@ -56,19 +70,15 @@ export default function ProviderFinalForm({
         helperText={nameHelper}
       />
 
-      <Button
-        variant="contained"
-        onClick={() =>
-          onSubmit({
-            name,
-            value_min: valueMin,
-            value_max: valueMax,
-          })
-        }
-        disabled={loading || !name.trim()}
-      >
-        {t("providers.actions.create")}
-      </Button>
+      {!hideSubmitButton && (
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={loading || !name.trim()}
+        >
+          {t("providers.actions.create")}
+        </Button>
+      )}
     </Box>
   );
 }

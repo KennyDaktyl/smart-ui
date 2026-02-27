@@ -65,11 +65,12 @@ export default function AppHeader({ mode }: AppHeaderProps) {
     { label: t("header.menu.dashboard"), path: "/dashboard" },
     { label: t("header.menu.microcontrollers"), path: "/microcontrollers" },
     { label: t("header.menu.controllers"), path: "/providers" },
+    { label: t("header.menu.schedulers"), path: "/schedulers" },
     { label: t("header.menu.account"), path: "/account" },
   ];
 
   if (user?.role === "admin") {
-    authenticatedNav.splice(3, 0, {
+    authenticatedNav.splice(4, 0, {
       label: t("header.menu.admin"),
       path: "/admin",
     });

@@ -70,6 +70,7 @@ const resources = {
           dashboard: "Dashboard",
           microcontrollers: "Mikrokontrolery",
           controllers: "Providery",
+          schedulers: "Harmonogramy",
           account: "Moje konto",
           logout: "Wyloguj",
         },
@@ -465,6 +466,11 @@ const resources = {
         sectionTitle: "Lista urządzeń",
         form: {
           gpio: "GPIO",
+          threshold: "Próg mocy",
+          scheduler: "Harmonogram",
+          noSchedulers:
+            "Brak harmonogramów. Najpierw utwórz harmonogram w sekcji Harmonogramy.",
+          submitError: "Nie udało się zapisać urządzenia: {{message}}",
         },
         details: {
           title: "Szczegóły urządzenia",
@@ -533,6 +539,45 @@ const resources = {
           eventsError: "Nie udało się pobrać telemetrii.",
           missing: "Nie znaleziono urządzenia.",
         },
+      },
+      schedulers: {
+        title: "Harmonogramy",
+        subtitle:
+          "Twórz tygodniowe harmonogramy, które automatycznie włączają i wyłączają urządzenia.",
+        actions: {
+          add: "Dodaj harmonogram",
+        },
+        empty: {
+          title: "Brak harmonogramów",
+          description:
+            "Utwórz pierwszy harmonogram, aby przypisać go do urządzeń w trybie Harmonogram.",
+        },
+        card: {
+          blocksCount: "Bloki czasowe: {{count}}",
+        },
+        form: {
+          createTitle: "Nowy harmonogram",
+          editTitle: "Edytuj harmonogram",
+          name: "Nazwa harmonogramu",
+          timeBlocks: "Dni i zakresy godzin",
+          start: "Od",
+          end: "Do",
+          invalidRange: "Godzina końcowa musi być późniejsza niż start.",
+          noDaySelected: "Wybierz przynajmniej jeden dzień tygodnia.",
+        },
+        days: {
+          MONDAY: "Poniedziałek",
+          TUESDAY: "Wtorek",
+          WEDNESDAY: "Środa",
+          THURSDAY: "Czwartek",
+          FRIDAY: "Piątek",
+          SATURDAY: "Sobota",
+          SUNDAY: "Niedziela",
+        },
+        deleteConfirm: "Usunąć harmonogram „{{name}}”?",
+        createSuccess: "Harmonogram został utworzony.",
+        updateSuccess: "Harmonogram został zaktualizowany.",
+        deleteSuccess: "Harmonogram został usunięty.",
       },
       microcontroller: {
         uuid: "UUID",
@@ -694,6 +739,7 @@ const resources = {
           dashboard: "Dashboard",
           microcontrollers: "Microcontrollers",
           controllers: "Providers",
+          schedulers: "Schedulers",
           account: "My account",
           logout: "Log out",
         },
@@ -1100,6 +1146,11 @@ const resources = {
         sectionTitle: "Device list",
         form: {
           gpio: "GPIO",
+          threshold: "Power threshold",
+          scheduler: "Schedule",
+          noSchedulers:
+            "No schedules found. Create one first in the Schedulers section.",
+          submitError: "Failed to save device: {{message}}",
         },
         details: {
           title: "Device details",
@@ -1168,6 +1219,45 @@ const resources = {
           eventsError: "Failed to load telemetry.",
           missing: "Device not found.",
         },
+      },
+      schedulers: {
+        title: "Schedules",
+        subtitle:
+          "Create weekly schedules that automatically switch devices on and off.",
+        actions: {
+          add: "Add schedule",
+        },
+        empty: {
+          title: "No schedules yet",
+          description:
+            "Create your first schedule to assign it to devices in Schedule mode.",
+        },
+        card: {
+          blocksCount: "Time blocks: {{count}}",
+        },
+        form: {
+          createTitle: "New schedule",
+          editTitle: "Edit schedule",
+          name: "Schedule name",
+          timeBlocks: "Days and time ranges",
+          start: "Start",
+          end: "End",
+          invalidRange: "End time must be later than start time.",
+          noDaySelected: "Select at least one day of the week.",
+        },
+        days: {
+          MONDAY: "Monday",
+          TUESDAY: "Tuesday",
+          WEDNESDAY: "Wednesday",
+          THURSDAY: "Thursday",
+          FRIDAY: "Friday",
+          SATURDAY: "Saturday",
+          SUNDAY: "Sunday",
+        },
+        deleteConfirm: "Delete schedule \"{{name}}\"?",
+        createSuccess: "Schedule has been created.",
+        updateSuccess: "Schedule has been updated.",
+        deleteSuccess: "Schedule has been deleted.",
       },
       microcontroller: {
         uuid: "UUID",

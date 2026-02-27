@@ -1,8 +1,4 @@
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Stepper,
   Step,
@@ -23,6 +19,7 @@ import ProviderFinalForm from "../schemas/ProviderFinalForm";
 import { providersApi } from "@/api/providersApi";
 import { useToast } from "@/context/ToastContext";
 import { parseApiError, ParsedApiError } from "@/api/parseApiError";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   open: boolean;
@@ -34,6 +31,8 @@ const steps = [
   "providers.wizard.steps.config",
   "providers.wizard.steps.summary",
 ];
+const WIZARD_FORM_ID = "provider-wizard-step-form";
+const FINAL_FORM_ID = "provider-wizard-final-form";
 
 export default function AddProviderWizardDialog({
   open,
@@ -234,6 +233,8 @@ export default function AddProviderWizardDialog({
 
     return (
       <WizardSchemaForm
+        formId={WIZARD_FORM_ID}
+        hideSubmitButton
         schema={wizardData.schema}
         options={wizardData.options}
         context={wizardData.context}
@@ -249,17 +250,51 @@ export default function AddProviderWizardDialog({
    * ------------------------------------------------- */
 
   return (
-    <Dialog
+    <StickyDialog
       open={open}
       onClose={() => onClose(false)}
       maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        {t("providers.actions.add")}
-      </DialogTitle>
+      title={t("providers.actions.add")}
+      actions={
+        <>
+          <Button onClick={() => onClose(false)}>
+            {t("common.cancel")}
+          </Button>
 
-      <DialogContent>
+          {activeStep === 0 && (
+            <Button
+              variant="contained"
+              onClick={handleStartWizard}
+              disabled={!selectedVendor || wizardLoading}
+            >
+              {t("common.next")}
+            </Button>
+          )}
+
+          {activeStep === 1 && (
+            <Button
+              type="submit"
+              form={WIZARD_FORM_ID}
+              variant="contained"
+              disabled={wizardLoading || !wizardData}
+            >
+              {t("providers.wizard.actions.next")}
+            </Button>
+          )}
+
+          {activeStep === 2 && (
+            <Button
+              type="submit"
+              form={FINAL_FORM_ID}
+              variant="contained"
+              disabled={finalLoading || !finalConfig || !selectedVendor}
+            >
+              {t("providers.actions.create")}
+            </Button>
+          )}
+        </>
+      }
+    >
         <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
           {steps.map((label) => (
             <Step key={label}>
@@ -328,6 +363,8 @@ export default function AddProviderWizardDialog({
             )}
 
             <ProviderFinalForm
+              formId={FINAL_FORM_ID}
+              hideSubmitButton
               defaultUnit={selectedVendor.default_unit}
               onSubmit={handleCreateProvider}
               loading={finalLoading}
@@ -335,24 +372,6 @@ export default function AddProviderWizardDialog({
             />
           </Box>
         )}
-
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={() => onClose(false)}>
-          {t("common.cancel")}
-        </Button>
-
-        {activeStep === 0 && (
-          <Button
-            variant="contained"
-            onClick={handleStartWizard}
-            disabled={!selectedVendor}
-          >
-            {t("common.next")}
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+    </StickyDialog>
   );
 }

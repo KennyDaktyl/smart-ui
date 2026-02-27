@@ -1,11 +1,8 @@
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 import { AdminUserForm } from "./AdminUserForm";
 import { useUserMutation } from "@/features/admin/hooks/useUserMutation";
@@ -34,27 +31,27 @@ export function AdminUserFormModal({ open, onClose, user, onSuccess }: Props) {
     : undefined;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>
-        {user ? t("user.form.editTitle") : t("user.form.addTitle")}
-      </DialogTitle>
+    <StickyDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={user ? t("user.form.editTitle") : t("user.form.addTitle")}
+      actions={
+        <>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
 
-      <DialogContent>
+          <Button
+            type="submit"
+            form="user-form"
+            variant="contained"
+            disabled={loading}
+          >
+            {t("common.save")}
+          </Button>
+        </>
+      }
+    >
         <AdminUserForm isEdit={!!user} defaultValues={defaultValues} onSubmit={submit} />
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>{t("common.cancel")}</Button>
-
-        <Button
-          type="submit"
-          form="user-form"
-          variant="contained"
-          disabled={loading}
-        >
-          {t("common.save")}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </StickyDialog>
   );
 }

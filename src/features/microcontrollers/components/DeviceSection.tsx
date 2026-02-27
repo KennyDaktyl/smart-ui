@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
@@ -9,6 +9,7 @@ import type { Device } from "@/features/devices/types/devicesType";
 import { devicesApi } from "@/api/devicesApi";
 import { DeviceList } from "@/features/devices/components/DeviceList";
 import { DeviceForm } from "@/features/devices/components/DeviceForm";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
@@ -82,29 +83,38 @@ export function DeviceSection({
         onDeviceUpdate={handleDeviceUpdate}
       />
 
-      <Dialog
+      <StickyDialog
         open={openAddDialog}
         onClose={onCloseAddDialog}
-        fullWidth
         maxWidth="sm"
+        title={t("common.add")}
+        actions={
+          <>
+            <Button variant="outlined" onClick={onCloseAddDialog}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="create-device-form" variant="contained">
+              {t("common.save")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("common.add")}</DialogTitle>
-        <DialogContent dividers>
-          <DeviceForm
-            microcontrollerUuid={microcontroller.uuid}
-            provider={provider}
-            microcontrollerOnline={live.status === "online"}
-            existingDevices={devices}
-            maxDevices={microcontroller.max_devices}
-            onSubmit={async () => {
-              onCloseAddDialog();
-              await reloadDevices();
-            }}
-            onCancel={onCloseAddDialog}
-            variant="modal"
-          />
-        </DialogContent>
-      </Dialog>
+        <DeviceForm
+          microcontrollerUuid={microcontroller.uuid}
+          provider={provider}
+          microcontrollerOnline={live.status === "online"}
+          formId="create-device-form"
+          hideActions
+          existingDevices={devices}
+          maxDevices={microcontroller.max_devices}
+          onSubmit={async () => {
+            onCloseAddDialog();
+            await reloadDevices();
+          }}
+          onCancel={onCloseAddDialog}
+          variant="modal"
+        />
+      </StickyDialog>
     </>
   );
 }
