@@ -1,11 +1,14 @@
 import {
   Box,
   Button,
+  IconButton,
   Stack,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,8 +21,17 @@ import type {
 
 type DayRowState = {
   enabled: boolean;
+  slots: DaySlotState[];
+};
+
+type DaySlotState = {
   start: string;
   end: string;
+};
+
+type DayValidation = {
+  invalid: Set<number>;
+  overlap: Set<number>;
 };
 
 type Props = {
@@ -36,6 +48,13 @@ const DEFAULT_START_TIME = "09:00";
 const DEFAULT_END_TIME = "17:00";
 const BLANK_HELPER = " ";
 
+function createDefaultSlot(): DaySlotState {
+  return {
+    start: DEFAULT_START_TIME,
+    end: DEFAULT_END_TIME,
+  };
+}
+
 function toInitialDayState(
   scheduler?: Scheduler | null,
 ): Record<SchedulerDayOfWeek, DayRowState> {
@@ -43,8 +62,7 @@ function toInitialDayState(
     (acc, day) => {
       acc[day] = {
         enabled: false,
-        start: DEFAULT_START_TIME,
-        end: DEFAULT_END_TIME,
+        slots: [createDefaultSlot()],
       };
       return acc;
     },
@@ -56,11 +74,21 @@ function toInitialDayState(
   }
 
   scheduler.slots.forEach((slot) => {
-    base[slot.day_of_week] = {
-      enabled: true,
+    const row = base[slot.day_of_week];
+    if (!row.enabled) {
+      row.enabled = true;
+      row.slots = [];
+    }
+
+    row.slots.push({
       start: slot.start_time,
       end: slot.end_time,
-    };
+    });
+  });
+
+  SCHEDULER_DAY_ORDER.forEach((day) => {
+    if (!base[day].enabled) return;
+    base[day].slots.sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
   });
 
   return base;
@@ -68,7 +96,50 @@ function toInitialDayState(
 
 function toMinutes(value: string): number {
   const [hours, minutes] = value.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return Number.NaN;
+  }
   return hours * 60 + minutes;
+}
+
+function buildDayValidation(row: DayRowState): DayValidation {
+  const invalid = new Set<number>();
+  const overlap = new Set<number>();
+
+  if (!row.enabled) {
+    return { invalid, overlap };
+  }
+
+  const normalized: Array<{ index: number; start: number; end: number }> = [];
+
+  row.slots.forEach((slot, index) => {
+    if (!slot.start || !slot.end) {
+      invalid.add(index);
+      return;
+    }
+
+    const start = toMinutes(slot.start);
+    const end = toMinutes(slot.end);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+      invalid.add(index);
+      return;
+    }
+
+    normalized.push({ index, start, end });
+  });
+
+  normalized.sort((a, b) => a.start - b.start);
+
+  for (let index = 1; index < normalized.length; index += 1) {
+    const previous = normalized[index - 1];
+    const current = normalized[index];
+    if (current.start < previous.end) {
+      overlap.add(previous.index);
+      overlap.add(current.index);
+    }
+  }
+
+  return { invalid, overlap };
 }
 
 export function SchedulerForm({
@@ -103,32 +174,81 @@ export function SchedulerForm({
     [rows],
   );
 
+  const dayValidations = useMemo(
+    () =>
+      SCHEDULER_DAY_ORDER.reduce(
+        (acc, day) => {
+          acc[day] = buildDayValidation(rows[day]);
+          return acc;
+        },
+        {} as Record<SchedulerDayOfWeek, DayValidation>,
+      ),
+    [rows],
+  );
+
   const hasInvalidRange = useMemo(
     () =>
-      SCHEDULER_DAY_ORDER.some((day) => {
-        const row = rows[day];
-        if (!row.enabled) return false;
-        if (!row.start || !row.end) return true;
-        return toMinutes(row.start) >= toMinutes(row.end);
-      }),
-    [rows],
+      SCHEDULER_DAY_ORDER.some((day) => dayValidations[day].invalid.size > 0),
+    [dayValidations],
+  );
+
+  const hasOverlapRange = useMemo(
+    () =>
+      SCHEDULER_DAY_ORDER.some((day) => dayValidations[day].overlap.size > 0),
+    [dayValidations],
   );
 
   const handleRowToggle = (day: SchedulerDayOfWeek, enabled: boolean) => {
     setRows((prev) => ({
       ...prev,
-      [day]: { ...prev[day], enabled },
+      [day]: {
+        ...prev[day],
+        enabled,
+        slots: prev[day].slots.length ? prev[day].slots : [createDefaultSlot()],
+      },
     }));
+  };
+
+  const handleAddSlot = (day: SchedulerDayOfWeek) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        enabled: true,
+        slots: [...prev[day].slots, createDefaultSlot()],
+      },
+    }));
+  };
+
+  const handleRemoveSlot = (day: SchedulerDayOfWeek, slotIndex: number) => {
+    setRows((prev) => {
+      const row = prev[day];
+      if (row.slots.length <= 1) return prev;
+
+      return {
+        ...prev,
+        [day]: {
+          ...row,
+          slots: row.slots.filter((_, index) => index !== slotIndex),
+        },
+      };
+    });
   };
 
   const handleRowTime = (
     day: SchedulerDayOfWeek,
+    slotIndex: number,
     key: "start" | "end",
     value: string,
   ) => {
     setRows((prev) => ({
       ...prev,
-      [day]: { ...prev[day], [key]: value },
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex ? { ...slot, [key]: value } : slot,
+        ),
+      },
     }));
   };
 
@@ -137,13 +257,18 @@ export function SchedulerForm({
     if (!name.trim()) return;
     if (!hasAtLeastOneDay) return;
     if (hasInvalidRange) return;
+    if (hasOverlapRange) return;
 
-    const slots = SCHEDULER_DAY_ORDER.filter((day) => rows[day].enabled).map(
-      (day) => ({
-        day_of_week: day,
-        start_time: rows[day].start,
-        end_time: rows[day].end,
-      }),
+    const slots = SCHEDULER_DAY_ORDER.flatMap((day) =>
+      rows[day].enabled
+        ? [...rows[day].slots]
+            .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+            .map((slot) => ({
+              day_of_week: day,
+              start_time: slot.start,
+              end_time: slot.end,
+            }))
+        : [],
     );
 
     await onSubmit({
@@ -185,22 +310,20 @@ export function SchedulerForm({
 
           {SCHEDULER_DAY_ORDER.map((day) => {
             const row = rows[day];
-            const invalid =
+            const validation = dayValidations[day];
+            const dayInvalid =
               row.enabled &&
-              (!row.start || !row.end || toMinutes(row.start) >= toMinutes(row.end));
+              submitted &&
+              (validation.invalid.size > 0 || validation.overlap.size > 0);
 
             return (
               <Box
                 key={day}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 120px 120px" },
-                  gap: 1.25,
-                  alignItems: "center",
                   p: 1.25,
                   borderRadius: 2,
                   border: "1px solid",
-                  borderColor: invalid && submitted ? "error.main" : "divider",
+                  borderColor: dayInvalid ? "error.main" : "divider",
                 }}
               >
                 <Stack
@@ -212,36 +335,91 @@ export function SchedulerForm({
                   <Typography variant="body2" fontWeight={600}>
                     {t(`schedulers.days.${day}`)}
                   </Typography>
-                  <Switch
-                    checked={row.enabled}
-                    onChange={(_, checked) => handleRowToggle(day, checked)}
-                  />
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon fontSize="small" />}
+                      disabled={!row.enabled || loading}
+                      onClick={() => handleAddSlot(day)}
+                    >
+                      {t("schedulers.form.addRange")}
+                    </Button>
+                    <Switch
+                      checked={row.enabled}
+                      disabled={loading}
+                      onChange={(_, checked) => handleRowToggle(day, checked)}
+                    />
+                  </Stack>
                 </Stack>
 
-                <TextField
-                  label={t("schedulers.form.start")}
-                  size="small"
-                  type="time"
-                  value={row.start}
-                  onChange={(event) => handleRowTime(day, "start", event.target.value)}
-                  disabled={!row.enabled}
-                  inputProps={{ step: 300 }}
-                  sx={textFieldSx}
-                  helperText={BLANK_HELPER}
-                />
+                {row.enabled && (
+                  <Stack spacing={1.25} mt={1}>
+                    {row.slots.map((slot, slotIndex) => {
+                      const hasSlotInvalidRange = validation.invalid.has(slotIndex);
+                      const hasSlotOverlap = validation.overlap.has(slotIndex);
+                      const slotError =
+                        submitted && (hasSlotInvalidRange || hasSlotOverlap);
+                      const slotHelperText = slotError
+                        ? hasSlotInvalidRange
+                          ? t("schedulers.form.invalidRange")
+                          : t("schedulers.form.overlapRange")
+                        : BLANK_HELPER;
 
-                <TextField
-                  label={t("schedulers.form.end")}
-                  size="small"
-                  type="time"
-                  value={row.end}
-                  onChange={(event) => handleRowTime(day, "end", event.target.value)}
-                  disabled={!row.enabled}
-                  inputProps={{ step: 300 }}
-                  sx={textFieldSx}
-                  error={submitted && invalid}
-                  helperText={submitted && invalid ? t("schedulers.form.invalidRange") : BLANK_HELPER}
-                />
+                      return (
+                        <Box
+                          key={`${day}-${slotIndex}`}
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr auto" },
+                            gap: 1,
+                            alignItems: "center",
+                          }}
+                        >
+                          <TextField
+                            label={t("schedulers.form.start")}
+                            size="small"
+                            type="time"
+                            value={slot.start}
+                            onChange={(event) =>
+                              handleRowTime(day, slotIndex, "start", event.target.value)
+                            }
+                            disabled={loading}
+                            inputProps={{ step: 300 }}
+                            sx={textFieldSx}
+                            error={slotError}
+                            helperText={BLANK_HELPER}
+                          />
+
+                          <TextField
+                            label={t("schedulers.form.end")}
+                            size="small"
+                            type="time"
+                            value={slot.end}
+                            onChange={(event) =>
+                              handleRowTime(day, slotIndex, "end", event.target.value)
+                            }
+                            disabled={loading}
+                            inputProps={{ step: 300 }}
+                            sx={textFieldSx}
+                            error={slotError}
+                            helperText={slotHelperText}
+                          />
+
+                          <Box display="flex" justifyContent="flex-end" alignItems="center">
+                            <IconButton
+                              color="error"
+                              aria-label={t("schedulers.form.removeRange")}
+                              onClick={() => handleRemoveSlot(day, slotIndex)}
+                              disabled={loading || row.slots.length === 1}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                )}
               </Box>
             );
           })}

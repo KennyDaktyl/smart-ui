@@ -562,7 +562,10 @@ const resources = {
           timeBlocks: "Dni i zakresy godzin",
           start: "Od",
           end: "Do",
+          addRange: "Dodaj przedział",
+          removeRange: "Usuń przedział",
           invalidRange: "Godzina końcowa musi być późniejsza niż start.",
+          overlapRange: "Przedziały czasu w tym dniu nie mogą się nakładać.",
           noDaySelected: "Wybierz przynajmniej jeden dzień tygodnia.",
         },
         days: {
@@ -1242,7 +1245,10 @@ const resources = {
           timeBlocks: "Days and time ranges",
           start: "Start",
           end: "End",
+          addRange: "Add time range",
+          removeRange: "Remove time range",
           invalidRange: "End time must be later than start time.",
+          overlapRange: "Time ranges on the same day cannot overlap.",
           noDaySelected: "Select at least one day of the week.",
         },
         days: {

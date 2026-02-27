@@ -13,10 +13,16 @@ type Props = {
 export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
   const { t } = useTranslation();
 
+  const toMinutes = (value: string): number => {
+    const [hours, minutes] = value.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
   const orderedSlots = [...(scheduler.slots ?? [])].sort(
     (a, b) =>
       SCHEDULER_DAY_ORDER.indexOf(a.day_of_week) -
-      SCHEDULER_DAY_ORDER.indexOf(b.day_of_week),
+        SCHEDULER_DAY_ORDER.indexOf(b.day_of_week) ||
+      toMinutes(a.start_time) - toMinutes(b.start_time),
   );
 
   return (
@@ -33,9 +39,9 @@ export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
           </Box>
 
           <Stack spacing={1}>
-            {orderedSlots.map((slot) => (
+            {orderedSlots.map((slot, index) => (
               <Stack
-                key={`${slot.day_of_week}-${slot.start_time}-${slot.end_time}`}
+                key={`${slot.day_of_week}-${slot.start_time}-${slot.end_time}-${index}`}
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
