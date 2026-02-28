@@ -67,6 +67,15 @@ const getNextDeviceNumber = (
   return upperBound + 1;
 };
 const BLANK_HELPER = " ";
+const DECIMAL_INPUT_PATTERN = /^[0-9]*([.,][0-9]*)?$/;
+
+const parseDecimalInput = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 export function DeviceForm({
   device,
@@ -167,9 +176,8 @@ export function DeviceForm({
     !device &&
     maxDevices != null &&
     (existingDevices?.length ?? 0) >= maxDevices;
-  const ratedPowerNumber = ratedPower.trim() === "" ? null : Number(ratedPower);
-  const isRatedPowerValid =
-    ratedPowerNumber != null && !Number.isNaN(ratedPowerNumber);
+  const ratedPowerNumber = parseDecimalInput(ratedPower);
+  const isRatedPowerValid = ratedPowerNumber != null;
 
   const thresholdMin = provider?.value_min ?? 0;
   const thresholdMax = provider?.value_max ?? 0;
@@ -372,14 +380,17 @@ export function DeviceForm({
         <TextField
           label={`${tt("devices.ratedPower")} (${provider?.unit ?? "W"})`}
           size="small"
-          type="number"
+          type="text"
           value={ratedPower}
           onChange={(event) => {
-            setRatedPower(event.target.value);
+            const nextValue = event.target.value.replace(/\s+/g, "");
+            if (nextValue === "" || DECIMAL_INPUT_PATTERN.test(nextValue)) {
+              setRatedPower(nextValue);
+            }
           }}
           fullWidth
           sx={fieldSx}
-          inputProps={{ min: 0, step: 1 }}
+          inputProps={{ inputMode: "decimal", pattern: "[0-9]*[.,]?[0-9]*" }}
           required
           error={submitted && !isRatedPowerValid}
           helperText={
