@@ -24,7 +24,6 @@ const ActivateAccountPage = lazy(() => import("./pages/auth/ActivateAccountPage"
 const AccountPage = lazy(() => import("./pages/user/AccountPage"));
 const HomePage = lazy(() => import("./front/HomePage"));
 const OfferPage = lazy(() => import("./front/OfferPage"));
-const PricingPage = lazy(() => import("./front/PricingPage"));
 const ContactPage = lazy(() => import("./front/ContactPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
 const ConfirmEmailPage = lazy(() => import("./pages/auth/ConfirmEmailPage"));
@@ -78,11 +77,7 @@ export default function App() {
           <Route
             path="/pricing"
             element={
-              isPublic ? (
-                <PricingPage />
-              ) : (
-                <Navigate to={authedHome} replace />
-              )
+              <Navigate to={isPublic ? "/offer" : authedHome} replace />
             }
           />
           <Route

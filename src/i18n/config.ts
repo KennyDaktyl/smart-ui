@@ -8,7 +8,6 @@ const resources = {
     translation: {
       common: {
         brand: "⚡ Smart Energy",
-        huaweiBadge: "API Huawei",
         waitingForStatus: "Oczekiwanie na status...",
         online: "Online",
         offline: "Offline",
@@ -145,7 +144,7 @@ const resources = {
           },
           inverters: {
             title: "Integracja inwerterów",
-            desc: "Moc, modele, heartbeat i przypisanie do instalacji. Współpraca z API Huawei.",
+            desc: "Moc, modele, heartbeat i przypisanie do instalacji. Integracja z API falowników.",
           },
           telemetry: {
             title: "Telemetria",
@@ -205,16 +204,18 @@ const resources = {
         subtitle:
           "Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.",
         form: {
-          name: "Imię i nazwisko",
           email: "Email",
-          phone: "Telefon",
+          subject: "Temat",
           description: "Opis instalacji / potrzeby",
           submit: "Wyślij zapytanie",
+          submitting: "Wysyłanie...",
+          validationRequired: "Uzupełnij temat, e-mail i opis.",
+          success: "Wiadomość wysłana. Dziękuję, odezwę się wkrótce.",
+          error: "Nie udało się wysłać formularza. Spróbuj ponownie później.",
         },
         info: {
-          emailHint: "Zapytania produktowe i demo",
-          phoneHint: "Pon-Pt, 9:00-17:00",
-          locationHint: "Wsparcie w całej Polsce",
+          directContactNote:
+            "Bezpieczny kontakt bez publikacji e-maila na stronie. Możesz też użyć formularza obok.",
         },
       },
       auth: {
@@ -700,7 +701,6 @@ const resources = {
       common: {
         brand: "⚡ Smart Energy",
         details: "Details",
-        huaweiBadge: "Huawei API",
         waitingForStatus: "Waiting for status...",
         online: "Online",
         offline: "Offline",
@@ -836,7 +836,7 @@ const resources = {
           },
           inverters: {
             title: "Inverter integrations",
-            desc: "Power, models, heartbeat, and installation assignment. Works with Huawei API.",
+            desc: "Power, models, heartbeat, and installation assignment. Works with inverter APIs.",
           },
           telemetry: {
             title: "Telemetry",
@@ -895,16 +895,18 @@ const resources = {
         subtitle:
           "Tell us about your infrastructure — we’ll prepare a demo tailored to your inverters and Raspberry devices.",
         form: {
-          name: "Full name",
           email: "Email",
-          phone: "Phone",
+          subject: "Subject",
           description: "Installation description / needs",
           submit: "Send inquiry",
+          submitting: "Sending...",
+          validationRequired: "Please provide subject, email, and message.",
+          success: "Message sent. I will get back to you soon.",
+          error: "Could not send the form. Please try again later.",
         },
         info: {
-          emailHint: "Product inquiries and demos",
-          phoneHint: "Mon–Fri, 9:00–17:00",
-          locationHint: "Support across Poland",
+          directContactNote:
+            "Secure contact without exposing email publicly. You can also use the form.",
         },
       },
       auth: {

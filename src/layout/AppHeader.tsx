@@ -52,7 +52,6 @@ export default function AppHeader({ mode }: AppHeaderProps) {
   const publicNav: MenuItem[] = [
     { label: t("landing.nav.home"), path: "/" },
     { label: t("landing.nav.offer"), path: "/offer" },
-    { label: t("landing.nav.pricing"), path: "/pricing" },
     { label: t("landing.nav.contact"), path: "/contact" },
   ];
 
@@ -92,7 +91,14 @@ export default function AppHeader({ mode }: AppHeaderProps) {
   return (
     <>
       <AppBar position="fixed" color="primary" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar sx={{ minHeight: 76, gap: 2 }}>
+        <Toolbar
+          sx={{
+            minHeight: 84,
+            gap: { xs: 1, md: 1.5 },
+            px: { xs: 1, sm: 2, md: 3 },
+            flexWrap: "nowrap",
+          }}
+        >
           <IconButton
             color="inherit"
             edge="start"
@@ -106,40 +112,33 @@ export default function AppHeader({ mode }: AppHeaderProps) {
             variant="h6"
             component="div"
             sx={{
-              flexGrow: 1,
               display: "flex",
               alignItems: "center",
               gap: 1,
               cursor: "pointer",
               fontWeight: 700,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+              mr: { md: 1 },
             }}
             onClick={() => navigate("/")}
           >
             <FlashOnIcon fontSize="small" />
             {t("common.brand")}
-            <Box
-              component="span"
-              sx={{
-                ml: 1,
-                px: 1,
-                py: 0.25,
-                borderRadius: 10,
-                fontSize: 12,
-                fontWeight: 700,
-                bgcolor: "rgba(211,47,47,0.18)",
-                color: "#d32f2f",
-              }}
-            >
-              {t("common.huaweiBadge")}
-            </Box>
           </Typography>
 
           <Box
             sx={{
-              flex: 1,
+              minWidth: 0,
+              flexGrow: 1,
               display: { xs: "none", md: "flex" },
-              gap: 1,
-              justifyContent: "flex-start",
+              gap: { md: 0.5, lg: 1 },
+              justifyContent: isPublic ? "flex-start" : "flex-end",
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              "&::-webkit-scrollbar": {
+                display: "none",
+              },
             }}
           >
             {(isPublic ? publicNav : authenticatedNav).map((item) => (
@@ -148,7 +147,13 @@ export default function AppHeader({ mode }: AppHeaderProps) {
                 color="inherit"
                 variant="text"
                 onClick={() => handleItemClick(item)}
-                sx={{ fontWeight: 600 }}
+                sx={{
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  minWidth: "max-content",
+                  px: { md: 1.25, lg: 1.75 },
+                  flexShrink: 0,
+                }}
               >
                 {item.label}
               </Button>
@@ -159,7 +164,8 @@ export default function AppHeader({ mode }: AppHeaderProps) {
             sx={{
               display: { xs: "none", sm: "flex" },
               alignItems: "center",
-              gap: 1,
+              gap: { sm: 0.5, md: 1 },
+              flexShrink: 0,
             }}
           >
             {isPublic ? (
@@ -168,7 +174,7 @@ export default function AppHeader({ mode }: AppHeaderProps) {
                   variant="outlined"
                   color="secondary"
                   onClick={() => navigate("/login")}
-                  sx={{ borderRadius: 999 }}
+                  sx={{ borderRadius: 999, whiteSpace: "nowrap" }}
                 >
                   {t("landing.nav.login")}
                 </Button>
@@ -176,13 +182,17 @@ export default function AppHeader({ mode }: AppHeaderProps) {
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/register")}
-                  sx={{ borderRadius: 999, boxShadow: "0 8px 22px rgba(15,139,111,0.35)" }}
+                  sx={{
+                    borderRadius: 999,
+                    boxShadow: "0 8px 22px rgba(15,139,111,0.35)",
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {t("landing.nav.register")}
                 </Button>
               </>
             ) : (
-              <Button color="inherit" onClick={handleLogout}>
+              <Button color="inherit" onClick={handleLogout} sx={{ whiteSpace: "nowrap" }}>
                 {t("header.menu.logout")}
               </Button>
             )}
@@ -199,8 +209,8 @@ export default function AppHeader({ mode }: AppHeaderProps) {
           display: { xs: "block", md: "none" },
           "& .MuiDrawer-paper": {
             width: 280,
-            mt: "76px",
-            height: "calc(100% - 76px)",
+            mt: "84px",
+            height: "calc(100% - 84px)",
             background:
               "linear-gradient(160deg, rgba(7,20,32,0.98), rgba(9,26,38,0.96))",
             color: "#e8f1f8",
@@ -220,7 +230,10 @@ export default function AppHeader({ mode }: AppHeaderProps) {
               ) : (
                 <ListItem key={item.label} disablePadding>
                   <ListItemButton onClick={() => handleItemClick(item)}>
-                    <ListItemText primary={item.label} />
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{ noWrap: true }}
+                    />
                   </ListItemButton>
                 </ListItem>
               )

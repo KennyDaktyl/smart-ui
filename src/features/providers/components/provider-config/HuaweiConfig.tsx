@@ -10,7 +10,7 @@ export default function HuaweiConfigView({ config }: Props) {
     <>
       <Divider />
       <Typography variant="subtitle2" fontWeight={700}>
-        Huawei inverter details
+        Inverter details
       </Typography>
 
       <Stack spacing={0.5}>

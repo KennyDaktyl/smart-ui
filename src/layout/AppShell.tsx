@@ -23,7 +23,7 @@ export default function AppShell({ mode, children }: AppShellProps) {
     >
       <AppHeader mode={mode} />
 
-     <Toolbar />
+      <Toolbar sx={{ minHeight: "84px !important" }} />
 
       <Box sx={{ flex: 1, width: "100%" }}>
         <ContentContainer sx={{ py: { xs: 3, md: 4 } }}>
