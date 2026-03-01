@@ -6,11 +6,13 @@ import { ProviderLiveEnergy } from "@/features/providers/live/ProviderLiveEnergy
 type Props = {
   providers: ProviderResponse[];
   onProviderEnabledChange: (uuid: string, enabled: boolean) => void;
+  onProviderEdit: (provider: ProviderResponse) => void;
 };
 
 export default function ProvidersList({
   providers,
   onProviderEnabledChange,
+  onProviderEdit,
 }: Props) {
   return (
     <Stack
@@ -25,6 +27,7 @@ export default function ProvidersList({
               provider={provider}
               live={provider.enabled ? live : undefined}
               onEnabledChange={onProviderEnabledChange}
+              onEdit={onProviderEdit}
             />
           )}
         </ProviderLiveEnergy>

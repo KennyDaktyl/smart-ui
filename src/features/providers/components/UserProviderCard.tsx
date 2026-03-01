@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import EditIcon from "@mui/icons-material/Edit";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ProviderResponse } from "../types/userProvider";
@@ -23,9 +24,15 @@ type Props = {
   provider: ProviderResponse;
   live?: ProviderLiveState;
   onEnabledChange: (uuid: string, enabled: boolean) => void;
+  onEdit: (provider: ProviderResponse) => void;
 };
 
-export default function UserProviderCard({ provider, live, onEnabledChange }: Props) {
+export default function UserProviderCard({
+  provider,
+  live,
+  onEnabledChange,
+  onEdit,
+}: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -67,6 +74,15 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
           <Button
             size="small"
             variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(provider)}
+            sx={{ textTransform: "none" }}
+          >
+            {t("providers.actions.edit")}
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
             startIcon={<ShowChartIcon />}
             onClick={() =>
               navigate(`/providers/${provider.uuid}/telemetry`, {
@@ -98,6 +114,13 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
           <MetaItem
             label={t("providers.card.unit")}
             value={provider.unit}
+          />
+        )}
+
+        {provider.power_source && (
+          <MetaItem
+            label={t("providers.card.powerSource")}
+            value={t(`providers.powerSource.${provider.power_source}`)}
           />
         )}
       </Stack>

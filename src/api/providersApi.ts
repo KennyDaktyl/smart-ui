@@ -19,6 +19,10 @@ export const providersApi = {
     return axiosClient.post<ProviderResponse>("/providers", payload);
   },
 
+  updateProvider: (uuid: string, payload: unknown) => {
+    return axiosClient.patch<ProviderResponse>(`/providers/${uuid}`, payload);
+  },
+
   getProviderDefinitions: () =>
     axiosClient.get<ProviderDefinitionsResponse>(
       "/providers/definitions/list"

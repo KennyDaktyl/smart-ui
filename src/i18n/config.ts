@@ -338,6 +338,7 @@ const resources = {
         actions: {
           add: "Dodaj providera",
           create: "Utwórz providera",
+          edit: "Edytuj",
           telemetry: "Telemetria",
         },
         wizard: {
@@ -356,6 +357,7 @@ const resources = {
             name: "Nazwa providera",
             minValue: "Minimalna wartość ({{unit}})",
             maxValue: "Maksymalna wartość ({{unit}})",
+            powerSource: "Źródło pomiaru",
           },
         },
         errors: {
@@ -364,18 +366,26 @@ const resources = {
           wizardStart: "Nie udało się rozpocząć kreatora: {{message}}",
           wizardStep: "Błąd podczas kroku kreatora: {{message}}",
           final: "Nie udało się dodać providera: {{message}}",
+          updateDetail: "Nie udało się zaktualizować providera: {{message}}",
         },
         success: {
           create: "Provider został dodany.",
+          update: "Provider został zaktualizowany.",
         },
         validation: {
           backendError: "Błąd walidacji: {{message}}",
+          range: "Minimalna wartość musi być mniejsza od maksymalnej.",
+        },
+        powerSource: {
+          inverter: "Inwerter PV",
+          meter: "Licznik mocy",
         },
         card: {
           vendor: "Dostawca",
           type: "Typ",
           kind: "Rodzaj",
           unit: "Jednostka",
+          powerSource: "Źródło pomiaru",
           range: "Próg automatyki",
           rated_power: "Moc znamionowa",
           lastValue: "Ostatnia wartość",
@@ -1032,6 +1042,7 @@ const resources = {
         actions: {
           add: "Add provider",
           create: "Create provider",
+          edit: "Edit",
           telemetry: "Telemetry",
         },
         wizard: {
@@ -1050,6 +1061,7 @@ const resources = {
             name: "Provider name",
             minValue: "Min value ({{unit}})",
             maxValue: "Max value ({{unit}})",
+            powerSource: "Measurement source",
           },
         },
         errors: {
@@ -1058,18 +1070,26 @@ const resources = {
           wizardStart: "Unable to start wizard: {{message}}",
           wizardStep: "Wizard step failed: {{message}}",
           final: "Failed to create provider: {{message}}",
+          updateDetail: "Failed to update provider: {{message}}",
         },
         success: {
           create: "Provider has been added.",
+          update: "Provider has been updated.",
         },
         validation: {
           backendError: "Validation error: {{message}}",
+          range: "Min value must be lower than max value.",
+        },
+        powerSource: {
+          inverter: "PV inverter",
+          meter: "Power meter",
         },
         card: {
           vendor: "Vendor",
           type: "Type",
           kind: "Kind",
           unit: "Unit",
+          powerSource: "Measurement source",
           rated_power: "Rated power",
           range: "Auto threshold",
           lastValue: "Last value",

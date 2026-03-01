@@ -1,13 +1,24 @@
-import { Box, TextField, Button } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+} from "@mui/material";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = {
   defaultUnit: string;
+  defaultPowerSource?: "inverter" | "meter";
   onSubmit: (data: {
     name: string;
     value_min: number;
     value_max: number;
+    power_source: "inverter" | "meter";
   }) => void;
   loading?: boolean;
   errors?: Record<string, string>;
@@ -17,6 +28,7 @@ type Props = {
 
 export default function ProviderFinalForm({
   defaultUnit,
+  defaultPowerSource = "meter",
   onSubmit,
   loading = false,
   errors = {},
@@ -27,9 +39,13 @@ export default function ProviderFinalForm({
   const [name, setName] = useState("");
   const [valueMin, setValueMin] = useState(0);
   const [valueMax, setValueMax] = useState(20);
+  const [powerSource, setPowerSource] = useState<"inverter" | "meter">(
+    defaultPowerSource
+  );
   const isNameError = Boolean(errors.name);
   const isMinError = Boolean(errors.value_min);
   const isMaxError = Boolean(errors.value_max);
+  const isPowerSourceError = Boolean(errors.power_source);
 
   const nameHelper = isNameError
     ? t("providers.validation.backendError", {
@@ -48,6 +64,11 @@ export default function ProviderFinalForm({
         message: errors.value_max,
       })
     : undefined;
+  const powerSourceHelper = isPowerSourceError
+    ? t("providers.validation.backendError", {
+        message: errors.power_source,
+      })
+    : undefined;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,6 +77,7 @@ export default function ProviderFinalForm({
       name,
       value_min: valueMin,
       value_max: valueMax,
+      power_source: powerSource,
     });
   };
 
@@ -69,6 +91,29 @@ export default function ProviderFinalForm({
         error={isNameError}
         helperText={nameHelper}
       />
+
+      <FormControl fullWidth error={isPowerSourceError}>
+        <InputLabel id="provider-power-source-label">
+          {t("providers.wizard.finalForm.powerSource")}
+        </InputLabel>
+        <Select
+          labelId="provider-power-source-label"
+          label={t("providers.wizard.finalForm.powerSource")}
+          value={powerSource}
+          onChange={(e) =>
+            setPowerSource(e.target.value as "inverter" | "meter")
+          }
+          disabled={loading}
+        >
+          <MenuItem value="inverter">
+            {t("providers.powerSource.inverter")}
+          </MenuItem>
+          <MenuItem value="meter">{t("providers.powerSource.meter")}</MenuItem>
+        </Select>
+        {powerSourceHelper && (
+          <FormHelperText>{powerSourceHelper}</FormHelperText>
+        )}
+      </FormControl>
 
       {!hideSubmitButton && (
         <Button

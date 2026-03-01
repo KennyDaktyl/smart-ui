@@ -22,6 +22,39 @@ type WizardSchemaFormProps = {
   hideSubmitButton?: boolean;
 };
 
+function resolveEnumValues(
+  schema: any,
+  field: any
+): string[] {
+  if (Array.isArray(field?.enum)) {
+    return field.enum as string[];
+  }
+
+  if (Array.isArray(field?.anyOf)) {
+    const enumAnyOf = field.anyOf.find(
+      (item: any) => Array.isArray(item?.enum)
+    );
+    if (enumAnyOf) {
+      return enumAnyOf.enum as string[];
+    }
+  }
+
+  if (Array.isArray(field?.allOf)) {
+    const ref = field.allOf.find(
+      (item: any) => typeof item?.$ref === "string"
+    )?.$ref;
+    if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
+      const defName = ref.replace("#/$defs/", "");
+      const definition = schema?.$defs?.[defName];
+      if (Array.isArray(definition?.enum)) {
+        return definition.enum as string[];
+      }
+    }
+  }
+
+  return [];
+}
+
 /**
  * Only TECHNICAL values allowed from context
  * (NEVER credentials)
@@ -136,7 +169,16 @@ export default function WizardSchemaForm({
 
           /* ===== SELECT ===== */
           if (widget === "select") {
-            const opts = options[ui.options_key] ?? [];
+            const optsFromApi = ui.options_key
+              ? options[ui.options_key] ?? []
+              : [];
+            const enumValues = resolveEnumValues(schema, field);
+            const optsFromEnum = enumValues.map((value: string) => ({
+                  value,
+                  label: value,
+                }));
+            const opts =
+              optsFromApi.length > 0 ? optsFromApi : optsFromEnum;
 
             return (
               <FormControl

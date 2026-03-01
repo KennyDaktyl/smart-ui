@@ -7,6 +7,7 @@ import CenteredSpinner from "@/features/common/components/CenteredSpinner";
 import { useProviders } from "@/features/providers/hooks/useProviders";
 import ProvidersEmptyState from "@/features/providers/components/ProvidersEmptyState";
 import AddProviderWizardDialog from "@/features/providers/components/AddProviderWizardDialog";
+import EditProviderDialog from "@/features/providers/components/EditProviderDialog";
 import { useToast } from "@/context/ToastContext";
 import ProvidersList from "../../features/providers/components/ProvidersList";
 import { ProviderResponse } from "@/features/providers/types/userProvider";
@@ -18,6 +19,9 @@ export default function ProvidersPage() {
 
   const { notifyError } = useToast();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<ProviderResponse | null>(
+    null
+  );
 
   useEffect(() => {
     setProviders((prev) => {
@@ -59,6 +63,19 @@ export default function ProvidersPage() {
     [reload]
   );
 
+  const handleProviderEdit = useCallback((provider: ProviderResponse) => {
+    setEditingProvider(provider);
+  }, []);
+
+  const handleEditClose = useCallback((updated?: ProviderResponse) => {
+    if (updated) {
+      setProviders((prev) =>
+        prev.map((provider) => (provider.uuid === updated.uuid ? updated : provider))
+      );
+    }
+    setEditingProvider(null);
+  }, []);
+
   if (loading) {
     return <CenteredSpinner />;
   }
@@ -98,12 +115,19 @@ export default function ProvidersPage() {
         <ProvidersList
           providers={providers}
           onProviderEnabledChange={handleProviderEnabledChange}
+          onProviderEdit={handleProviderEdit}
         />
       )}
   
       <AddProviderWizardDialog
         open={wizardOpen}
         onClose={handleWizardClose}
+      />
+
+      <EditProviderDialog
+        open={Boolean(editingProvider)}
+        provider={editingProvider}
+        onClose={handleEditClose}
       />
     </Box>
   );

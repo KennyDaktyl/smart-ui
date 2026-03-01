@@ -188,6 +188,9 @@ export default function AddProviderWizardDialog({
 
   const handleCreateProvider = async (form: {
     name: string;
+    value_min: number;
+    value_max: number;
+    power_source: "inverter" | "meter";
   }) => {
     if (!selectedVendor) return;
 
@@ -204,6 +207,9 @@ export default function AddProviderWizardDialog({
         vendor: selectedVendor.vendor,
 
         unit: selectedVendor.default_unit,
+        value_min: form.value_min,
+        value_max: form.value_max,
+        power_source: form.power_source,
 
         wizard_session_id:
           wizardData?.context?.wizard_session_id,
@@ -366,6 +372,14 @@ export default function AddProviderWizardDialog({
               formId={FINAL_FORM_ID}
               hideSubmitButton
               defaultUnit={selectedVendor.default_unit}
+              defaultPowerSource={
+                finalConfig?.power_source === "inverter" ||
+                finalConfig?.power_source === "meter"
+                  ? finalConfig.power_source
+                  : selectedVendor.vendor === "huawei"
+                  ? "inverter"
+                  : "meter"
+              }
               onSubmit={handleCreateProvider}
               loading={finalLoading}
               errors={finalFieldErrors}

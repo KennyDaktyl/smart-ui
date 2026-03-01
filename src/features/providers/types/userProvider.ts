@@ -82,6 +82,7 @@ export interface ProviderResponse {
 
   external_id?: string | null;
   unit?: string | null;
+  power_source?: "inverter" | "meter" | null;
 
   value_min?: number | null;
   value_max?: number | null;
