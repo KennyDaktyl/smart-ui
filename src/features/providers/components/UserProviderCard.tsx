@@ -60,17 +60,30 @@ export default function UserProviderCard({
       }}
     >
       {/* ================= HEADER ================= */}
-      <Box display="flex" justifyContent="space-between">
+      <Stack spacing={1}>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{
+            width: "100%",
+            lineHeight: 1.25,
+            wordBreak: "break-word",
+          }}
+        >
+          {provider.name}
+        </Typography>
+
         <Box>
-          <Typography variant="h6" fontWeight={600}>
-            {provider.name}
-          </Typography>
           <Typography variant="caption" color="text.secondary">
             {provider.vendor} • {provider.provider_type}
           </Typography>
         </Box>
-
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ flexWrap: "wrap", rowGap: 1 }}
+        >
           <Button
             size="small"
             variant="outlined"
@@ -97,9 +110,10 @@ export default function UserProviderCard({
             checked={provider.enabled}
             disabled={loading}
             onChange={(_, checked) => toggle(checked)}
+            sx={{ ml: { sm: "auto" } }}
           />
         </Stack>
-      </Box>
+      </Stack>
 
       <Divider />
 
