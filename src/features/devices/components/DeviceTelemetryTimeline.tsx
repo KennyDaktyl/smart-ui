@@ -17,7 +17,12 @@ import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 
 import type { DeviceEvent } from "@/features/devices/types/deviceEvents";
 
-type EventTypeKey = "AUTO_TRIGGER" | "HEARTBEAT" | "POWER_MISSING" | "MANUAL";
+type EventTypeKey =
+  | "AUTO_TRIGGER"
+  | "HEARTBEAT"
+  | "POWER_MISSING"
+  | "SCHEDULER"
+  | "MANUAL";
 
 interface EventTypeMeta {
   key: EventTypeKey;
@@ -42,6 +47,11 @@ const EVENT_TYPES: EventTypeMeta[] = [
     color: "#ef4444",
   },
   {
+    key: "SCHEDULER",
+    labelKey: "devices.details.eventTypes.scheduler",
+    color: "#f97316",
+  },
+  {
     key: "MANUAL",
     labelKey: "devices.details.eventTypes.manual",
     color: "#6366f1",
@@ -52,8 +62,17 @@ const DEFAULT_FILTERS: Record<EventTypeKey, boolean> = {
   AUTO_TRIGGER: true,
   HEARTBEAT: true,
   POWER_MISSING: true,
+  SCHEDULER: true,
   MANUAL: true,
 };
+
+const EVENT_TYPE_MAP: Record<EventTypeKey, EventTypeMeta> = EVENT_TYPES.reduce(
+  (acc, item) => {
+    acc[item.key] = item;
+    return acc;
+  },
+  {} as Record<EventTypeKey, EventTypeMeta>
+);
 
 interface DeviceTelemetryTimelineProps {
   events: DeviceEvent[];
@@ -636,28 +655,39 @@ function buildDayBucket(
 }
 
 function resolveEventType(event: DeviceEvent): EventTypeMeta {
+  const eventName = event.event_name ?? "";
+  const triggerReason = event.trigger_reason ?? "";
+
   switch (event.event_type) {
     case "AUTO_TRIGGER":
-      return EVENT_TYPES[0];
+      return EVENT_TYPE_MAP.AUTO_TRIGGER;
 
     case "HEARTBEAT":
-      return EVENT_TYPES[1];
+      return EVENT_TYPE_MAP.HEARTBEAT;
+
+    case "SCHEDULER":
+      if (
+        eventName.startsWith("SCHEDULER_SKIPPED_") ||
+        triggerReason.includes("POWER")
+      ) {
+        return EVENT_TYPE_MAP.POWER_MISSING;
+      }
+      return EVENT_TYPE_MAP.SCHEDULER;
 
     case "ERROR":
-      if (event.trigger_reason?.includes("POWER")) {
-        return EVENT_TYPES[2];
+      if (triggerReason.includes("POWER")) {
+        return EVENT_TYPE_MAP.POWER_MISSING;
       }
 
-      if (event.trigger_reason?.includes("HEARTBEAT")) {
-        return EVENT_TYPES[1];
+      if (triggerReason.includes("HEARTBEAT")) {
+        return EVENT_TYPE_MAP.HEARTBEAT;
       }
 
-      return EVENT_TYPES[3];
+      return EVENT_TYPE_MAP.MANUAL;
 
     case "STATE":
     case "MODE":
-    case "SCHEDULER":
     default:
-      return EVENT_TYPES[3];
+      return EVENT_TYPE_MAP.MANUAL;
   }
 }
