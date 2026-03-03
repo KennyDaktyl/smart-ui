@@ -1,4 +1,16 @@
-import { Box, Button, Chip, Stack, Switch, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +36,7 @@ type DashboardDeviceCardProps = {
   deviceLive?: DeviceLiveState;
   microcontrollerLive?: MicrocontrollerOnlineState;
   providerLive?: ProviderLiveState;
+  onEditRequest?: (device: Device) => void;
 };
 
 const resolveModeLabel = (
@@ -174,16 +187,26 @@ export function DashboardDeviceCard({
   deviceLive,
   microcontrollerLive,
   providerLive,
+  onEditRequest,
 }: DashboardDeviceCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { notifyError } = useToast();
+  const [modeOverride, setModeOverride] = useState<Device["mode"] | undefined>(
+    undefined
+  );
   const [manualOverride, setManualOverride] = useState<boolean | undefined>(
     undefined
   );
   const [manualSaving, setManualSaving] = useState(false);
+  const [confirmManualOpen, setConfirmManualOpen] = useState(false);
+  const [pendingManualState, setPendingManualState] = useState<boolean | null>(
+    null
+  );
 
-  const mode = (device.mode ?? deviceLive?.mode ?? null) as string | null;
+  const mode = (modeOverride ?? device.mode ?? deviceLive?.mode ?? null) as
+    | string
+    | null;
   const modeLabel = resolveModeLabel(mode, t);
   const isAutoMode = mode === "AUTO";
   const isManualMode = mode === "MANUAL";
@@ -194,8 +217,7 @@ export function DashboardDeviceCard({
         ? deviceLive.isOn
         : false;
   const resolvedManualState = manualOverride ?? baseManualState;
-  const manualSwitchDisabled =
-    manualSaving || !isManualMode || !microcontrollerLive?.isOnline;
+  const manualSwitchDisabled = manualSaving || !microcontrollerLive?.isOnline;
   const effectiveDevice =
     manualOverride === undefined
       ? device
@@ -206,14 +228,22 @@ export function DashboardDeviceCard({
 
   useEffect(() => {
     if (!isManualMode) {
-      if (manualOverride !== undefined) setManualOverride(undefined);
+      if (manualOverride !== undefined && !manualSaving) {
+        setManualOverride(undefined);
+      }
       return;
     }
 
     if (manualOverride !== undefined && manualOverride === baseManualState) {
       setManualOverride(undefined);
     }
-  }, [baseManualState, isManualMode, manualOverride]);
+  }, [baseManualState, isManualMode, manualOverride, manualSaving]);
+
+  useEffect(() => {
+    if (modeOverride && device.mode === modeOverride) {
+      setModeOverride(undefined);
+    }
+  }, [device.mode, modeOverride]);
 
   const isOn = resolveOnState(effectiveDevice, deviceLive);
   const livePower = providerLive?.power;
@@ -274,8 +304,8 @@ export function DashboardDeviceCard({
     display: "flex",
     alignItems: "flex-end",
   } as const;
-  const handleManualSwitchChange = async (_: unknown, next: boolean) => {
-    if (!isManualMode || manualSwitchDisabled) return;
+  const setDeviceManualState = async (next: boolean) => {
+    if (manualSwitchDisabled) return;
 
     setManualOverride(next);
     setManualSaving(true);
@@ -293,6 +323,9 @@ export function DashboardDeviceCard({
               ? payload.is_on
               : next;
 
+      if (updated?.mode === "MANUAL") {
+        setModeOverride("MANUAL");
+      }
       setManualOverride(acknowledgedState);
     } catch (error) {
       setManualOverride(undefined);
@@ -302,8 +335,44 @@ export function DashboardDeviceCard({
     }
   };
 
+  const handleManualSwitchChange = (_: unknown, next: boolean) => {
+    if (manualSwitchDisabled) return;
+
+    if (isManualMode) {
+      void setDeviceManualState(next);
+      return;
+    }
+
+    setPendingManualState(next);
+    setConfirmManualOpen(true);
+  };
+
+  const handleConfirmManual = () => {
+    if (pendingManualState == null) {
+      setConfirmManualOpen(false);
+      return;
+    }
+
+    setConfirmManualOpen(false);
+    void setDeviceManualState(pendingManualState);
+    setPendingManualState(null);
+  };
+
+  const handleCancelManualConfirm = () => {
+    setConfirmManualOpen(false);
+    setPendingManualState(null);
+  };
+
+  const manualActionLabel =
+    pendingManualState == null
+      ? ""
+      : pendingManualState
+        ? t("dashboard.cards.stateOn")
+        : t("dashboard.cards.stateOff");
+
   return (
-    <CardShell
+    <>
+      <CardShell
       title={device.name}
       subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
       headerSx={{ minHeight: 94 }}
@@ -334,42 +403,51 @@ export function DashboardDeviceCard({
           <Chip
             size="small"
             label={modeLabel}
+            clickable={Boolean(onEditRequest)}
+            onClick={() => onEditRequest?.(device)}
             color="primary"
             variant="outlined"
-            sx={{ minWidth: 74 }}
+            sx={{
+              minWidth: 74,
+              ...(onEditRequest
+                ? {
+                    cursor: "pointer",
+                    "& .MuiChip-label": { px: 1.25 },
+                  }
+                : {}),
+            }}
           />
-          {isManualMode ? (
-            <Stack
-              direction="row"
-              spacing={0.5}
-              alignItems="center"
-              justifyContent="flex-end"
-              sx={{ minHeight: 24 }}
-            >
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {t("common.enabled")}
-              </Typography>
-              <Switch
-                size="small"
-                checked={resolvedManualState}
-                onChange={handleManualSwitchChange}
-                disabled={manualSwitchDisabled}
-                sx={{
-                  ml: 0.25,
-                  "& .MuiSwitch-switchBase": {
-                    p: 0.4,
-                  },
-                  "& .MuiSwitch-thumb": {
-                    width: 14,
-                    height: 14,
-                  },
-                  "& .MuiSwitch-track": {
-                    borderRadius: 8,
-                  },
-                }}
-              />
-            </Stack>
-          ) : (
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            justifyContent="flex-end"
+            sx={{ minHeight: 24 }}
+          >
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {t("common.enabled")}
+            </Typography>
+            <Switch
+              size="small"
+              checked={resolvedManualState}
+              onChange={handleManualSwitchChange}
+              disabled={manualSwitchDisabled}
+              sx={{
+                ml: 0.25,
+                "& .MuiSwitch-switchBase": {
+                  p: 0.4,
+                },
+                "& .MuiSwitch-thumb": {
+                  width: 14,
+                  height: 14,
+                },
+                "& .MuiSwitch-track": {
+                  borderRadius: 8,
+                },
+              }}
+            />
+          </Stack>
+          {isAutoMode && (
             <Stack spacing={0} alignItems="flex-end">
               <Typography variant="caption" color="text.secondary" noWrap>
                 {t("dashboard.cards.autoThreshold")}
@@ -381,7 +459,7 @@ export function DashboardDeviceCard({
                 sx={{
                   maxWidth: 132,
                   color:
-                    isAutoMode && thresholdValue != null
+                    thresholdValue != null
                       ? (theme) => theme.palette.warning.dark
                       : "text.primary",
                 }}
@@ -576,6 +654,24 @@ export function DashboardDeviceCard({
           </Button>
         </Box>
       </Stack>
-    </CardShell>
+      </CardShell>
+
+      <Dialog open={confirmManualOpen} onClose={handleCancelManualConfirm}>
+        <DialogTitle>{t("dashboard.cards.manualSwitchConfirmTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("dashboard.cards.manualSwitchConfirmDescription", {
+              action: manualActionLabel,
+            })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelManualConfirm}>{t("common.cancel")}</Button>
+          <Button onClick={handleConfirmManual} variant="contained" autoFocus>
+            {t("dashboard.cards.manualSwitchConfirmOk")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

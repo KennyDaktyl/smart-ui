@@ -19,6 +19,7 @@ type DashboardDeviceListProps = {
   deviceLiveMap: Record<number, DeviceLiveState>;
   microcontrollerLiveMap: Record<string, MicrocontrollerOnlineState>;
   providerLiveMap: Record<string, ProviderLiveState>;
+  onEditDevice?: (deviceId: number) => void;
 };
 
 export function DashboardDeviceList({
@@ -26,6 +27,7 @@ export function DashboardDeviceList({
   deviceLiveMap,
   microcontrollerLiveMap,
   providerLiveMap,
+  onEditDevice,
 }: DashboardDeviceListProps) {
   return (
     <Box
@@ -50,6 +52,7 @@ export function DashboardDeviceList({
           deviceLive={deviceLiveMap[item.device.id]}
           microcontrollerLive={microcontrollerLiveMap[item.microcontroller.uuid]}
           providerLive={item.provider ? providerLiveMap[item.provider.uuid] : undefined}
+          onEditRequest={() => onEditDevice?.(item.device.id)}
         />
       ))}
     </Box>

@@ -19,7 +19,7 @@ export type ProviderMeasurement = {
   id?: number;
   provider_uuid?: string;
   measured_at: string;
-  measured_value: number;
+  measured_value: number | null;
   measured_unit?: string | null;
   metadata_payload?: Record<string, unknown> | null;
   created_at?: string;

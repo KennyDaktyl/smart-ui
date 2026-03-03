@@ -46,20 +46,35 @@ const normalizeEntry = (
   entry: ProviderTelemetryEntry | TelemetryChartPoint
 ): TelemetryChartPoint | null => {
   const timestamp = "measured_at" in entry ? entry.measured_at : entry.timestamp;
-  const value =
-    "measured_at" in entry
-      ? entry.measured_value
-      : "energy" in entry
-        ? entry.energy
-        : entry.value;
 
   const timestampMs = Date.parse(timestamp);
   if (!Number.isFinite(timestampMs)) return null;
-  if (!Number.isFinite(value)) return null;
+
+  if ("measured_at" in entry) {
+    const value = entry.measured_value == null ? 0 : entry.measured_value;
+    if (!Number.isFinite(value)) return null;
+
+    return {
+      timestamp: new Date(timestampMs).toISOString(),
+      value,
+      isNullSample: entry.measured_value == null,
+    };
+  }
+
+  if ("energy" in entry) {
+    if (!Number.isFinite(entry.energy)) return null;
+    return {
+      timestamp: new Date(timestampMs).toISOString(),
+      value: entry.energy,
+    };
+  }
+
+  if (!Number.isFinite(entry.value)) return null;
 
   return {
     timestamp: new Date(timestampMs).toISOString(),
-    value,
+    value: entry.value,
+    isNullSample: entry.isNullSample,
   };
 };
 
@@ -337,6 +352,8 @@ export default function ProviderTelemetryPage() {
               day={day}
               points={dayWithLiveEntries}
               unit={chartUnit}
+              yMin={provider?.value_min ?? null}
+              yMax={provider?.value_max ?? null}
               noDataLabel={t("providers.telemetry.noDayData")}
               noEntriesLabel={t("providers.telemetry.noEntriesData")}
             />

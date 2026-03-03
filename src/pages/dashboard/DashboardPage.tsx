@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useTranslation } from "react-i18next";
 
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
+import { DeviceForm } from "@/features/devices/components/DeviceForm";
 import { DashboardDeviceList, type DashboardDeviceItem } from "@/features/dashboard/components/DashboardDeviceList";
 import { useDeviceLiveState, type DeviceHeartbeatSubscription } from "@/features/devices/live/useDeviceLiveState";
 import { useMicrocontrollersOnlineStatus } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
@@ -41,6 +50,7 @@ export default function DashboardPage() {
   const [microcontrollers, setMicrocontrollers] = useState<MicrocontrollerResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingDeviceId, setEditingDeviceId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,49 +123,108 @@ export default function DashboardPage() {
   const deviceLiveMap = useDeviceLiveState(undefined, heartbeatSubscriptions);
   const microcontrollerLiveMap = useMicrocontrollersOnlineStatus(microcontrollerUuids);
   const providerLiveMap = useProvidersLive(providers);
+  const editingItem = useMemo(
+    () =>
+      dashboardDevices.find((item) => item.device.id === editingDeviceId) ?? null,
+    [dashboardDevices, editingDeviceId]
+  );
+
+  const reloadDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await microcontrollersApi.getUserMicrocontrollers();
+      setMicrocontrollers(response.data);
+    } catch {
+      setError(t("dashboard.fetchError"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        maxWidth: { xs: "100%", xl: 1680 },
-        mx: "auto",
-        minHeight: "80vh",
-      }}
-    >
-      <Stack spacing={0.75} mb={2.5}>
-        <Typography variant="h4">{t("dashboard.title")}</Typography>
-        <Typography color="text.secondary">{t("dashboard.subtitle")}</Typography>
-        <Typography variant="caption" color="text.secondary">
-          {t("dashboard.itemsCount", { count: dashboardDevices.length })}
-        </Typography>
-      </Stack>
+    <>
+      <Box
+        sx={{
+          p: 2,
+          maxWidth: { xs: "100%", xl: 1680 },
+          mx: "auto",
+          minHeight: "80vh",
+        }}
+      >
+        <Stack spacing={0.75} mb={2.5}>
+          <Typography variant="h4">{t("dashboard.title")}</Typography>
+          <Typography color="text.secondary">{t("dashboard.subtitle")}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t("dashboard.itemsCount", { count: dashboardDevices.length })}
+          </Typography>
+        </Stack>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      {loading ? (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="60vh"
-        >
-          <CircularProgress />
-        </Box>
-      ) : dashboardDevices.length === 0 ? (
-        <Typography color="text.secondary">{t("dashboard.empty")}</Typography>
-      ) : (
-        <DashboardDeviceList
-          items={dashboardDevices}
-          deviceLiveMap={deviceLiveMap}
-          microcontrollerLiveMap={microcontrollerLiveMap}
-          providerLiveMap={providerLiveMap}
-        />
-      )}
-    </Box>
+        {loading ? (
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="60vh"
+          >
+            <CircularProgress />
+          </Box>
+        ) : dashboardDevices.length === 0 ? (
+          <Typography color="text.secondary">{t("dashboard.empty")}</Typography>
+        ) : (
+          <DashboardDeviceList
+            items={dashboardDevices}
+            deviceLiveMap={deviceLiveMap}
+            microcontrollerLiveMap={microcontrollerLiveMap}
+            providerLiveMap={providerLiveMap}
+            onEditDevice={setEditingDeviceId}
+          />
+        )}
+      </Box>
+
+      <StickyDialog
+        open={Boolean(editingItem)}
+        onClose={() => setEditingDeviceId(null)}
+        maxWidth="sm"
+        title={t("common.edit")}
+        actions={
+          <>
+            <Button variant="outlined" onClick={() => setEditingDeviceId(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="dashboard-edit-device-form" variant="contained">
+              {t("common.save")}
+            </Button>
+          </>
+        }
+      >
+        {editingItem && (
+          <DeviceForm
+            device={editingItem.device}
+            provider={editingItem.provider}
+            microcontrollerOnline={
+              Boolean(
+                microcontrollerLiveMap[editingItem.microcontroller.uuid]?.isOnline
+              )
+            }
+            formId="dashboard-edit-device-form"
+            hideActions
+            onSubmit={async () => {
+              setEditingDeviceId(null);
+              await reloadDashboardData();
+            }}
+            onCancel={() => setEditingDeviceId(null)}
+            variant="modal"
+          />
+        )}
+      </StickyDialog>
+    </>
   );
 }

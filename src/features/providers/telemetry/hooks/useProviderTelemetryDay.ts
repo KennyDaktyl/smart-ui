@@ -55,12 +55,14 @@ const normalizeEntry = (entry: unknown): ProviderTelemetryEntry | null => {
   if (!isRecord(entry)) return null;
 
   const measuredAt = toNullableString(entry.measured_at);
-  const measuredValue = toFiniteNumber(entry.measured_value);
+  const measuredValueRaw = entry.measured_value;
+  const measuredValue = toFiniteNumber(measuredValueRaw);
+  const measuredValueIsNull = measuredValueRaw === null;
 
-  if (measuredAt && measuredValue != null) {
+  if (measuredAt && (measuredValue != null || measuredValueIsNull)) {
     const normalized: ProviderMeasurement = {
       measured_at: measuredAt,
-      measured_value: measuredValue,
+      measured_value: measuredValue ?? null,
       measured_unit: toNullableString(entry.measured_unit),
     };
 

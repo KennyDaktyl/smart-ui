@@ -28,6 +28,7 @@ const WARSAW_TZ = "Europe/Warsaw";
 export type TelemetryChartPoint = {
   timestamp: string;
   value: number;
+  isNullSample?: boolean;
 };
 
 type HourBar = {
@@ -44,6 +45,7 @@ type HourBar = {
 type EntryPoint = {
   ts: number;
   value: number;
+  isNullSample: boolean;
   x: number;
   y: number;
   timeLabel: string;
@@ -72,6 +74,8 @@ type ProviderTelemetryChartProps = {
   day: DayEnergy;
   points: TelemetryChartPoint[];
   unit?: string | null;
+  yMin?: number | null;
+  yMax?: number | null;
   noDataLabel: string;
   noEntriesLabel?: string;
 };
@@ -148,7 +152,8 @@ const buildGeometry = (
   };
 
   const yFor = (value: number) =>
-    PADDING_TOP + (1 - (value - min) / safeRange) * graphHeight;
+    PADDING_TOP +
+    (1 - (clamp(value, min, max) - min) / safeRange) * graphHeight;
 
   return {
     width,
@@ -216,6 +221,8 @@ export function ProviderTelemetryChart({
   day,
   points,
   unit = "kW",
+  yMin,
+  yMax,
   noDataLabel,
   noEntriesLabel,
 }: ProviderTelemetryChartProps) {
@@ -293,6 +300,15 @@ export function ProviderTelemetryChart({
   }, [chartWidth, day.hours, dayStartMs, locale]);
 
   const entriesChart = useMemo(() => {
+    const configuredMin =
+      typeof yMin === "number" && Number.isFinite(yMin) ? yMin : null;
+    const configuredMax =
+      typeof yMax === "number" && Number.isFinite(yMax) ? yMax : null;
+    const hasConfiguredRange =
+      configuredMin != null &&
+      configuredMax != null &&
+      configuredMax > configuredMin;
+
     const normalizedEntries = points
       .map((point) => {
         const ts = Date.parse(point.timestamp);
@@ -300,6 +316,7 @@ export function ProviderTelemetryChart({
         return {
           ts,
           value: point.value,
+          isNullSample: Boolean(point.isNullSample),
           timeLabel: formatTimeWarsaw(ts, locale),
           dateTimeLabel: formatDateTimeWarsaw(ts, locale),
         };
@@ -311,20 +328,36 @@ export function ProviderTelemetryChart({
       return {
         points: [] as EntryPoint[],
         path: "",
-        geometry: buildGeometry(chartWidth, LINE_HEIGHT, 0, 1, dayStartMs),
+        geometry: hasConfiguredRange
+          ? buildGeometry(
+              chartWidth,
+              LINE_HEIGHT,
+              configuredMin,
+              configuredMax,
+              dayStartMs
+            )
+          : buildGeometry(chartWidth, LINE_HEIGHT, 0, 1, dayStartMs),
       };
     }
 
-    const values = normalizedEntries.map((entry) => entry.value);
-    let min = Math.min(...values);
-    let max = Math.max(...values);
+    let min: number;
+    let max: number;
 
-    if (min > 0) min = 0;
+    if (hasConfiguredRange) {
+      min = configuredMin;
+      max = configuredMax;
+    } else {
+      const values = normalizedEntries.map((entry) => entry.value);
+      min = Math.min(...values);
+      max = Math.max(...values);
 
-    if (Math.abs(max - min) < 1e-9) {
-      const delta = max === 0 ? 1 : Math.abs(max) * 0.1;
-      min -= delta;
-      max += delta;
+      if (min > 0) min = 0;
+
+      if (Math.abs(max - min) < 1e-9) {
+        const delta = max === 0 ? 1 : Math.abs(max) * 0.1;
+        min -= delta;
+        max += delta;
+      }
     }
 
     const geometry = buildGeometry(chartWidth, LINE_HEIGHT, min, max, dayStartMs);
@@ -339,7 +372,7 @@ export function ProviderTelemetryChart({
       path: buildLinePath(linePoints),
       geometry,
     };
-  }, [chartWidth, dayStartMs, locale, points]);
+  }, [chartWidth, dayStartMs, locale, points, yMax, yMin]);
 
   const unitLabel = unit ?? "kW";
   const totalEnergy = day.total_energy ?? 0;
@@ -598,7 +631,7 @@ export function ProviderTelemetryChart({
                   cx={point.x}
                   cy={point.y}
                   r={zoom >= 3 ? 2.2 : 1.8}
-                  fill="#0f8b6f"
+                  fill={point.isNullSample ? "#ef4444" : "#0f8b6f"}
                 />
               </g>
             ))}

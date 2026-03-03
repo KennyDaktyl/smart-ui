@@ -468,6 +468,10 @@ const resources = {
           microStatus: "Status mikrokontrolera",
           ratedPower: "Moc znamionowa",
           autoThreshold: "Próg automatyki",
+          manualSwitchConfirmTitle: "Przełączyć urządzenie do trybu manual?",
+          manualSwitchConfirmDescription:
+            "Akcja {{action}} ustawi urządzenie w tryb MANUAL. Czy chcesz kontynuować?",
+          manualSwitchConfirmOk: "OK",
           thresholdInactive: "Nie dotyczy (tryb inny niż AUTO)",
           lastHeartbeat: "Heartbeat",
         },
@@ -1169,6 +1173,10 @@ const resources = {
           microStatus: "Microcontroller status",
           ratedPower: "Rated power",
           autoThreshold: "Auto threshold",
+          manualSwitchConfirmTitle: "Switch device to manual mode?",
+          manualSwitchConfirmDescription:
+            "Action {{action}} will set this device to MANUAL mode. Do you want to continue?",
+          manualSwitchConfirmOk: "OK",
           thresholdInactive: "Not applicable (mode other than AUTO)",
           lastHeartbeat: "Heartbeat",
         },
