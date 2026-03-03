@@ -123,6 +123,22 @@ export default function DashboardPage() {
   const deviceLiveMap = useDeviceLiveState(undefined, heartbeatSubscriptions);
   const microcontrollerLiveMap = useMicrocontrollersOnlineStatus(microcontrollerUuids);
   const providerLiveMap = useProvidersLive(providers);
+  const sortedDashboardDevices = useMemo(() => {
+    if (!dashboardDevices.length) return dashboardDevices;
+
+    return [...dashboardDevices].sort((left, right) => {
+      const leftOffline =
+        microcontrollerLiveMap[left.microcontroller.uuid]?.isOnline === false ? 1 : 0;
+      const rightOffline =
+        microcontrollerLiveMap[right.microcontroller.uuid]?.isOnline === false ? 1 : 0;
+
+      if (leftOffline !== rightOffline) {
+        return leftOffline - rightOffline;
+      }
+
+      return 0;
+    });
+  }, [dashboardDevices, microcontrollerLiveMap]);
   const editingItem = useMemo(
     () =>
       dashboardDevices.find((item) => item.device.id === editingDeviceId) ?? null,
@@ -180,7 +196,7 @@ export default function DashboardPage() {
           <Typography color="text.secondary">{t("dashboard.empty")}</Typography>
         ) : (
           <DashboardDeviceList
-            items={dashboardDevices}
+            items={sortedDashboardDevices}
             deviceLiveMap={deviceLiveMap}
             microcontrollerLiveMap={microcontrollerLiveMap}
             providerLiveMap={providerLiveMap}

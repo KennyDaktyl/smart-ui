@@ -278,6 +278,7 @@ export function DashboardDeviceCard({
 
   const microStatus = resolveMicroStatus(microcontrollerLive, t);
   const providerStatus = resolveProviderLiveStatus(provider, providerLive, t);
+  const isDeviceOffline = microcontrollerLive?.isOnline === false;
 
   const stateLabel =
     isOn == null
@@ -373,33 +374,34 @@ export function DashboardDeviceCard({
   return (
     <>
       <CardShell
-      title={device.name}
-      subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
-      headerSx={{ minHeight: 94 }}
-      titleSx={{
-        display: "-webkit-box",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        WebkitBoxOrient: "vertical",
-        WebkitLineClamp: 2,
-        lineHeight: 1.3,
-        minHeight: "2.6em",
-        wordBreak: "break-word",
-      }}
-      subtitleSx={{
-        display: "block",
-        minHeight: 20,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-      }}
-      actionsSx={{ flexShrink: 0 }}
-      actions={
-        <Stack
-          spacing={0.5}
-          alignItems="flex-end"
-          sx={{ minHeight: 62, justifyContent: "space-between", textAlign: "right" }}
-        >
+        title={device.name}
+        subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
+        visualState={isDeviceOffline ? "offline" : "default"}
+        headerSx={{ minHeight: 94 }}
+        titleSx={{
+          display: "-webkit-box",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          WebkitBoxOrient: "vertical",
+          WebkitLineClamp: 2,
+          lineHeight: 1.3,
+          minHeight: "2.6em",
+          wordBreak: "break-word",
+        }}
+        subtitleSx={{
+          display: "block",
+          minHeight: 20,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+        actionsSx={{ flexShrink: 0 }}
+        actions={
+          <Stack
+            spacing={0.5}
+            alignItems="flex-end"
+            sx={{ minHeight: 62, justifyContent: "space-between", textAlign: "right" }}
+          >
           <Chip
             size="small"
             label={modeLabel}
@@ -468,16 +470,22 @@ export function DashboardDeviceCard({
               </Typography>
             </Stack>
           )}
-        </Stack>
-      }
-      sx={{
-        width: "100%",
-        minHeight: 528,
-        height: "100%",
-        borderColor: alpha("#0f8b6f", 0.28),
-        background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,252,249,1) 100%)",
-      }}
-    >
+          </Stack>
+        }
+        sx={{
+          width: "100%",
+          minHeight: 528,
+          height: "100%",
+          borderColor: isDeviceOffline
+            ? "rgba(100,116,139,0.55)"
+            : alpha("#0f8b6f", 0.28),
+          background: isDeviceOffline
+            ? "linear-gradient(180deg, rgba(226,232,240,0.96) 0%, rgba(203,213,225,0.92) 100%)"
+            : "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,252,249,1) 100%)",
+          opacity: isDeviceOffline ? 0.78 : 1,
+          filter: isDeviceOffline ? "grayscale(0.88) saturate(0.72)" : "none",
+        }}
+      >
       <Stack spacing={1.8} sx={{ height: "100%" }}>
         <Stack spacing={0.8} sx={{ minHeight: 246 }}>
           <ProviderPowerGauge
