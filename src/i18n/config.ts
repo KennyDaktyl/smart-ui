@@ -8,7 +8,6 @@ const resources = {
     translation: {
       common: {
         brand: "⚡ Smart Energy",
-        huaweiBadge: "API Huawei",
         waitingForStatus: "Oczekiwanie na status...",
         online: "Online",
         offline: "Offline",
@@ -62,14 +61,15 @@ const resources = {
           password: "Hasło",
           role: "Rola",
           isActive: "Aktywny",
-
         },
       },
       header: {
         menu: {
           admin: "Panel administratora",
+          dashboard: "Dashboard",
           microcontrollers: "Mikrokontrolery",
           controllers: "Providery",
+          schedulers: "Harmonogramy",
           account: "Moje konto",
           logout: "Wyloguj",
         },
@@ -118,7 +118,8 @@ const resources = {
             login: "Logowanie",
             register: "Rejestracja",
           },
-          registerHint: "Hasło min. 6 znaków. Konto tworzone jest od razu, bez dodatkowych pól.",
+          registerHint:
+            "Hasło min. 6 znaków. Konto tworzone jest od razu, bez dodatkowych pól.",
           processing: "Przetwarzanie...",
           submitLogin: "Zaloguj się",
           submitRegister: "Utwórz konto",
@@ -133,7 +134,8 @@ const resources = {
       },
       offer: {
         title: "Oferta dla energetyki prosumenckiej",
-        subtitle: "Kompletny stack do monitorowania i automatyzacji urządzeń PV w czasie rzeczywistym.",
+        subtitle:
+          "Kompletny stack do monitorowania i automatyzacji urządzeń PV w czasie rzeczywistym.",
         live: "live",
         cards: {
           devices: {
@@ -142,7 +144,7 @@ const resources = {
           },
           inverters: {
             title: "Integracja inwerterów",
-            desc: "Moc, modele, heartbeat i przypisanie do instalacji. Współpraca z API Huawei.",
+            desc: "Moc, modele, heartbeat i przypisanie do instalacji. Integracja z API falowników.",
           },
           telemetry: {
             title: "Telemetria",
@@ -156,7 +158,8 @@ const resources = {
       },
       pricing: {
         title: "Cennik",
-        subtitle: "Wybierz pakiet dopasowany do skali Twojej sieci energetycznej.",
+        subtitle:
+          "Wybierz pakiet dopasowany do skali Twojej sieci energetycznej.",
         highlight: "Najczęściej wybierany",
         select: "Wybierz",
         tiers: {
@@ -198,18 +201,21 @@ const resources = {
       },
       contact: {
         title: "Kontakt",
-        subtitle: "Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.",
+        subtitle:
+          "Opowiedz o swojej infrastrukturze – przygotujemy demo dopasowane do Twoich inwerterów i Raspberry.",
         form: {
-          name: "Imię i nazwisko",
           email: "Email",
-          phone: "Telefon",
+          subject: "Temat",
           description: "Opis instalacji / potrzeby",
           submit: "Wyślij zapytanie",
+          submitting: "Wysyłanie...",
+          validationRequired: "Uzupełnij temat, e-mail i opis.",
+          success: "Wiadomość wysłana. Dziękuję, odezwę się wkrótce.",
+          error: "Nie udało się wysłać formularza. Spróbuj ponownie później.",
         },
         info: {
-          emailHint: "Zapytania produktowe i demo",
-          phoneHint: "Pon-Pt, 9:00-17:00",
-          locationHint: "Wsparcie w całej Polsce",
+          directContactNote:
+            "Bezpieczny kontakt bez publikacji e-maila na stronie. Możesz też użyć formularza obok.",
         },
       },
       auth: {
@@ -225,10 +231,11 @@ const resources = {
         },
         register: {
           title: "Rejestracja",
-          subtitle: "Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.",
+          subtitle:
+            "Utwórz konto i zarządzaj instalacjami w czasie rzeczywistym.",
           submit: "Zarejestruj się",
           haveAccount: "Mam już konto",
-          success: "Konto zostało utworzone. Możesz się zalogować.",
+          success: "Konto utworzone. Sprawdź e-mail i aktywuj konto tokenem.",
           error: "Nie udało się zarejestrować",
         },
         forgot: {
@@ -260,14 +267,25 @@ const resources = {
           subtitle: "Weryfikujemy link aktywacyjny, aby odblokować konto.",
           loadingTitle: "Potwierdzanie adresu e-mail…",
           successTitle: "E-mail potwierdzony 🎉",
-          successDescription:
-            "Twoje konto zostało pomyślnie aktywowane.",
+          successDescription: "Twoje konto zostało pomyślnie aktywowane.",
           errorTitle: "Aktywacja nie powiodła się ❌",
-          errorDescription:
-            "Link aktywacyjny jest nieprawidłowy lub wygasł.",
+          errorDescription: "Link aktywacyjny jest nieprawidłowy lub wygasł.",
           missingToken: "Brak tokenu aktywacyjnego.",
           goToLogin: "Przejdź do logowania",
+          goToActivation: "Wpisz token aktywacyjny",
           goToRegister: "Utwórz konto ponownie",
+        },
+        activate: {
+          title: "Aktywuj konto",
+          subtitle:
+            "Po rejestracji otrzymasz token aktywacyjny na e-mail. Wklej go poniżej, aby aktywować konto.",
+          emailSent: "Token aktywacyjny wysłaliśmy na: {{email}}",
+          tokenLabel: "Token aktywacyjny",
+          tokenRequired: "Wprowadź token aktywacyjny.",
+          submit: "Aktywuj konto",
+          success: "Konto zostało aktywowane. Możesz się zalogować.",
+          error: "Nie udało się aktywować konta.",
+          goToLogin: "Przejdź do logowania",
         },
       },
       account: {
@@ -315,94 +333,159 @@ const resources = {
           },
         },
       },
-      providers:{
-        "title": "Providery",
-        "actions": {
-          "add": "Dodaj providera",
-          "create": "Utwórz providera",
-          "telemetry": "Telemetria"
+      providers: {
+        title: "Providery",
+        actions: {
+          add: "Dodaj providera",
+          create: "Utwórz providera",
+          edit: "Edytuj",
+          telemetry: "Telemetria",
         },
-        "wizard": {
-          "steps": {
-            "provider": "Wybór providera",
-            "config": "Konfiguracja",
-            "summary": "Podsumowanie"
+        wizard: {
+          steps: {
+            provider: "Wybór providera",
+            config: "Konfiguracja",
+            summary: "Podsumowanie",
           },
-          "selectVendor": "Wybierz dostawcę",
-          "vendorMeta": "{{kind}} • {{unit}}",
-          "final": "Podsumowanie",
-          "actions": {
-            "next": "Dalej"
+          selectVendor: "Wybierz dostawcę",
+          vendorMeta: "{{kind}} • {{unit}}",
+          final: "Podsumowanie",
+          actions: {
+            next: "Dalej",
           },
-          "finalForm": {
-            "name": "Nazwa providera",
-            "minValue": "Minimalna wartość ({{unit}})",
-            "maxValue": "Maksymalna wartość ({{unit}})"
-          }
+          finalForm: {
+            name: "Nazwa providera",
+            minValue: "Minimalna wartość ({{unit}})",
+            maxValue: "Maksymalna wartość ({{unit}})",
+            powerSource: "Źródło pomiaru",
+          },
         },
-        "errors": {
-          "load": "Nie udało się pobrać providerów.",
-          "loadDetail": "Błąd ładowania providerów: {{message}}",
-          "wizardStart": "Nie udało się rozpocząć kreatora: {{message}}",
-          "wizardStep": "Błąd podczas kroku kreatora: {{message}}",
-          "final": "Nie udało się dodać providera: {{message}}"
+        errors: {
+          load: "Nie udało się pobrać providerów.",
+          loadDetail: "Błąd ładowania providerów: {{message}}",
+          wizardStart: "Nie udało się rozpocząć kreatora: {{message}}",
+          wizardStep: "Błąd podczas kroku kreatora: {{message}}",
+          final: "Nie udało się dodać providera: {{message}}",
+          updateDetail: "Nie udało się zaktualizować providera: {{message}}",
         },
-        "success": {
-          "create": "Provider został dodany."
+        success: {
+          create: "Provider został dodany.",
+          update: "Provider został zaktualizowany.",
         },
-        "validation": {
-          "backendError": "Błąd walidacji: {{message}}"
+        validation: {
+          backendError: "Błąd walidacji: {{message}}",
+          range: "Minimalna wartość musi być mniejsza od maksymalnej.",
         },
-        "card": {
-          "vendor": "Dostawca",
-          "type": "Typ",
-          "kind": "Rodzaj",
-          "unit": "Jednostka",
-          "range": "Próg automatyki",
-          "rated_power_w": "Moc znamionowa",
-          "lastValue": "Ostatnia wartość",
-          "lastMeasurement": "Ostatni pomiar:",
-          "measurementFresh": "Dane aktualne",
-          "measurementStale": "Dane nie są aktualne",
-          "unknownTime": "Brak informacji o czasie pomiaru"
+        powerSource: {
+          inverter: "Inwerter PV",
+          meter: "Licznik mocy",
         },
-        "live": {
-          "title": "Dane inwertera na żywo",
-          "waiting": "Oczekiwanie na dane na żywo",
-          "updatedAt": "Zaktualizowano",
-          "noData": "Brak danych na żywo",
-          "streaming": "Dane napływają w czasie rzeczywistym"
+        card: {
+          vendor: "Dostawca",
+          type: "Typ",
+          kind: "Rodzaj",
+          unit: "Jednostka",
+          powerSource: "Źródło pomiaru",
+          range: "Próg automatyki",
+          rated_power: "Moc znamionowa",
+          lastValue: "Ostatnia wartość",
+          lastMeasurement: "Ostatni pomiar:",
+          measurementFresh: "Dane aktualne",
+          measurementStale: "Dane nie są aktualne",
+          unknownTime: "Brak informacji o czasie pomiaru",
         },
-        "telemetry": {
-          "title": "Telemetria providera",
-          "rangeStart": "Data od",
-          "rangeEnd": "Data do",
-          "loading": "Ładowanie telemetrii...",
-          "error": "Nie udało się pobrać telemetrii.",
-          "noData": "Brak danych telemetrycznych w wybranym zakresie.",
-          "noDayData": "Brak pomiarów w tym dniu.",
-          "zoom": "Powiększenie",
-          "yMin": "Y min",
-          "yMax": "Y max",
-          "min": "Min:",
-          "max": "Max:",
-          "timezone": "Czas lokalny"
+        live: {
+          title: "Dane inwertera na żywo",
+          waiting: "Oczekiwanie na dane na żywo",
+          updatedAt: "Zaktualizowano",
+          noData: "Brak danych na żywo",
+          streaming: "Dane napływają w czasie rzeczywistym",
         },
-        "data_not_fresh": "Dane nie są aktualne.",
-        "empty": {
-          "title": "Brak skonfigurowanych providerów",
-          "description": "Dodaj pierwszego providera, aby rozpocząć.",
-          "action": "Dodaj providera"
-        }
+        telemetry: {
+          title: "Telemetria providera",
+          rangeStart: "Data od",
+          rangeEnd: "Data do",
+          dayLabel: "Data",
+          previousDay: "Poprzedni dzień",
+          nextDay: "Następny dzień",
+          loading: "Ładowanie telemetrii...",
+          error: "Nie udało się pobrać telemetrii.",
+          noData: "Brak danych telemetrycznych w wybranym zakresie.",
+          noDayData: "Brak pomiarów w tym dniu.",
+          noEntriesData: "Brak szczegółowych wpisów energii w tym dniu.",
+          liveStreaming: "Aktualizacja live",
+          liveMergedEntries:
+            "Wykres uzupełniono o {{count}} wpisów live dla wybranej daty.",
+          liveTodayHint: "Live aktualizuje tylko bieżący dzień.",
+          hourlyChart: "Produkcja godzinowa (słupki)",
+          entriesChart: "Surowe próbki providera (linia)",
+          zoom: "Powiększenie",
+          yMin: "Y min",
+          yMax: "Y max",
+          min: "Min:",
+          max: "Max:",
+          timezone: "Czas lokalny",
+        },
+        data_not_fresh: "Dane nie są aktualne.",
+        empty: {
+          title: "Brak skonfigurowanych providerów",
+          description: "Dodaj pierwszego providera, aby rozpocząć.",
+          action: "Dodaj providera",
+        },
       },
       microcontrollers: {
-        title: "Mikrokontrolery użytkownika"
+        title: "Mikrokontrolery użytkownika",
+      },
+      dashboard: {
+        title: "Dashboard urządzeń",
+        subtitle:
+          "Live podgląd urządzeń, mikrokontrolerów i mocy providerów w jednym miejscu.",
+        itemsCount: "Urządzenia: {{count}}",
+        fetchError: "Nie udało się pobrać danych dashboardu.",
+        empty: "Brak urządzeń do wyświetlenia.",
+        cards: {
+          deviceNumber: "Urządzenie",
+          microcontroller: "Mikrokontroler",
+          provider: "Provider",
+          providerMissing: "Brak providera",
+          providerLive: "Status live providera",
+          providerLiveOn: "LIVE",
+          providerLivePending: "Oczekiwanie",
+          providerLiveStale: "Nieaktualne",
+          providerLiveOff: "Brak live",
+          providerLiveDisabled: "Wyłączony",
+          providerLiveMissing: "Brak providera",
+          providerCountdownOverdue: "po czasie",
+          providerRefreshIn: "Następny odczyt za {{sec}}s",
+          providerRefreshOverdue: "Brak nowego odczytu (po czasie)",
+          providerRefreshUnknown: "Brak informacji o kolejnym odczycie",
+          providerLastUpdate: "Ostatni odczyt",
+          stateOn: "ON",
+          stateOff: "OFF",
+          noPowerData: "Brak danych mocy",
+          providerRange: "Zakres providera: {{min}} - {{max}} {{unit}}",
+          deviceState: "Stan urządzenia",
+          microStatus: "Status mikrokontrolera",
+          ratedPower: "Moc znamionowa",
+          autoThreshold: "Próg automatyki",
+          manualSwitchConfirmTitle: "Przełączyć urządzenie do trybu manual?",
+          manualSwitchConfirmDescription:
+            "Akcja {{action}} ustawi urządzenie w tryb MANUAL. Czy chcesz kontynuować?",
+          manualSwitchConfirmOk: "OK",
+          thresholdInactive: "Nie dotyczy (tryb inny niż AUTO)",
+          lastHeartbeat: "Heartbeat",
+        },
       },
       devices: {
         ratedPower: "Moc znamionowa",
         sectionTitle: "Lista urządzeń",
         form: {
           gpio: "GPIO",
+          threshold: "Próg mocy",
+          scheduler: "Harmonogram",
+          noSchedulers:
+            "Brak harmonogramów. Najpierw utwórz harmonogram w sekcji Harmonogramy.",
+          submitError: "Nie udało się zapisać urządzenia: {{message}}",
         },
         details: {
           title: "Szczegóły urządzenia",
@@ -423,7 +506,7 @@ const resources = {
             energy: "Energia",
             energyCost: "Koszt energii",
             totalMinutes: "Czas pracy",
-            ratedPower: "Moc znamionowa"
+            ratedPower: "Moc znamionowa",
           },
           modes: {
             manual: "Manual",
@@ -432,22 +515,94 @@ const resources = {
           },
           stateOn: "Włączone",
           stateOff: "Wyłączone",
+          dayLabel: "Data",
+          previousDay: "Poprzedni dzień",
+          nextDay: "Następny dzień",
           rangeStart: "Data od",
           rangeEnd: "Data do",
           noEvents: "Brak zdarzeń w wybranym zakresie.",
           noEventsDay: "Brak zdarzeń w tym dniu (oś czasu pokazuje 24h).",
+          noFilteredEvents: "Brak zdarzeń dla aktywnych filtrów.",
+          eventsListTitle: "Ostatnie zdarzenia",
           legend: "Legenda:",
           zoom: "Powiększenie",
+          sources: {
+            live: "Live event",
+            history: "Dane historyczne",
+          },
+          live: {
+            deviceHeartbeat: "Heartbeat urządzenia",
+            lastHeartbeat: "Ostatni heartbeat",
+            microcontroller: "Status mikrokontrolera",
+            providerPower: "Moc providera",
+            noProvider: "Brak przypiętego providera",
+            eventsMerged:
+              "Wykres zawiera dane historyczne i live eventy urządzenia ({{count}} nowych eventów).",
+            events: {
+              switchOn: "Heartbeat: urządzenie włączone",
+              switchOff: "Heartbeat: urządzenie wyłączone",
+              triggerReason: "Aktualizacja na podstawie heartbeat",
+            },
+          },
           eventTypes: {
             autoTrigger: "Auto trigger",
-            heartbeatFailure: "Heartbeat failure",
+            heartbeat: "Heartbeat",
             powerMissing: "Power missing",
-            manual: "Manual"
+            scheduler: "Harmonogram",
+            manual: "Manual",
           },
           loadError: "Nie udało się pobrać urządzenia.",
           eventsError: "Nie udało się pobrać telemetrii.",
           missing: "Nie znaleziono urządzenia.",
         },
+      },
+      schedulers: {
+        title: "Harmonogramy",
+        subtitle:
+          "Twórz tygodniowe harmonogramy, które automatycznie włączają i wyłączają urządzenia.",
+        actions: {
+          add: "Dodaj harmonogram",
+        },
+        empty: {
+          title: "Brak harmonogramów",
+          description:
+            "Utwórz pierwszy harmonogram, aby przypisać go do urządzeń w trybie Harmonogram.",
+        },
+        card: {
+          blocksCount: "Bloki czasowe: {{count}}",
+          slotPowerCondition: "Warunek mocy: > {{value}} {{unit}}",
+        },
+        form: {
+          createTitle: "Nowy harmonogram",
+          editTitle: "Edytuj harmonogram",
+          name: "Nazwa harmonogramu",
+          enableSlotPowerThreshold: "Włącz próg mocy dla tego przedziału",
+          powerUnit: "Jednostka mocy",
+          powerThreshold: "Próg mocy",
+          invalidThreshold: "Podaj poprawną wartość progu mocy (>= 0).",
+          noUnitsAvailable: "Brak dostępnych jednostek mocy dla konta.",
+          timeBlocks: "Dni i zakresy godzin",
+          start: "Od",
+          end: "Do",
+          addRange: "Dodaj przedział",
+          removeRange: "Usuń przedział",
+          invalidRange: "Godzina końcowa musi być późniejsza niż start.",
+          overlapRange: "Przedziały czasu w tym dniu nie mogą się nakładać.",
+          noDaySelected: "Wybierz przynajmniej jeden dzień tygodnia.",
+        },
+        days: {
+          MONDAY: "Poniedziałek",
+          TUESDAY: "Wtorek",
+          WEDNESDAY: "Środa",
+          THURSDAY: "Czwartek",
+          FRIDAY: "Piątek",
+          SATURDAY: "Sobota",
+          SUNDAY: "Niedziela",
+        },
+        deleteConfirm: "Usunąć harmonogram „{{name}}”?",
+        createSuccess: "Harmonogram został utworzony.",
+        updateSuccess: "Harmonogram został zaktualizowany.",
+        deleteSuccess: "Harmonogram został usunięty.",
       },
       microcontroller: {
         uuid: "UUID",
@@ -478,10 +633,26 @@ const resources = {
         },
         configuration: "Konfiguracja",
         configurationJson: "Konfiguracja JSON",
+        agentConfig: {
+          title: "Pliki konfiguracyjne agenta",
+          description:
+            "Pobierz pliki JSON z agenta, edytuj je i wyślij ponownie.",
+          configFile: "config.json",
+          hardwareConfigFile: "hardware_config.json",
+          load: "Pobierz z agenta",
+          save: "Wyślij do agenta",
+          saveSuccess: "Pliki konfiguracyjne zostały zapisane na agencie.",
+          invalidJson: "Niepoprawny JSON w pliku {{file}}.",
+        },
         actions: {
           title: "Akcje mikrokontrolera",
           restart: "Restart mikrokontrolera",
-          update: "Zaktualizuj firmware",
+          restartHint:
+            "Restart zresetuje proces agenta. Użyj po zmianie plików konfiguracyjnych.",
+          restartConfirmTitle: "Zrestartować agenta?",
+          restartConfirmMessage:
+            "Agent zostanie zrestartowany natychmiast po potwierdzeniu.",
+          restartSuccess: "Komenda restartu została wysłana do agenta.",
         },
         sensorsLabel: "Czujniki",
         sensorOptions: {
@@ -541,7 +712,8 @@ const resources = {
           emailRequired: "Podaj adres e-mail.",
           passwordTooShort: "Hasło musi mieć co najmniej 8 znaków.",
           required: "To pole jest wymagane.",
-          minDevices: "Mikrokontroler musi obsługiwać co najmniej 1 urządzenie.",
+          minDevices:
+            "Mikrokontroler musi obsługiwać co najmniej 1 urządzenie.",
         },
         api: {
           generic: "Wystąpił błąd. Spróbuj ponownie później.",
@@ -560,7 +732,6 @@ const resources = {
       common: {
         brand: "⚡ Smart Energy",
         details: "Details",
-        huaweiBadge: "Huawei API",
         waitingForStatus: "Waiting for status...",
         online: "Online",
         offline: "Offline",
@@ -605,8 +776,10 @@ const resources = {
       header: {
         menu: {
           admin: "Admin",
+          dashboard: "Dashboard",
           microcontrollers: "Microcontrollers",
           controllers: "Providers",
+          schedulers: "Schedulers",
           account: "My account",
           logout: "Log out",
         },
@@ -622,7 +795,6 @@ const resources = {
           password: "Password",
           role: "Role",
           isActive: "Active",
-
         },
       },
       landing: {
@@ -669,7 +841,8 @@ const resources = {
             login: "Login",
             register: "Register",
           },
-          registerHint: "Minimum 6 characters. The account is created immediately.",
+          registerHint:
+            "Minimum 6 characters. The account is created immediately.",
           processing: "Processing...",
           submitLogin: "Log in",
           submitRegister: "Create account",
@@ -684,7 +857,8 @@ const resources = {
       },
       offer: {
         title: "Offer for prosumer energy",
-        subtitle: "A complete stack for monitoring and automating PV devices in real time.",
+        subtitle:
+          "A complete stack for monitoring and automating PV devices in real time.",
         live: "live",
         cards: {
           devices: {
@@ -693,7 +867,7 @@ const resources = {
           },
           inverters: {
             title: "Inverter integrations",
-            desc: "Power, models, heartbeat, and installation assignment. Works with Huawei API.",
+            desc: "Power, models, heartbeat, and installation assignment. Works with inverter APIs.",
           },
           telemetry: {
             title: "Telemetry",
@@ -749,18 +923,21 @@ const resources = {
       },
       contact: {
         title: "Contact",
-        subtitle: "Tell us about your infrastructure — we’ll prepare a demo tailored to your inverters and Raspberry devices.",
+        subtitle:
+          "Tell us about your infrastructure — we’ll prepare a demo tailored to your inverters and Raspberry devices.",
         form: {
-          name: "Full name",
           email: "Email",
-          phone: "Phone",
+          subject: "Subject",
           description: "Installation description / needs",
           submit: "Send inquiry",
+          submitting: "Sending...",
+          validationRequired: "Please provide subject, email, and message.",
+          success: "Message sent. I will get back to you soon.",
+          error: "Could not send the form. Please try again later.",
         },
         info: {
-          emailHint: "Product inquiries and demos",
-          phoneHint: "Mon–Fri, 9:00–17:00",
-          locationHint: "Support across Poland",
+          directContactNote:
+            "Secure contact without exposing email publicly. You can also use the form.",
         },
       },
       auth: {
@@ -778,7 +955,7 @@ const resources = {
           title: "Register",
           submit: "Create account",
           haveAccount: "I already have an account",
-          success: "Account created. You can log in.",
+          success: "Account created. Check your email and activate it with the token.",
           error: "Registration failed",
           subtitle: "Create an account and manage installations in real time.",
         },
@@ -787,7 +964,8 @@ const resources = {
           subtitle: "Send a password reset link to your email.",
           emptyEmail: "Please enter your email address.",
           submit: "Send reset link",
-          success: "If the account exists, we sent password reset instructions.",
+          success:
+            "If the account exists, we sent password reset instructions.",
           error: "Failed to send the message.",
         },
         reset: {
@@ -811,14 +989,25 @@ const resources = {
           subtitle: "We are validating the confirmation link sent to you.",
           loadingTitle: "Confirming your email…",
           successTitle: "Email confirmed 🎉",
-          successDescription:
-            "Your account has been successfully activated.",
+          successDescription: "Your account has been successfully activated.",
           errorTitle: "Activation failed ❌",
-          errorDescription:
-            "The activation link is invalid or expired.",
+          errorDescription: "The activation link is invalid or expired.",
           missingToken: "Missing activation token.",
           goToLogin: "Go to login",
+          goToActivation: "Enter activation token",
           goToRegister: "Create account again",
+        },
+        activate: {
+          title: "Activate account",
+          subtitle:
+            "After registration you will receive an activation token by email. Paste it below to activate your account.",
+          emailSent: "Activation token was sent to: {{email}}",
+          tokenLabel: "Activation token",
+          tokenRequired: "Please enter the activation token.",
+          submit: "Activate account",
+          success: "Your account has been activated. You can now log in.",
+          error: "Account activation failed.",
+          goToLogin: "Go to login",
         },
       },
       account: {
@@ -868,91 +1057,156 @@ const resources = {
           },
         },
       },
-      providers:{
-        "title": "Providers",
-        "actions": {
-          "add": "Add provider",
-          "create": "Create provider",
-          "telemetry": "Telemetry"
+      providers: {
+        title: "Providers",
+        actions: {
+          add: "Add provider",
+          create: "Create provider",
+          edit: "Edit",
+          telemetry: "Telemetry",
         },
-        "wizard": {
-          "steps": {
-            "provider": "Select vendor",
-            "config": "Configuration",
-            "summary": "Summary"
+        wizard: {
+          steps: {
+            provider: "Select vendor",
+            config: "Configuration",
+            summary: "Summary",
           },
-          "selectVendor": "Pick a vendor",
-          "vendorMeta": "{{kind}} • {{unit}}",
-          "final": "Summary",
-          "actions": {
-            "next": "Next"
+          selectVendor: "Pick a vendor",
+          vendorMeta: "{{kind}} • {{unit}}",
+          final: "Summary",
+          actions: {
+            next: "Next",
           },
-          "finalForm": {
-            "name": "Provider name",
-            "minValue": "Min value ({{unit}})",
-            "maxValue": "Max value ({{unit}})"
-          }
+          finalForm: {
+            name: "Provider name",
+            minValue: "Min value ({{unit}})",
+            maxValue: "Max value ({{unit}})",
+            powerSource: "Measurement source",
+          },
         },
-        "errors": {
-          "load": "Failed to load providers.",
-          "loadDetail": "Failed to load providers: {{message}}",
-          "wizardStart": "Unable to start wizard: {{message}}",
-          "wizardStep": "Wizard step failed: {{message}}",
-          "final": "Failed to create provider: {{message}}"
+        errors: {
+          load: "Failed to load providers.",
+          loadDetail: "Failed to load providers: {{message}}",
+          wizardStart: "Unable to start wizard: {{message}}",
+          wizardStep: "Wizard step failed: {{message}}",
+          final: "Failed to create provider: {{message}}",
+          updateDetail: "Failed to update provider: {{message}}",
         },
-        "success": {
-          "create": "Provider has been added."
+        success: {
+          create: "Provider has been added.",
+          update: "Provider has been updated.",
         },
-        "validation": {
-          "backendError": "Validation error: {{message}}"
+        validation: {
+          backendError: "Validation error: {{message}}",
+          range: "Min value must be lower than max value.",
         },
-        "card": {
-          "vendor": "Vendor",
-          "type": "Type",
-          "kind": "Kind",
-          "unit": "Unit",
-          "rated_power_w": "Rated power",
-          "range": "Auto threshold",
-          "lastValue": "Last value",
-          "lastMeasurement": "Last measurement:"
+        powerSource: {
+          inverter: "PV inverter",
+          meter: "Power meter",
         },
-        "live": {
-          "title": "Live inverter data",
-          "waiting": "Waiting for live data",
-          "updatedAt": "Updated at",
-          "noData": "No live data available",
-          "streaming": "Data is streaming in real time"
+        card: {
+          vendor: "Vendor",
+          type: "Type",
+          kind: "Kind",
+          unit: "Unit",
+          powerSource: "Measurement source",
+          rated_power: "Rated power",
+          range: "Auto threshold",
+          lastValue: "Last value",
+          lastMeasurement: "Last measurement:",
         },
-        "telemetry": {
-          "title": "Provider telemetry",
-          "rangeStart": "Start date",
-          "rangeEnd": "End date",
-          "loading": "Loading telemetry...",
-          "error": "Failed to load telemetry.",
-          "noData": "No telemetry data in the selected range.",
-          "noDayData": "No measurements for this day.",
-          "zoom": "Zoom",
-          "yMin": "Y min",
-          "yMax": "Y max",
-          "min": "Min:",
-          "max": "Max:",
-          "timezone": "Local time"
+        live: {
+          title: "Live inverter data",
+          waiting: "Waiting for live data",
+          updatedAt: "Updated at",
+          noData: "No live data available",
+          streaming: "Data is streaming in real time",
         },
-        "data_not_fresh": "Live data is not fresh.",
-        "empty": {
-          "title": "No configured providers",
-          "description": "Add the first provider to get started.",
-          "action": "Add provider"
-        }
+        telemetry: {
+          title: "Provider telemetry",
+          rangeStart: "Start date",
+          rangeEnd: "End date",
+          dayLabel: "Date",
+          previousDay: "Previous day",
+          nextDay: "Next day",
+          loading: "Loading telemetry...",
+          error: "Failed to load telemetry.",
+          noData: "No telemetry data in the selected range.",
+          noDayData: "No measurements for this day.",
+          noEntriesData: "No detailed energy entries for this day.",
+          liveStreaming: "Live updates",
+          liveMergedEntries:
+            "Chart includes {{count}} live entries for the selected date.",
+          liveTodayHint: "Live updates apply only to the current day.",
+          hourlyChart: "Hourly production (bars)",
+          entriesChart: "Raw provider samples (line)",
+          zoom: "Zoom",
+          yMin: "Y min",
+          yMax: "Y max",
+          min: "Min:",
+          max: "Max:",
+          timezone: "Local time",
+        },
+        data_not_fresh: "Live data is not fresh.",
+        empty: {
+          title: "No configured providers",
+          description: "Add the first provider to get started.",
+          action: "Add provider",
+        },
       },
       microcontrollers: {
-        title: "User microcontrollers"
+        title: "User microcontrollers",
+      },
+      dashboard: {
+        title: "Device dashboard",
+        subtitle:
+          "Live overview of devices, microcontrollers, and provider power in one place.",
+        itemsCount: "Devices: {{count}}",
+        fetchError: "Failed to load dashboard data.",
+        empty: "No devices to display.",
+        cards: {
+          deviceNumber: "Device",
+          microcontroller: "Microcontroller",
+          provider: "Provider",
+          providerMissing: "No provider",
+          providerLive: "Provider live status",
+          providerLiveOn: "LIVE",
+          providerLivePending: "Waiting",
+          providerLiveStale: "Stale",
+          providerLiveOff: "No live",
+          providerLiveDisabled: "Disabled",
+          providerLiveMissing: "No provider",
+          providerCountdownOverdue: "overdue",
+          providerRefreshIn: "Next update in {{sec}}s",
+          providerRefreshOverdue: "No new update (overdue)",
+          providerRefreshUnknown: "No next update information",
+          providerLastUpdate: "Last update",
+          stateOn: "ON",
+          stateOff: "OFF",
+          noPowerData: "No power data",
+          providerRange: "Provider range: {{min}} - {{max}} {{unit}}",
+          deviceState: "Device state",
+          microStatus: "Microcontroller status",
+          ratedPower: "Rated power",
+          autoThreshold: "Auto threshold",
+          manualSwitchConfirmTitle: "Switch device to manual mode?",
+          manualSwitchConfirmDescription:
+            "Action {{action}} will set this device to MANUAL mode. Do you want to continue?",
+          manualSwitchConfirmOk: "OK",
+          thresholdInactive: "Not applicable (mode other than AUTO)",
+          lastHeartbeat: "Heartbeat",
+        },
       },
       devices: {
         ratedPower: "Rated power",
         sectionTitle: "Device list",
         form: {
           gpio: "GPIO",
+          threshold: "Power threshold",
+          scheduler: "Schedule",
+          noSchedulers:
+            "No schedules found. Create one first in the Schedulers section.",
+          submitError: "Failed to save device: {{message}}",
         },
         details: {
           title: "Device details",
@@ -973,7 +1227,7 @@ const resources = {
             energy: "Energy",
             energyCost: "Energy cost",
             totalMinutes: "Operating time",
-            ratedPower: "Rated power"
+            ratedPower: "Rated power",
           },
           modes: {
             manual: "Manual",
@@ -982,22 +1236,94 @@ const resources = {
           },
           stateOn: "On",
           stateOff: "Off",
+          dayLabel: "Date",
+          previousDay: "Previous day",
+          nextDay: "Next day",
           rangeStart: "Start date",
           rangeEnd: "End date",
           noEvents: "No events in the selected range.",
           noEventsDay: "No events this day (timeline still shows 24h scale).",
+          noFilteredEvents: "No events for active filters.",
+          eventsListTitle: "Recent events",
           legend: "Legend:",
           zoom: "Zoom",
+          sources: {
+            live: "Live event",
+            history: "Historical data",
+          },
+          live: {
+            deviceHeartbeat: "Device heartbeat",
+            lastHeartbeat: "Last heartbeat",
+            microcontroller: "Microcontroller status",
+            providerPower: "Provider power (live)",
+            noProvider: "No provider assigned",
+            eventsMerged:
+              "Timeline combines historical data and live device events ({{count}} new events).",
+            events: {
+              switchOn: "Heartbeat: device switched on",
+              switchOff: "Heartbeat: device switched off",
+              triggerReason: "Updated from heartbeat stream",
+            },
+          },
           eventTypes: {
             autoTrigger: "Auto trigger",
-            heartbeatFailure: "Heartbeat failure",
+            heartbeat: "Heartbeat",
             powerMissing: "Power missing",
-            manual: "Manual"
+            scheduler: "Scheduler",
+            manual: "Manual",
           },
           loadError: "Failed to load device.",
           eventsError: "Failed to load telemetry.",
           missing: "Device not found.",
         },
+      },
+      schedulers: {
+        title: "Schedules",
+        subtitle:
+          "Create weekly schedules that automatically switch devices on and off.",
+        actions: {
+          add: "Add schedule",
+        },
+        empty: {
+          title: "No schedules yet",
+          description:
+            "Create your first schedule to assign it to devices in Schedule mode.",
+        },
+        card: {
+          blocksCount: "Time blocks: {{count}}",
+          slotPowerCondition: "Power condition: > {{value}} {{unit}}",
+        },
+        form: {
+          createTitle: "New schedule",
+          editTitle: "Edit schedule",
+          name: "Schedule name",
+          enableSlotPowerThreshold: "Enable power threshold for this range",
+          powerUnit: "Power unit",
+          powerThreshold: "Power threshold",
+          invalidThreshold: "Enter a valid threshold value (>= 0).",
+          noUnitsAvailable: "No power units available for this account.",
+          timeBlocks: "Days and time ranges",
+          start: "Start",
+          end: "End",
+          addRange: "Add time range",
+          removeRange: "Remove time range",
+          invalidRange: "End time must be later than start time.",
+          overlapRange: "Time ranges on the same day cannot overlap.",
+          noDaySelected: "Select at least one day of the week.",
+        },
+        days: {
+          MONDAY: "Monday",
+          TUESDAY: "Tuesday",
+          WEDNESDAY: "Wednesday",
+          THURSDAY: "Thursday",
+          FRIDAY: "Friday",
+          SATURDAY: "Saturday",
+          SUNDAY: "Sunday",
+        },
+        deleteConfirm: "Delete schedule \"{{name}}\"?",
+        createSuccess: "Schedule has been created.",
+        updateSuccess: "Schedule has been updated.",
+        deleteSuccess: "Schedule has been deleted.",
       },
       microcontroller: {
         uuid: "UUID",
@@ -1028,10 +1354,26 @@ const resources = {
         },
         configuration: "Configuration",
         configurationJson: "Configuration JSON",
+        agentConfig: {
+          title: "Agent configuration files",
+          description:
+            "Download JSON files from the agent, edit them and send them back.",
+          configFile: "config.json",
+          hardwareConfigFile: "hardware_config.json",
+          load: "Download from agent",
+          save: "Send to agent",
+          saveSuccess: "Configuration files were saved on the agent.",
+          invalidJson: "Invalid JSON in {{file}}.",
+        },
         actions: {
           title: "Microcontroller actions",
           restart: "Restart microcontroller",
-          update: "Update firmware",
+          restartHint:
+            "Restart resets the agent process. Use it after config file changes.",
+          restartConfirmTitle: "Restart agent?",
+          restartConfirmMessage:
+            "The agent process will restart immediately after confirmation.",
+          restartSuccess: "Restart command was sent to the agent.",
         },
         sensorsLabel: "Sensors",
         sensorOptions: {

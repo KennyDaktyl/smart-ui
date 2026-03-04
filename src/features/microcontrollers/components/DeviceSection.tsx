@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
+import { Button, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
@@ -9,6 +9,7 @@ import type { Device } from "@/features/devices/types/devicesType";
 import { devicesApi } from "@/api/devicesApi";
 import { DeviceList } from "@/features/devices/components/DeviceList";
 import { DeviceForm } from "@/features/devices/components/DeviceForm";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
@@ -16,6 +17,7 @@ type Props = {
   provider: any;
   openAddDialog: boolean;
   onCloseAddDialog: () => void;
+  onDevicesChange?: (devices: Device[]) => void;
 };
 
 export function DeviceSection({
@@ -24,6 +26,7 @@ export function DeviceSection({
   provider,
   openAddDialog,
   onCloseAddDialog,
+  onDevicesChange,
 }: Props) {
   const { t } = useTranslation();
 
@@ -31,22 +34,34 @@ export function DeviceSection({
     microcontroller.devices ?? []
   );
 
+  const syncDevices = useCallback(
+    (nextDevices: Device[]) => {
+      setDevices(nextDevices);
+      onDevicesChange?.(nextDevices);
+    },
+    [onDevicesChange]
+  );
+
   const handleDeviceUpdate = (updated: Device) => {
-    setDevices((prev) =>
-      prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d))
-    );
+    setDevices((prev) => {
+      const next = prev.map((d) =>
+        d.id === updated.id ? { ...d, ...updated } : d
+      );
+      onDevicesChange?.(next);
+      return next;
+    });
   };
 
   useEffect(() => {
-    setDevices(microcontroller.devices ?? []);
-  }, [microcontroller.devices]);
+    syncDevices(microcontroller.devices ?? []);
+  }, [microcontroller.devices, syncDevices]);
 
   const reloadDevices = async (): Promise<void> => {
     try {
       const res = await devicesApi.listForMicrocontroller(
         microcontroller.uuid
       );
-      setDevices(res.data);
+      syncDevices(res.data);
     } catch (error) {
       console.error("Failed to reload devices", error);
     }
@@ -68,29 +83,38 @@ export function DeviceSection({
         onDeviceUpdate={handleDeviceUpdate}
       />
 
-      <Dialog
+      <StickyDialog
         open={openAddDialog}
         onClose={onCloseAddDialog}
-        fullWidth
         maxWidth="sm"
+        title={t("common.add")}
+        actions={
+          <>
+            <Button variant="outlined" onClick={onCloseAddDialog}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="create-device-form" variant="contained">
+              {t("common.save")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("common.add")}</DialogTitle>
-        <DialogContent dividers>
-          <DeviceForm
-            microcontrollerUuid={microcontroller.uuid}
-            provider={provider}
-            microcontrollerOnline={live.status === "online"}
-            existingDevices={devices}
-            maxDevices={microcontroller.max_devices}
-            onSubmit={async () => {
-              onCloseAddDialog();
-              await reloadDevices();
-            }}
-            onCancel={onCloseAddDialog}
-            variant="modal"
-          />
-        </DialogContent>
-      </Dialog>
+        <DeviceForm
+          microcontrollerUuid={microcontroller.uuid}
+          provider={provider}
+          microcontrollerOnline={live.status === "online"}
+          formId="create-device-form"
+          hideActions
+          existingDevices={devices}
+          maxDevices={microcontroller.max_devices}
+          onSubmit={async () => {
+            onCloseAddDialog();
+            await reloadDevices();
+          }}
+          onCancel={onCloseAddDialog}
+          variant="modal"
+        />
+      </StickyDialog>
     </>
   );
 }

@@ -1,11 +1,8 @@
-import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
-import { useProvidersLive } from "@/features/providers/hooks/useProvidersLive";
 import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
-import { EnergyValue } from "@/features/common/components/atoms/EnergyValue";
-import { LiveIndicator } from "@/features/common/components/atoms/LiveIndicator";
-import { CountdownTimer } from "@/features/common/components/atoms/CountdownTimer";
+import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
+import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
 
 export type ProviderLiveEnergyProps = {
   provider: ProviderResponse;
@@ -13,19 +10,33 @@ export type ProviderLiveEnergyProps = {
 };
 
 export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyProps) {
-  const liveMap = useProvidersLive([provider]);
-  const live = liveMap[provider.uuid];
+  const mapToLegacy = (live: ProviderLiveSnapshot): ProviderLiveState => ({
+    loading: live.loading,
+    hasWs: live.hasWs,
+    isStale: live.isStale,
+    timestamp: live.measuredAt,
+    nextExpectedAt: live.nextExpectedAt,
+    countdownSec: live.countdownSec,
+    power: live.power,
+    unit: live.unit ?? provider.unit ?? null,
+  });
 
-  if (children) return <>{children(live)}</>;
+  const props = {
+    uuid: provider.uuid,
+    enabled: provider.enabled,
+    expectedIntervalSec: provider.default_expected_interval_sec,
+    initialMeasuredAt: provider.last_value?.measured_at ?? null,
+    initialPower: provider.last_value?.measured_value ?? null,
+    initialUnit: provider.last_value?.measured_unit ?? provider.unit ?? null,
+  };
 
-  return (
-    <Stack spacing={0.5} alignItems="flex-start">
-      <Stack direction="row" spacing={1} alignItems="center">
-        <LiveIndicator active={Boolean(live?.hasWs)} />
-        <EnergyValue value={live?.power ?? null} unit={live?.unit ?? provider.unit ?? null} />
-      </Stack>
+  if (children) {
+    return (
+      <ProviderLiveWidget {...props}>
+        {(live) => children(mapToLegacy(live))}
+      </ProviderLiveWidget>
+    );
+  }
 
-      <CountdownTimer seconds={live?.countdownSec ?? null} />
-    </Stack>
-  );
+  return <ProviderLiveWidget {...props} />;
 }

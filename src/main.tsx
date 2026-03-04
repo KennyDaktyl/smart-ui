@@ -13,6 +13,7 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import ScrollToTop from "./features/common/components/ScrollToTop";
+import RefreshWsOnRouteChange from "./features/common/components/RefreshWsOnRouteChange";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // <React.StrictMode>
@@ -20,7 +21,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <CssBaseline />
     {globalStyles}
     <BrowserRouter>
-    <ScrollToTop />
+      <ScrollToTop />
+      <RefreshWsOnRouteChange />
       <AuthProvider>
         <ToastProvider>
           <App />

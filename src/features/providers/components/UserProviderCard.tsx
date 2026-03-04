@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import EditIcon from "@mui/icons-material/Edit";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ProviderResponse } from "../types/userProvider";
@@ -23,9 +24,15 @@ type Props = {
   provider: ProviderResponse;
   live?: ProviderLiveState;
   onEnabledChange: (uuid: string, enabled: boolean) => void;
+  onEdit: (provider: ProviderResponse) => void;
 };
 
-export default function UserProviderCard({ provider, live, onEnabledChange }: Props) {
+export default function UserProviderCard({
+  provider,
+  live,
+  onEnabledChange,
+  onEdit,
+}: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -53,17 +60,39 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
       }}
     >
       {/* ================= HEADER ================= */}
-      <Box display="flex" justifyContent="space-between">
+      <Stack spacing={1}>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{
+            width: "100%",
+            lineHeight: 1.25,
+            wordBreak: "break-word",
+          }}
+        >
+          {provider.name}
+        </Typography>
+
         <Box>
-          <Typography variant="h6" fontWeight={600}>
-            {provider.name}
-          </Typography>
           <Typography variant="caption" color="text.secondary">
             {provider.vendor} • {provider.provider_type}
           </Typography>
         </Box>
-
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ flexWrap: "wrap", rowGap: 1 }}
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(provider)}
+            sx={{ textTransform: "none" }}
+          >
+            {t("providers.actions.edit")}
+          </Button>
           <Button
             size="small"
             variant="outlined"
@@ -81,9 +110,10 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
             checked={provider.enabled}
             disabled={loading}
             onChange={(_, checked) => toggle(checked)}
+            sx={{ ml: { sm: "auto" } }}
           />
         </Stack>
-      </Box>
+      </Stack>
 
       <Divider />
 
@@ -98,6 +128,13 @@ export default function UserProviderCard({ provider, live, onEnabledChange }: Pr
           <MetaItem
             label={t("providers.card.unit")}
             value={provider.unit}
+          />
+        )}
+
+        {provider.power_source && (
+          <MetaItem
+            label={t("providers.card.powerSource")}
+            value={t(`providers.powerSource.${provider.power_source}`)}
           />
         )}
       </Stack>

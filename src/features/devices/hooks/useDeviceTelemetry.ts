@@ -5,15 +5,13 @@ import { deviceEventsApi } from "@/api/deviceEventsApi";
 interface UseDeviceTelemetryArgs {
   deviceId?: number;
   enabled: boolean;
-  start: string;
-  end: string;
+  date: string;
 }
 
 export function useDeviceTelemetry({
   deviceId,
   enabled,
-  start,
-  end,
+  date,
 }: UseDeviceTelemetryArgs) {
   const [data, setData] = useState<DeviceEventsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,8 +27,7 @@ export function useDeviceTelemetry({
       try {
         const res = await deviceEventsApi.getDeviceEvents(deviceId, {
           limit: 1000,
-          date_start: start,
-          date_end: end,
+          date,
         });
 
         setData(res.data);
@@ -42,7 +39,7 @@ export function useDeviceTelemetry({
     };
 
     fetchTelemetry();
-  }, [deviceId, enabled, start, end]);
+  }, [deviceId, enabled, date]);
 
   return { data, loading, error };
 }

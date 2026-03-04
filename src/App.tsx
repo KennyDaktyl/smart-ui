@@ -10,18 +10,20 @@ import { AdminShell } from "./features/admin/components/layout/AdminShell";
 import ProvidersPage from "./pages/providers/ProvidersPage";
 import ProviderTelemetryPage from "./pages/providers/ProviderTelemetryPage";
 import DeviceDetailsPage from "./pages/devices/DeviceDetailsPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminUserDetailsPage } from "./pages/admin/AdminUserDetailsPage";
 import { AdminMicrocontrollersPage } from "./pages/admin/AdminMicrocontrollersPage";
 import AdminMicrocontrollerDetailsPage from "./pages/admin/AdminMicrocontrollerDetialsPage";
 import MicrocontrollersPage from "./pages/microcontollers/microcontrollersPage";
+import SchedulersPage from "./pages/schedulers/SchedulersPage";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
+const ActivateAccountPage = lazy(() => import("./pages/auth/ActivateAccountPage"));
 const AccountPage = lazy(() => import("./pages/user/AccountPage"));
 const HomePage = lazy(() => import("./front/HomePage"));
 const OfferPage = lazy(() => import("./front/OfferPage"));
-const PricingPage = lazy(() => import("./front/PricingPage"));
 const ContactPage = lazy(() => import("./front/ContactPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
 const ConfirmEmailPage = lazy(() => import("./pages/auth/ConfirmEmailPage"));
@@ -39,7 +41,7 @@ export default function App() {
 
   const isPublic = !auth?.token;
   const mode = isPublic ? "public" : "app";
-  const authedHome = "/microcontrollers";
+  const authedHome = "/dashboard";
 
   return (
     <AppShell mode={mode}>
@@ -47,6 +49,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/activate-account" element={<ActivateAccountPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/confirm-email" element={<ConfirmEmailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -74,11 +77,7 @@ export default function App() {
           <Route
             path="/pricing"
             element={
-              isPublic ? (
-                <PricingPage />
-              ) : (
-                <Navigate to={authedHome} replace />
-              )
+              <Navigate to={isPublic ? "/offer" : authedHome} replace />
             }
           />
           <Route
@@ -89,6 +88,15 @@ export default function App() {
               ) : (
                 <Navigate to={authedHome} replace />
               )
+            }
+          />
+
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
             }
           />
 
@@ -130,6 +138,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DeviceDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/schedulers"
+            element={
+              <ProtectedRoute>
+                <SchedulersPage />
               </ProtectedRoute>
             }
           />

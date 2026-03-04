@@ -5,6 +5,7 @@ export type DeviceThresholdControlProps = {
   min: number;
   max: number;
   unit?: string | null;
+  label?: string;
   step?: number;
   disabled?: boolean;
   onChange: (value: number) => void;
@@ -15,6 +16,7 @@ export function DeviceThresholdControl({
   min,
   max,
   unit,
+  label,
   step = 1,
   disabled,
   onChange,
@@ -46,6 +48,7 @@ export function DeviceThresholdControl({
       </Stack>
 
       <TextField
+        label={label}
         type="number"
         size="small"
         value={value}

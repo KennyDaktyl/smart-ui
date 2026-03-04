@@ -5,6 +5,14 @@ export interface HeartbeatPayload {
     status: string;
     sent_at?: string;
     timestamp?: number;
+    expected_interval_sec?: number | string;
+    heartbeat_interval_sec?: number | string;
+    heartbeat_interval?: number | string;
+    expectedIntervalSec?: number | string;
+    heartbeatIntervalSec?: number | string;
+    heartbeatInterval?: number | string;
+    interval_sec?: number | string;
+    interval?: number | string;
     event_type?: string;
     gpio_count?: number;
     device_count?: number;

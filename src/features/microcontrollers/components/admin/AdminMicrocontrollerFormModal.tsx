@@ -1,8 +1,4 @@
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Alert,
 } from "@mui/material";
@@ -12,6 +8,7 @@ import { AdminMicrocontrollerForm } from "./AdminMicrocontrollerForm";
 import { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { useMicrocontrollerMutation } from "@/features/microcontrollers/hooks/useMicrocontrollerMutation";
 import SurfacePanel from "@/layout/SurfacePanel";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   open: boolean;
@@ -41,19 +38,32 @@ export function AdminMicrocontrollerFormModal({
   );
 
   return (
-    <Dialog
+    <StickyDialog
       open={open}
       onClose={loading ? undefined : onClose}
-      fullWidth
       maxWidth="sm"
-    >
-      <DialogTitle>
-        {microcontroller
+      title={
+        microcontroller
           ? t("microcontroller.form.editTitle")
-          : t("microcontroller.form.addTitle")}
-      </DialogTitle>
+          : t("microcontroller.form.addTitle")
+      }
+      actions={
+        <>
+          <Button onClick={onClose} disabled={loading}>
+            {t("common.cancel")}
+          </Button>
 
-      <DialogContent dividers>
+          <Button
+            type="submit"
+            form="microcontroller-form"
+            variant="contained"
+            disabled={loading}
+          >
+            {t("common.save")}
+          </Button>
+        </>
+      }
+    >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -80,22 +90,6 @@ export function AdminMicrocontrollerFormModal({
             onSubmit={submit}
           />
         </SurfacePanel>
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          {t("common.cancel")}
-        </Button>
-
-        <Button
-          type="submit"
-          form="microcontroller-form"
-          variant="contained"
-          disabled={loading}
-        >
-          {t("common.save")}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </StickyDialog>
   );
 }

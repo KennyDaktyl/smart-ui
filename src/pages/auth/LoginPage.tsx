@@ -1,4 +1,5 @@
-import { useState, useContext } from "react";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Alert,
   Box,
@@ -9,14 +10,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate, Link } from "react-router-dom";
+import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
 
+import { useToast } from "@/context/ToastContext";
 import { authApi } from "../../api/authApi";
 import { AuthContext } from "../../context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -42,11 +42,9 @@ export default function LoginPage() {
 
       auth?.login(access_token, refresh_token);
 
-      // 🔥 TO JEST KLUCZ
       notifySuccess(t("auth.login.success"));
 
-      // 🔥 idziemy OD RAZU na docelowy route
-      navigate("/microcontrollers", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const message =
         err?.response?.data?.detail || t("auth.login.errorDefault");

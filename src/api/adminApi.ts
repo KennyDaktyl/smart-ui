@@ -4,8 +4,11 @@ import axiosClient from "./axiosClient";
 import { PaginatedResponse } from "@/components/types/pagination";
 import { UserFormPayload } from "@/features/admin/types/userForm";
 import {
+  AgentConfigFilesPayload,
   CreateMicrocontrollerPayload,
   EditMicrocontrollerPayload,
+  MicrocontrollerAgentCommandAck,
+  MicrocontrollerAgentConfigFilesResponse,
   UpdateMicrocontrollerConfigPayload,
 } from "@/features/microcontrollers/types/microcontrollerPayload";
 
@@ -74,6 +77,27 @@ export const adminApi = {
       `/admin/microcontrollers/${microcontrollerId}/config`,
       payload
   ),
+
+  getMicrocontrollerAgentConfigFiles: (
+    microcontrollerId: number
+  ) =>
+    axiosClient.get<MicrocontrollerAgentConfigFilesResponse>(
+      `/admin/microcontrollers/${microcontrollerId}/agent-config-files`
+    ),
+
+  updateMicrocontrollerAgentConfigFiles: (
+    microcontrollerId: number,
+    payload: AgentConfigFilesPayload
+  ) =>
+    axiosClient.put<MicrocontrollerAgentCommandAck>(
+      `/admin/microcontrollers/${microcontrollerId}/agent-config-files`,
+      payload
+    ),
+
+  rebootMicrocontrollerAgent: (microcontrollerId: number) =>
+    axiosClient.post<MicrocontrollerAgentCommandAck>(
+      `/admin/microcontrollers/${microcontrollerId}/agent-reboot`
+    ),
 
   deleteMicrocontroller: (microcontrollerId: number) =>
     axiosClient.delete(`/admin/microcontrollers/${microcontrollerId}`),

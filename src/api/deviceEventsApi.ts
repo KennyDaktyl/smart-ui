@@ -8,8 +8,7 @@ export const deviceEventsApi = {
     deviceId: number,
     params?: {
       limit?: number;
-      date_start?: string;
-      date_end?: string;
+      date?: string;
       event_type?: string;
     }
   ) => {

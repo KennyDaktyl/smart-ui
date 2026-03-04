@@ -1,0 +1,14 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g2" x1="0" y1="0" x2="1600" y2="520"><stop stop-color="#0B1324"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient></defs>
+  <rect width="1600" height="520" rx="28" fill="url(#g2)"/>
+  <text x="88" y="98" fill="#E6F0FF" font-size="34" font-family="Arial" font-weight="700">Harmonogramy inteligentne</text>
+  <text x="88" y="132" fill="#A9BCE5" font-size="18" font-family="Arial">Start wg godziny i warunku mocy</text>
+  <rect x="88" y="176" width="1424" height="72" rx="12" fill="#102647" stroke="#60A5FA"/>
+  <text x="120" y="220" fill="#DAE8FF" font-size="21" font-family="Arial" font-weight="700">Rule: wlacz o 09:00, ale tylko gdy moc > 4.0 kW</text>
+  <rect x="88" y="280" width="680" height="176" rx="14" fill="#132D4E" stroke="#38BDF8"/>
+  <text x="124" y="328" fill="#EAF5FF" font-size="20" font-family="Arial" font-weight="700">Warunek czasu</text>
+  <text x="124" y="360" fill="#A5C6E8" font-size="16" font-family="Arial">dni: pn-nd, okno: 09:00-16:00</text>
+  <rect x="832" y="280" width="680" height="176" rx="14" fill="#113A36" stroke="#34D399"/>
+  <text x="868" y="328" fill="#EAFFF9" font-size="20" font-family="Arial" font-weight="700">Warunek automatyki</text>
+  <text x="868" y="360" fill="#A7F3D0" font-size="16" font-family="Arial">provider power > 4.0 kW, histereza 0.4 kW</text>
+</svg>

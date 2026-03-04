@@ -1,0 +1,24 @@
+<svg width="840" height="420" viewBox="0 0 840 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="840" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C1A14"/>
+      <stop offset="1" stop-color="#153126"/>
+    </linearGradient>
+  </defs>
+  <rect width="840" height="420" rx="24" fill="url(#bg2)"/>
+
+  <rect x="240" y="75" width="360" height="230" rx="22" fill="#214634" stroke="#6EE7B7" stroke-width="3"/>
+  <circle cx="300" cy="125" r="12" fill="#34D399"/>
+  <circle cx="338" cy="125" r="12" fill="#FBBF24"/>
+  <circle cx="376" cy="125" r="12" fill="#60A5FA"/>
+
+  <text x="420" y="168" text-anchor="middle" fill="#E6FFF5" font-family="Arial" font-size="28" font-weight="700">Raspberry Controller</text>
+  <text x="420" y="198" text-anchor="middle" fill="#B4E8D1" font-family="Arial" font-size="16">styczniki 12V • automatyka nadwyżki</text>
+
+  <rect x="285" y="220" width="270" height="56" rx="12" fill="#163626" stroke="#4ADE80"/>
+  <text x="420" y="255" text-anchor="middle" fill="#D1FAE5" font-family="Arial" font-size="16" font-weight="700">Agent heartbeat every 10s</text>
+
+  <line x1="420" y1="305" x2="420" y2="352" stroke="#86EFAC" stroke-width="3"/>
+  <polygon points="420,366 408,346 432,346" fill="#86EFAC"/>
+  <text x="420" y="392" text-anchor="middle" fill="#D1FAE5" font-family="Arial" font-size="14">sterowanie urządzeniami wykonawczymi</text>
+</svg>

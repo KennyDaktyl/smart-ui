@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AlertColor } from "@mui/material";
 
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import ConfirmEmailLoading from "./ConfirmEmailLoading";
 import ConfirmEmailSuccess from "./ConfirmEmailSuccess";
 import ConfirmEmailError from "./ConfirmEmailError";
@@ -45,9 +46,8 @@ export default function ConfirmEmailContainer() {
         setToast({ open: true, severity: "success", message });
       })
       .catch((err) => {
-        const message =
-          err?.response?.data?.detail ??
-          t("auth.confirmEmail.errorDescription");
+        const parsed = parseApiError(err);
+        const message = parsed.message || t("auth.confirmEmail.errorDescription");
         setStatus("error");
         setError(message);
         setToast({ open: true, severity: "error", message });
