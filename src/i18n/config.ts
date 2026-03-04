@@ -633,10 +633,26 @@ const resources = {
         },
         configuration: "Konfiguracja",
         configurationJson: "Konfiguracja JSON",
+        agentConfig: {
+          title: "Pliki konfiguracyjne agenta",
+          description:
+            "Pobierz pliki JSON z agenta, edytuj je i wyślij ponownie.",
+          configFile: "config.json",
+          hardwareConfigFile: "hardware_config.json",
+          load: "Pobierz z agenta",
+          save: "Wyślij do agenta",
+          saveSuccess: "Pliki konfiguracyjne zostały zapisane na agencie.",
+          invalidJson: "Niepoprawny JSON w pliku {{file}}.",
+        },
         actions: {
           title: "Akcje mikrokontrolera",
           restart: "Restart mikrokontrolera",
-          update: "Zaktualizuj firmware",
+          restartHint:
+            "Restart zresetuje proces agenta. Użyj po zmianie plików konfiguracyjnych.",
+          restartConfirmTitle: "Zrestartować agenta?",
+          restartConfirmMessage:
+            "Agent zostanie zrestartowany natychmiast po potwierdzeniu.",
+          restartSuccess: "Komenda restartu została wysłana do agenta.",
         },
         sensorsLabel: "Czujniki",
         sensorOptions: {
@@ -1338,10 +1354,26 @@ const resources = {
         },
         configuration: "Configuration",
         configurationJson: "Configuration JSON",
+        agentConfig: {
+          title: "Agent configuration files",
+          description:
+            "Download JSON files from the agent, edit them and send them back.",
+          configFile: "config.json",
+          hardwareConfigFile: "hardware_config.json",
+          load: "Download from agent",
+          save: "Send to agent",
+          saveSuccess: "Configuration files were saved on the agent.",
+          invalidJson: "Invalid JSON in {{file}}.",
+        },
         actions: {
           title: "Microcontroller actions",
           restart: "Restart microcontroller",
-          update: "Update firmware",
+          restartHint:
+            "Restart resets the agent process. Use it after config file changes.",
+          restartConfirmTitle: "Restart agent?",
+          restartConfirmMessage:
+            "The agent process will restart immediately after confirmation.",
+          restartSuccess: "Restart command was sent to the agent.",
         },
         sensorsLabel: "Sensors",
         sensorOptions: {

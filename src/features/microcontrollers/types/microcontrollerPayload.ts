@@ -37,3 +37,27 @@ export type UpdateMicrocontrollerConfigPayload = {
   devices_config?: DeviceConfig[];
   provider?: MicrocontrollerProviderConfig;
 };
+
+export type AgentConfigFilesPayload = {
+  config_json: Record<string, unknown>;
+  hardware_config_json: Record<string, unknown>;
+};
+
+export enum MicrocontrollerAgentCommand {
+  READ_CONFIG_FILES = "READ_CONFIG_FILES",
+  WRITE_CONFIG_FILES = "WRITE_CONFIG_FILES",
+  REBOOT_AGENT = "REBOOT_AGENT",
+}
+
+export type MicrocontrollerAgentCommandAck = {
+  ok: boolean;
+  command_id: string;
+  command: MicrocontrollerAgentCommand;
+  message?: string | null;
+};
+
+export type MicrocontrollerAgentConfigFilesResponse =
+  MicrocontrollerAgentCommandAck & {
+    config_json: Record<string, unknown>;
+    hardware_config_json: Record<string, unknown>;
+  };
