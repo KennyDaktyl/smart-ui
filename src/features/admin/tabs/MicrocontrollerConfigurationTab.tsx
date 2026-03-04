@@ -31,6 +31,7 @@ export function MicrocontrollerConfigurationTab({
 
   const [configJsonText, setConfigJsonText] = useState(EMPTY_JSON);
   const [hardwareConfigJsonText, setHardwareConfigJsonText] = useState(EMPTY_JSON);
+  const [envFileText, setEnvFileText] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function MicrocontrollerConfigurationTab({
       setHardwareConfigJsonText(
         JSON.stringify(response.data.hardware_config_json ?? {}, null, 2)
       );
+      setEnvFileText(response.data.env_file_content ?? "");
     } catch (err) {
       const parsed = parseApiError(err);
       setError(parsed.message);
@@ -101,6 +103,7 @@ export function MicrocontrollerConfigurationTab({
       await adminApi.updateMicrocontrollerAgentConfigFiles(microcontroller.id, {
         config_json: configJson,
         hardware_config_json: hardwareConfigJson,
+        env_file_content: envFileText,
       });
 
       notifySuccess(t("microcontroller.agentConfig.saveSuccess"));
@@ -149,6 +152,21 @@ export function MicrocontrollerConfigurationTab({
           minRows={10}
           value={hardwareConfigJsonText}
           onChange={(event) => setHardwareConfigJsonText(event.target.value)}
+          fullWidth
+          disabled={disabled || loading || saving}
+          sx={{
+            "& .MuiInputBase-input": {
+              fontFamily: "monospace",
+            },
+          }}
+        />
+
+        <TextField
+          label={t("microcontroller.agentConfig.envFile")}
+          multiline
+          minRows={10}
+          value={envFileText}
+          onChange={(event) => setEnvFileText(event.target.value)}
           fullWidth
           disabled={disabled || loading || saving}
           sx={{

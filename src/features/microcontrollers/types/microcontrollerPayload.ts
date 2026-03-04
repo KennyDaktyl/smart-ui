@@ -41,6 +41,7 @@ export type UpdateMicrocontrollerConfigPayload = {
 export type AgentConfigFilesPayload = {
   config_json: Record<string, unknown>;
   hardware_config_json: Record<string, unknown>;
+  env_file_content: string;
 };
 
 export enum MicrocontrollerAgentCommand {
@@ -60,4 +61,5 @@ export type MicrocontrollerAgentConfigFilesResponse =
   MicrocontrollerAgentCommandAck & {
     config_json: Record<string, unknown>;
     hardware_config_json: Record<string, unknown>;
+    env_file_content: string;
   };

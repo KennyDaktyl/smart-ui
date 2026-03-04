@@ -636,9 +636,10 @@ const resources = {
         agentConfig: {
           title: "Pliki konfiguracyjne agenta",
           description:
-            "Pobierz pliki JSON z agenta, edytuj je i wyślij ponownie.",
+            "Pobierz pliki config.json, hardware_config.json i .env z agenta, edytuj je i wyślij ponownie.",
           configFile: "config.json",
           hardwareConfigFile: "hardware_config.json",
+          envFile: ".env",
           load: "Pobierz z agenta",
           save: "Wyślij do agenta",
           saveSuccess: "Pliki konfiguracyjne zostały zapisane na agencie.",
@@ -648,7 +649,7 @@ const resources = {
           title: "Akcje mikrokontrolera",
           restart: "Restart mikrokontrolera",
           restartHint:
-            "Restart zresetuje proces agenta. Użyj po zmianie plików konfiguracyjnych.",
+            "Restart zresetuje proces agenta w tym samym kontenerze. Po zmianie AGENT_IMAGE/AGENT_TAG wykonaj dodatkowo docker compose up -d --pull always agent.",
           restartConfirmTitle: "Zrestartować agenta?",
           restartConfirmMessage:
             "Agent zostanie zrestartowany natychmiast po potwierdzeniu.",
@@ -1357,9 +1358,10 @@ const resources = {
         agentConfig: {
           title: "Agent configuration files",
           description:
-            "Download JSON files from the agent, edit them and send them back.",
+            "Download config.json, hardware_config.json and .env from the agent, edit them and send them back.",
           configFile: "config.json",
           hardwareConfigFile: "hardware_config.json",
+          envFile: ".env",
           load: "Download from agent",
           save: "Send to agent",
           saveSuccess: "Configuration files were saved on the agent.",
@@ -1369,7 +1371,7 @@ const resources = {
           title: "Microcontroller actions",
           restart: "Restart microcontroller",
           restartHint:
-            "Restart resets the agent process. Use it after config file changes.",
+            "Restart resets the agent process in the same container. After AGENT_IMAGE/AGENT_TAG changes run docker compose up -d --pull always agent as well.",
           restartConfirmTitle: "Restart agent?",
           restartConfirmMessage:
             "The agent process will restart immediately after confirmation.",
