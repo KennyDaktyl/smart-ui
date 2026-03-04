@@ -1,8 +1,7 @@
 services:
   frontend:
     build: .
-    container_name: smart_energy_frontend
-    working_dir: /app
+    container_name: smart-ui
     ports:
       - "5456:80"
     volumes:
@@ -12,4 +11,4 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=5456
-    # restart: always
+    restart: always
