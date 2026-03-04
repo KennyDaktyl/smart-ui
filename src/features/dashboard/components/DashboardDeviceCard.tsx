@@ -75,9 +75,10 @@ const resolveGaugeBounds = (
 
 const resolveOnState = (
   device: Device,
-  live: DeviceLiveState | undefined
+  live: DeviceLiveState | undefined,
+  resolvedMode?: Device["mode"] | string | null
 ): boolean | null => {
-  const mode = device.mode ?? live?.mode;
+  const mode = resolvedMode ?? device.mode ?? live?.mode;
 
   if (mode === "MANUAL") {
     const manual = device.manual_state;
@@ -245,7 +246,13 @@ export function DashboardDeviceCard({
     }
   }, [device.mode, modeOverride]);
 
-  const isOn = resolveOnState(effectiveDevice, deviceLive);
+  const isOn = resolveOnState(effectiveDevice, deviceLive, mode);
+  const switchChecked = isManualMode
+    ? resolvedManualState
+    : isOn ?? resolvedManualState;
+  const manualStateLabel = switchChecked
+    ? t("common.enabled")
+    : t("common.disabled");
   const livePower = providerLive?.power;
   const hasFiniteLivePower = livePower != null && Number.isFinite(livePower);
   const providerPower = hasFiniteLivePower
@@ -427,11 +434,11 @@ export function DashboardDeviceCard({
             sx={{ minHeight: 24 }}
           >
             <Typography variant="caption" color="text.secondary" noWrap>
-              {t("common.enabled")}
+              {manualStateLabel}
             </Typography>
             <Switch
               size="small"
-              checked={resolvedManualState}
+              checked={switchChecked}
               onChange={handleManualSwitchChange}
               disabled={manualSwitchDisabled}
               sx={{
