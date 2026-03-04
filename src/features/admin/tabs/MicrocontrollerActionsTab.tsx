@@ -27,7 +27,8 @@ export function MicrocontrollerActionsTab({
   const { t } = useTranslation();
   const { notifyError, notifySuccess } = useToast();
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rebootConfirmOpen, setRebootConfirmOpen] = useState(false);
+  const [updateConfirmOpen, setUpdateConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,25 @@ export function MicrocontrollerActionsTab({
       setError(null);
       await adminApi.rebootMicrocontrollerAgent(microcontroller.id);
       notifySuccess(t("microcontroller.actions.restartSuccess"));
-      setConfirmOpen(false);
+      setRebootConfirmOpen(false);
+    } catch (err) {
+      const parsed = parseApiError(err);
+      setError(parsed.message);
+      notifyError(parsed.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateAgent = async () => {
+    if (disabled) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      await adminApi.updateMicrocontrollerAgent(microcontroller.id);
+      notifySuccess(t("microcontroller.actions.updateSuccess"));
+      setUpdateConfirmOpen(false);
     } catch (err) {
       const parsed = parseApiError(err);
       setError(parsed.message);
@@ -61,27 +80,63 @@ export function MicrocontrollerActionsTab({
         <Typography variant="body2" color="text.secondary">
           {t("microcontroller.actions.restartHint")}
         </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {t("microcontroller.actions.updateHint")}
+        </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
+
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          disabled={disabled || loading}
+          onClick={() => setUpdateConfirmOpen(true)}
+        >
+          {t("microcontroller.actions.update")}
+        </Button>
 
         <Button
           variant="outlined"
           color="warning"
           fullWidth
           disabled={disabled || loading}
-          onClick={() => setConfirmOpen(true)}
+          onClick={() => setRebootConfirmOpen(true)}
         >
           {t("microcontroller.actions.restart")}
         </Button>
       </Stack>
 
       <StickyDialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        open={updateConfirmOpen}
+        onClose={() => setUpdateConfirmOpen(false)}
+        title={t("microcontroller.actions.updateConfirmTitle")}
+        actions={
+          <>
+            <Button onClick={() => setUpdateConfirmOpen(false)} disabled={loading}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleUpdateAgent}
+              disabled={loading || disabled}
+              autoFocus
+            >
+              {t("common.confirm")}
+            </Button>
+          </>
+        }
+        maxWidth="xs"
+      >
+        {t("microcontroller.actions.updateConfirmMessage")}
+      </StickyDialog>
+
+      <StickyDialog
+        open={rebootConfirmOpen}
+        onClose={() => setRebootConfirmOpen(false)}
         title={t("microcontroller.actions.restartConfirmTitle")}
         actions={
           <>
-            <Button onClick={() => setConfirmOpen(false)} disabled={loading}>
+            <Button onClick={() => setRebootConfirmOpen(false)} disabled={loading}>
               {t("common.cancel")}
             </Button>
             <Button

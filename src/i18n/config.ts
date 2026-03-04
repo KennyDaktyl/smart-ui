@@ -647,9 +647,16 @@ const resources = {
         },
         actions: {
           title: "Akcje mikrokontrolera",
+          update: "Aktualizuj agenta",
+          updateHint:
+            "Aktualizacja wykona docker compose pull agent, a następnie docker compose up -d agent na mikrokontrolerze.",
+          updateConfirmTitle: "Zaktualizować agenta?",
+          updateConfirmMessage:
+            "Agent pobierze najnowszy obraz według AGENT_IMAGE/AGENT_TAG i odtworzy kontener.",
+          updateSuccess: "Komenda aktualizacji została wysłana do agenta.",
           restart: "Restart mikrokontrolera",
           restartHint:
-            "Restart zresetuje proces agenta w tym samym kontenerze. Po zmianie AGENT_IMAGE/AGENT_TAG wykonaj dodatkowo docker compose up -d --pull always agent.",
+            "Restart zresetuje tylko proces agenta w tym samym kontenerze (bez pobierania nowego obrazu).",
           restartConfirmTitle: "Zrestartować agenta?",
           restartConfirmMessage:
             "Agent zostanie zrestartowany natychmiast po potwierdzeniu.",
@@ -1369,9 +1376,16 @@ const resources = {
         },
         actions: {
           title: "Microcontroller actions",
+          update: "Update agent",
+          updateHint:
+            "Update will run docker compose pull agent and then docker compose up -d agent on the microcontroller.",
+          updateConfirmTitle: "Update agent?",
+          updateConfirmMessage:
+            "The agent will pull the latest image from AGENT_IMAGE/AGENT_TAG and recreate the container.",
+          updateSuccess: "Update command was sent to the agent.",
           restart: "Restart microcontroller",
           restartHint:
-            "Restart resets the agent process in the same container. After AGENT_IMAGE/AGENT_TAG changes run docker compose up -d --pull always agent as well.",
+            "Restart only resets the agent process in the same container (without pulling a new image).",
           restartConfirmTitle: "Restart agent?",
           restartConfirmMessage:
             "The agent process will restart immediately after confirmation.",

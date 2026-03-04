@@ -48,6 +48,7 @@ export enum MicrocontrollerAgentCommand {
   READ_CONFIG_FILES = "READ_CONFIG_FILES",
   WRITE_CONFIG_FILES = "WRITE_CONFIG_FILES",
   REBOOT_AGENT = "REBOOT_AGENT",
+  UPDATE_AGENT = "UPDATE_AGENT",
 }
 
 export type MicrocontrollerAgentCommandAck = {

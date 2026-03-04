@@ -99,6 +99,11 @@ export const adminApi = {
       `/admin/microcontrollers/${microcontrollerId}/agent-reboot`
     ),
 
+  updateMicrocontrollerAgent: (microcontrollerId: number) =>
+    axiosClient.post<MicrocontrollerAgentCommandAck>(
+      `/admin/microcontrollers/${microcontrollerId}/agent-update`
+    ),
+
   deleteMicrocontroller: (microcontrollerId: number) =>
     axiosClient.delete(`/admin/microcontrollers/${microcontrollerId}`),
 };
