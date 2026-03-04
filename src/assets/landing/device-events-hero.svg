@@ -1,0 +1,15 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g5" x1="0" y1="0" x2="1600" y2="520"><stop stop-color="#1B1C20"/><stop offset="1" stop-color="#0F3B39"/></linearGradient></defs>
+  <rect width="1600" height="520" rx="28" fill="url(#g5)"/>
+  <text x="86" y="98" fill="#E9F8F7" font-size="34" font-family="Arial" font-weight="700">Device events - os zdarzen live</text>
+  <text x="86" y="132" fill="#9ECBC8" font-size="18" font-family="Arial">Widok co i dlaczego wlaczylo/wylaczylo urzadzenie</text>
+  <line x1="100" y1="280" x2="1500" y2="280" stroke="#334155" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="260" cy="280" r="18" fill="#22C55E"/>
+  <circle cx="520" cy="280" r="18" fill="#EAB308"/>
+  <circle cx="860" cy="280" r="18" fill="#EF4444"/>
+  <circle cx="1180" cy="280" r="18" fill="#6366F1"/>
+  <text x="230" y="332" fill="#BEF264" font-size="16" font-family="Arial">AUTO_TRIGGER</text>
+  <text x="495" y="332" fill="#FDE68A" font-size="16" font-family="Arial">HEARTBEAT</text>
+  <text x="836" y="332" fill="#FCA5A5" font-size="16" font-family="Arial">POWER_MISSING</text>
+  <text x="1160" y="332" fill="#C7D2FE" font-size="16" font-family="Arial">MANUAL</text>
+</svg>

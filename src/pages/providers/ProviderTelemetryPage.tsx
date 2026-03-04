@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   Alert,
   Box,
@@ -7,17 +7,30 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { providersApi } from "@/api/providersApi";
-import { DateRangeFields } from "@/features/common/components/DateRangeFields";
-import { ProviderTelemetryChart } from "@/features/providers/components/ProviderTelemetryChart";
-import type { ProviderResponse } from "@/features/providers/types/userProvider";
-import type { DayEnergy } from "@/features/providers/types/providerEnergy";
+import { LiveIndicator } from "@/features/common/components/atoms/LiveIndicator";
+import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
+import {
+  ProviderTelemetryChart,
+  type TelemetryChartPoint,
+} from "@/features/providers/components/ProviderTelemetryChart";
+import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
+import { TelemetryDateNavigator } from "@/features/providers/telemetry/components/TelemetryDateNavigator";
+import { TelemetryPanel } from "@/features/providers/telemetry/components/TelemetryPanel";
+import { useProviderDetails } from "@/features/providers/telemetry/hooks/useProviderDetails";
+import { useProviderTelemetryDay } from "@/features/providers/telemetry/hooks/useProviderTelemetryDay";
+import {
+  addDays,
+  formatDateForInput,
+  isFutureDate,
+} from "@/features/providers/telemetry/utils/date";
+import type {
+  ProviderTelemetryEntry,
+  ProviderResponse,
+} from "@/features/providers/types/userProvider";
 
 /* ============================================================
  * Types
@@ -27,24 +40,42 @@ type ProviderLocationState = {
   provider?: ProviderResponse;
 };
 
-/* ============================================================
- * Helpers
- * ============================================================ */
+const MAX_LIVE_ENTRIES_PER_DAY = 1440;
 
-/**
- * Converts local datetime string (YYYY-MM-DDTHH:mm)
- * to explicit UTC ISO string without timezone shifting bugs.
- */
-const toUtcIso = (local: string) => {
-  const [date, time] = local.split("T");
-  return `${date}T${time}:00Z`;
-};
+const normalizeEntry = (
+  entry: ProviderTelemetryEntry | TelemetryChartPoint
+): TelemetryChartPoint | null => {
+  const timestamp = "measured_at" in entry ? entry.measured_at : entry.timestamp;
 
-const formatLocalDateTime = (date: Date) => {
-  const pad = (v: number) => String(v).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const timestampMs = Date.parse(timestamp);
+  if (!Number.isFinite(timestampMs)) return null;
+
+  if ("measured_at" in entry) {
+    const value = entry.measured_value == null ? 0 : entry.measured_value;
+    if (!Number.isFinite(value)) return null;
+
+    return {
+      timestamp: new Date(timestampMs).toISOString(),
+      value,
+      isNullSample: entry.measured_value == null,
+    };
+  }
+
+  if ("energy" in entry) {
+    if (!Number.isFinite(entry.energy)) return null;
+    return {
+      timestamp: new Date(timestampMs).toISOString(),
+      value: entry.energy,
+    };
+  }
+
+  if (!Number.isFinite(entry.value)) return null;
+
+  return {
+    timestamp: new Date(timestampMs).toISOString(),
+    value: entry.value,
+    isNullSample: entry.isNullSample,
+  };
 };
 
 /* ============================================================
@@ -55,111 +86,156 @@ export default function ProviderTelemetryPage() {
   const navigate = useNavigate();
   const { providerUuid } = useParams<{ providerUuid: string }>();
   const location = useLocation();
-  const { t } = useTranslation();
-
-  /* ===================== PROVIDER ===================== */
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
 
   const locationState =
     (location.state as ProviderLocationState | undefined) || {};
+  const initialProvider =
+    locationState.provider?.uuid === providerUuid
+      ? locationState.provider
+      : null;
 
-  const [provider, setProvider] = useState<ProviderResponse | null>(
-    locationState.provider ?? null
-  );
-  const [loadingProvider, setLoadingProvider] = useState(
-    !locationState.provider
-  );
+  const today = useMemo(() => formatDateForInput(new Date()), []);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [liveUnit, setLiveUnit] = useState<string | null>(null);
+  const [liveEntriesByDate, setLiveEntriesByDate] = useState<
+    Record<string, TelemetryChartPoint[]>
+  >({});
 
-  /* ===================== ENERGY ===================== */
+  const { provider } = useProviderDetails({
+    providerUuid,
+    initialProvider,
+  });
 
-  const [energyByDay, setEnergyByDay] = useState<Record<string, DayEnergy>>({});
-  const [unit, setUnit] = useState<string | null>(null);
+  const { day, unit, loading, error } = useProviderTelemetryDay({
+    providerUuid,
+    date: selectedDate,
+    loadErrorMessage: t("providers.telemetry.error"),
+  });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  /* ===================== DATE RANGE ===================== */
-
-  const today = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-
-    return {
-      start: formatLocalDateTime(start),
-      end: formatLocalDateTime(now),
-    };
-  }, []);
-
-  const [range, setRange] = useState(today);
-
-  /* ===================== LOAD PROVIDER ===================== */
+  const providerName =
+    provider?.name ?? providerUuid ?? t("common.notAvailable");
 
   useEffect(() => {
-    if (!providerUuid || provider) return;
+    setLiveEntriesByDate({});
+    setLiveUnit(null);
+  }, [providerUuid]);
 
-    const fetchProvider = async () => {
-      setLoadingProvider(true);
-      try {
-        const res = await providersApi.getProviderByUuid(providerUuid);
-        setProvider(res.data);
-      } catch {
-        setProvider(null);
-      } finally {
-        setLoadingProvider(false);
+  const handleProviderLiveChange = useCallback(
+    (live: ProviderLiveSnapshot) => {
+      if (!providerUuid || !live.hasWs) return;
+      if (!live.measuredAt) return;
+      if (live.power == null || Number.isNaN(live.power)) return;
+      const livePower = live.power;
+
+      const measuredAtMs = Date.parse(live.measuredAt);
+      if (!Number.isFinite(measuredAtMs)) return;
+
+      if (live.unit) {
+        setLiveUnit((prev) => (prev === live.unit ? prev : live.unit));
       }
-    };
 
-    fetchProvider();
-  }, [providerUuid, provider]);
+      const normalizedTimestamp = new Date(measuredAtMs).toISOString();
+      const dayKey = formatDateForInput(new Date(measuredAtMs));
 
-  /* ===================== LOAD ENERGY ===================== */
+      setLiveEntriesByDate((prev) => {
+        const existingForDay = prev[dayKey] ?? [];
+        const existingIndex = existingForDay.findIndex(
+          (entry) => entry.timestamp === normalizedTimestamp
+        );
 
-  useEffect(() => {
-    if (!providerUuid) return;
+        if (
+          existingIndex >= 0 &&
+          existingForDay[existingIndex]?.value === livePower
+        ) {
+          return prev;
+        }
 
-    const fetchEnergy = async () => {
-      setLoading(true);
-      setError(null);
+        const nextForDay = [...existingForDay];
+        const nextEntry: TelemetryChartPoint = {
+          timestamp: normalizedTimestamp,
+          value: livePower,
+        };
 
-      try {
-        const res = await providersApi.getProviderEnergy(providerUuid, {
-          date_start: toUtcIso(range.start),
-          date_end: toUtcIso(range.end),
-        });
+        if (existingIndex >= 0) {
+          nextForDay[existingIndex] = nextEntry;
+        } else {
+          nextForDay.push(nextEntry);
+        }
 
-        setEnergyByDay(res.data.days ?? {});
-        setUnit(res.data.unit ?? null);
-      } catch {
-        setError(t("providers.telemetry.error"));
-        setEnergyByDay({});
-      } finally {
-        setLoading(false);
-      }
-    };
+        nextForDay.sort(
+          (left, right) =>
+            Date.parse(left.timestamp) - Date.parse(right.timestamp)
+        );
 
-    fetchEnergy();
-  }, [providerUuid, range.start, range.end, t]);
+        const cappedEntries =
+          nextForDay.length > MAX_LIVE_ENTRIES_PER_DAY
+            ? nextForDay.slice(nextForDay.length - MAX_LIVE_ENTRIES_PER_DAY)
+            : nextForDay;
 
-  /* ===================== DAYS ===================== */
-
-  const days = useMemo(
-    () =>
-      Object.values(energyByDay).sort((a, b) =>
-        a.date.localeCompare(b.date)
-      ),
-    [energyByDay]
+        return {
+          ...prev,
+          [dayKey]: cappedEntries,
+        };
+      });
+    },
+    [providerUuid]
   );
 
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const selectedDayLiveEntries = useMemo(
+    () => liveEntriesByDate[selectedDate] ?? [],
+    [liveEntriesByDate, selectedDate]
+  );
 
-  useEffect(() => {
-    const firstWithData = days.findIndex((d) => d.hours.length > 0);
-    setActiveDayIndex(firstWithData >= 0 ? firstWithData : 0);
-  }, [days]);
+  const dayWithLiveEntries = useMemo(() => {
+    if (!day) return [] as TelemetryChartPoint[];
 
-  const activeDay = days[activeDayIndex];
+    const historicalEntries = day.entries
+      .map(normalizeEntry)
+      .filter((entry): entry is TelemetryChartPoint => entry != null);
 
-  /* ===================== RENDER ===================== */
+    const liveEntries = (liveEntriesByDate[day.date] ?? [])
+      .map(normalizeEntry)
+      .filter((entry): entry is TelemetryChartPoint => entry != null);
+
+    if (!liveEntries.length) return historicalEntries;
+
+    const merged = new Map<string, TelemetryChartPoint>();
+
+    historicalEntries.forEach((entry) => {
+      merged.set(entry.timestamp, entry);
+    });
+
+    liveEntries.forEach((entry) => {
+      merged.set(entry.timestamp, entry);
+    });
+
+    return [...merged.values()].sort(
+      (left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)
+    );
+  }, [day, liveEntriesByDate]);
+
+  const nextDayDisabled = selectedDate >= today;
+  const isTodaySelected = selectedDate === today;
+  const liveSubscriptionEnabled = Boolean(providerUuid) && (provider?.enabled ?? true);
+  const chartUnit = unit ?? liveUnit ?? provider?.unit ?? null;
+
+  const handleDateChange = (nextDate: string) => {
+    if (!nextDate) return;
+    setSelectedDate(isFutureDate(nextDate, today) ? today : nextDate);
+  };
+
+  const goPreviousDay = () => {
+    setSelectedDate((prev) => addDays(prev, -1));
+  };
+
+  const goNextDay = () => {
+    setSelectedDate((prev) => {
+      const next = addDays(prev, 1);
+      return isFutureDate(next, today) ? prev : next;
+    });
+  };
 
   return (
     <Box p={{ xs: 1.5, sm: 3 }}>
@@ -171,94 +247,119 @@ export default function ProviderTelemetryPage() {
         {t("common.backToList")}
       </Button>
 
-      <Box
-        sx={{
-          borderRadius: 3,
-          background: "linear-gradient(145deg, #0b1828 0%, #0f8b6f 120%)",
-          color: "#e2f2ec",
-          boxShadow: "0 24px 48px rgba(0,0,0,0.35)",
-          overflow: "hidden",
-        }}
+      <TelemetryPanel
+        title={t("providers.telemetry.title")}
+        providerName={providerName}
       >
-        {/* HEADER */}
-        <Box sx={{ p: { xs: 2, md: 3 } }}>
-          <Typography variant="overline" sx={{ opacity: 0.8 }}>
-            {t("providers.telemetry.title")}
-          </Typography>
-          <Typography variant="h5" fontWeight={700}>
-            {provider?.name || providerUuid}
-          </Typography>
-        </Box>
+        <Stack spacing={2}>
+          <Stack spacing={0.75}>
+            <ProviderLiveWidget
+              uuid={providerUuid}
+              enabled={liveSubscriptionEnabled}
+              expectedIntervalSec={provider?.default_expected_interval_sec}
+              initialMeasuredAt={provider?.last_value?.measured_at ?? null}
+              initialPower={provider?.last_value?.measured_value ?? null}
+              initialUnit={provider?.last_value?.measured_unit ?? provider?.unit ?? null}
+              onChange={handleProviderLiveChange}
+            >
+              {(live) => (
+                <Box
+                  sx={{
+                    width: "fit-content",
+                    borderRadius: 999,
+                    border: "1px solid rgba(15,139,111,0.24)",
+                    bgcolor: "rgba(15,139,111,0.08)",
+                    px: 1.5,
+                    py: 0.75,
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    flexWrap="wrap"
+                  >
+                    <LiveIndicator active={live.status === "online"} />
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      color="text.primary"
+                    >
+                      {t("providers.telemetry.liveStreaming")}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight={800}
+                      color="text.primary"
+                    >
+                      {live.power == null || Number.isNaN(live.power)
+                        ? "--"
+                        : `${live.power.toFixed(3)} ${
+                            live.unit ?? chartUnit ?? ""
+                          }`.trim()}
+                    </Typography>
+                    {live.measuredAt && (
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(live.measuredAt).toLocaleTimeString(locale)}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              )}
+            </ProviderLiveWidget>
 
-        {/* CONTENT */}
-        <Box sx={{ background: "#f6fbf8", p: { xs: 2, md: 3 } }}>
-          <Stack spacing={2}>
-            <DateRangeFields
-              startLabel={t("providers.telemetry.rangeStart")}
-              endLabel={t("providers.telemetry.rangeEnd")}
-              startValue={range.start}
-              endValue={range.end}
-              onChangeStart={(v) =>
-                setRange((r) => ({ ...r, start: v }))
-              }
-              onChangeEnd={(v) =>
-                setRange((r) => ({ ...r, end: v }))
-              }
-            />
-
-            {error && <Alert severity="error">{error}</Alert>}
-
-            {loading ? (
-              <Stack
-                alignItems="center"
-                justifyContent="center"
-                sx={{ height: 240 }}
-              >
-                <CircularProgress />
-              </Stack>
-            ) : !activeDay ? (
-              <Typography color="text.secondary">
-                {t("providers.telemetry.noData")}
+            {isTodaySelected ? (
+              <Typography variant="caption" color="text.secondary">
+                {t("providers.telemetry.liveMergedEntries", {
+                  count: selectedDayLiveEntries.length,
+                })}
               </Typography>
             ) : (
-              <>
-                {/* DAY NAVIGATION */}
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  justifyContent="space-between"
-                >
-                  <Button
-                    startIcon={<ChevronLeftIcon />}
-                    disabled={activeDayIndex === 0}
-                    onClick={() =>
-                      setActiveDayIndex((i) => i - 1)
-                    }
-                  >
-                    {t("common.back")}
-                  </Button>
-
-                  <Button
-                    endIcon={<ChevronRightIcon />}
-                    disabled={activeDayIndex >= days.length - 1}
-                    onClick={() =>
-                      setActiveDayIndex((i) => i + 1)
-                    }
-                  >
-                    {t("common.next")}
-                  </Button>
-                </Stack>
-
-                <ProviderTelemetryChart
-                  day={activeDay}
-                  unit={unit}
-                  noDataLabel={t("providers.telemetry.noDayData")}
-                />
-              </>
+              <Typography variant="caption" color="text.secondary">
+                {t("providers.telemetry.liveTodayHint")}
+              </Typography>
             )}
           </Stack>
-        </Box>
-      </Box>
+
+          {error && <Alert severity="error">{error}</Alert>}
+
+          <TelemetryDateNavigator
+            dateLabel={t("providers.telemetry.dayLabel")}
+            previousDayLabel={t("providers.telemetry.previousDay")}
+            nextDayLabel={t("providers.telemetry.nextDay")}
+            selectedDate={selectedDate}
+            maxDate={today}
+            nextDisabled={nextDayDisabled}
+            onDateChange={handleDateChange}
+            onPreviousDay={goPreviousDay}
+            onNextDay={goNextDay}
+          />
+
+          {loading ? (
+            <Stack
+              alignItems="center"
+              justifyContent="center"
+              sx={{ height: 240 }}
+            >
+              <CircularProgress />
+            </Stack>
+          ) : !day ? (
+            <Typography color="text.secondary">
+              {t("providers.telemetry.noData")}
+            </Typography>
+          ) : (
+            <ProviderTelemetryChart
+              day={day}
+              points={dayWithLiveEntries}
+              unit={chartUnit}
+              yMin={provider?.value_min ?? null}
+              yMax={provider?.value_max ?? null}
+              noDataLabel={t("providers.telemetry.noDayData")}
+              noEntriesLabel={t("providers.telemetry.noEntriesData")}
+            />
+          )}
+        </Stack>
+      </TelemetryPanel>
     </Box>
   );
 }

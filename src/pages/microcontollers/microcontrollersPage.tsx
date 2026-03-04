@@ -1,19 +1,20 @@
-import { useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  CircularProgress,
   Alert,
+  Box,
+  CircularProgress,
+
   Stack,
+  Typography,
 } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
-import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
-import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
+import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
 
 export default function MicrocontrollersPage() {
   const { token } = useAuth();
@@ -25,9 +26,6 @@ export default function MicrocontrollersPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * 🔔 Toast po loginie (z location.state)
-   */
   useEffect(() => {
     const toast = location.state?.toast;
     if (!toast) return;
@@ -38,13 +36,9 @@ export default function MicrocontrollersPage() {
       notifyError(toast.message);
     }
 
-    // 🔥 bardzo ważne – czyścimy state, żeby toast nie pokazywał się ponownie
     window.history.replaceState({}, document.title);
   }, [location.state, notifySuccess, notifyError]);
 
-  /**
-   * 📡 Fetch microcontrollers
-   */
   useEffect(() => {
     if (!token) return;
 

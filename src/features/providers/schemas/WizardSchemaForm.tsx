@@ -18,7 +18,42 @@ type WizardSchemaFormProps = {
   loading: boolean;
   onSubmit: (values: Record<string, any>) => void;
   fieldErrors?: Record<string, string>;
+  formId?: string;
+  hideSubmitButton?: boolean;
 };
+
+function resolveEnumValues(
+  schema: any,
+  field: any
+): string[] {
+  if (Array.isArray(field?.enum)) {
+    return field.enum as string[];
+  }
+
+  if (Array.isArray(field?.anyOf)) {
+    const enumAnyOf = field.anyOf.find(
+      (item: any) => Array.isArray(item?.enum)
+    );
+    if (enumAnyOf) {
+      return enumAnyOf.enum as string[];
+    }
+  }
+
+  if (Array.isArray(field?.allOf)) {
+    const ref = field.allOf.find(
+      (item: any) => typeof item?.$ref === "string"
+    )?.$ref;
+    if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
+      const defName = ref.replace("#/$defs/", "");
+      const definition = schema?.$defs?.[defName];
+      if (Array.isArray(definition?.enum)) {
+        return definition.enum as string[];
+      }
+    }
+  }
+
+  return [];
+}
 
 /**
  * Only TECHNICAL values allowed from context
@@ -38,6 +73,8 @@ export default function WizardSchemaForm({
   onSubmit,
   loading,
   fieldErrors = {},
+  formId,
+  hideSubmitButton = false,
 }: WizardSchemaFormProps) {
   const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, any>>({});
@@ -64,6 +101,7 @@ export default function WizardSchemaForm({
   return (
     <Box
       component="form"
+      id={formId}
       autoComplete="off"
       onSubmit={(e) => {
         e.preventDefault();
@@ -131,7 +169,16 @@ export default function WizardSchemaForm({
 
           /* ===== SELECT ===== */
           if (widget === "select") {
-            const opts = options[ui.options_key] ?? [];
+            const optsFromApi = ui.options_key
+              ? options[ui.options_key] ?? []
+              : [];
+            const enumValues = resolveEnumValues(schema, field);
+            const optsFromEnum = enumValues.map((value: string) => ({
+                  value,
+                  label: value,
+                }));
+            const opts =
+              optsFromApi.length > 0 ? optsFromApi : optsFromEnum;
 
             return (
               <FormControl
@@ -208,13 +255,15 @@ export default function WizardSchemaForm({
         }
       )}
 
-      <Button
-        type="submit"
-        variant="contained"
-        disabled={loading}
-      >
-        {t("providers.wizard.actions.next")}
-      </Button>
+      {!hideSubmitButton && (
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={loading}
+        >
+          {t("providers.wizard.actions.next")}
+        </Button>
+      )}
     </Box>
   );
 }

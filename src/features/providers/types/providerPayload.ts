@@ -20,6 +20,11 @@ export type PowerUnit =
   | "lux"
   | string;
 
+export type ProviderPowerSource =
+  | "inverter"
+  | "meter"
+  | string;
+
 export interface ProviderCreatePayload {
   /**
    * Human-readable name
@@ -42,6 +47,7 @@ export interface ProviderCreatePayload {
    * Measurement unit
    */
   unit?: PowerUnit | null;
+  power_source?: ProviderPowerSource | null;
 
   /**
    * Allowed value range

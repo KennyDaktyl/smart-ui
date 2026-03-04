@@ -1,0 +1,12 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="g3" x1="0" y1="0" x2="1600" y2="520"><stop stop-color="#102014"/><stop offset="1" stop-color="#166534"/></linearGradient></defs>
+  <rect width="1600" height="520" rx="28" fill="url(#g3)"/>
+  <text x="92" y="98" fill="#E9FFF1" font-size="34" font-family="Arial" font-weight="700">Mikrokontrolery i urzadzenia</text>
+  <text x="92" y="132" fill="#B7E5C8" font-size="18" font-family="Arial">Karta Raspberry + formularz dodawania nowego device</text>
+  <rect x="92" y="176" width="560" height="280" rx="16" fill="#143324" stroke="#4ADE80"/>
+  <text x="124" y="220" fill="#E8FFF2" font-size="22" font-family="Arial" font-weight="700">Raspberry Pi - Kotlownia</text>
+  <text x="124" y="252" fill="#A8D7BC" font-size="16" font-family="Arial">online | GPIO: 17, 27, 22 | max devices: 6</text>
+  <rect x="708" y="176" width="800" height="280" rx="16" fill="#1A3D2C" stroke="#34D399"/>
+  <text x="740" y="220" fill="#EAFFF4" font-size="22" font-family="Arial" font-weight="700">Formularz: dodaj urzadzenie</text>
+  <text x="740" y="254" fill="#9EE3BF" font-size="16" font-family="Arial">Nazwa | Tryb | Prog mocy | Moc znamionowa</text>
+</svg>

@@ -10,7 +10,7 @@ export type EnergyValueProps = {
 export function EnergyValue({ value, unit, precision = 2, fallback = "--" }: EnergyValueProps) {
   if (value == null || Number.isNaN(value)) {
     return (
-      <Typography variant="h6" fontWeight={700}>
+      <Typography variant="h6" fontWeight={700} color="text.primary">
         {fallback}
       </Typography>
     );
@@ -20,7 +20,7 @@ export function EnergyValue({ value, unit, precision = 2, fallback = "--" }: Ene
   const label = [formatted, unit ?? ""].filter(Boolean).join(" ");
 
   return (
-    <Typography variant="h6" fontWeight={700}>
+    <Typography variant="h6" fontWeight={700} color="text.primary">
       {label}
     </Typography>
   );

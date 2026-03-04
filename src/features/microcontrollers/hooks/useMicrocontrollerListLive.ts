@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 import { Device } from "@/features/devices/types/devicesType";
+import {
+  DEFAULT_HEARTBEAT_TIMEOUT_MS,
+  resolveHeartbeatTimeoutMs,
+  resolveHeartbeatTimestampMs,
+} from "@/features/microcontrollers/hooks/heartbeatTiming";
 
 const HEARTBEAT_EVENT = "microcontroller_heartbeat";
-const OFFLINE_TIMEOUT_MS = 15_000;
 
 export type MicrocontrollerLiveState = {
   isOnline: boolean;
@@ -27,7 +31,10 @@ export function useMicrocontrollersLive(uuids: string[]): StateMap {
     if (entry) clearTimeout(entry.timeoutId);
   };
 
-  const scheduleOffline = (uuid: string) => {
+  const scheduleOffline = (
+    uuid: string,
+    timeoutMs = DEFAULT_HEARTBEAT_TIMEOUT_MS
+  ) => {
     clearTimer(uuid);
 
     const timeoutId = window.setTimeout(() => {
@@ -39,7 +46,7 @@ export function useMicrocontrollersLive(uuids: string[]): StateMap {
           loading: false,
         },
       }));
-    }, OFFLINE_TIMEOUT_MS);
+    }, timeoutMs);
 
     const entry = subsRef.current.get(uuid);
     if (entry) entry.timeoutId = timeoutId;
@@ -66,21 +73,22 @@ export function useMicrocontrollersLive(uuids: string[]): StateMap {
       if (subsRef.current.has(uuid)) return;
 
       const handler = (payload: any) => {
-        const sentAt =
-          payload?.sent_at ??
-          payload?.data?.sent_at ??
-          new Date().toISOString();
+        const seenAtMs = resolveHeartbeatTimestampMs(payload);
+        const timeoutMs = resolveHeartbeatTimeoutMs(
+          payload,
+          DEFAULT_HEARTBEAT_TIMEOUT_MS
+        );
 
         setState((prev) => ({
           ...prev,
           [uuid]: {
             isOnline: true,
-            lastSeen: sentAt,
+            lastSeen: new Date(seenAtMs).toISOString(),
             loading: false,
           },
         }));
 
-        scheduleOffline(uuid);
+        scheduleOffline(uuid, timeoutMs);
       };
 
       wsManager.subscribe(uuid, HEARTBEAT_EVENT, handler);
@@ -96,7 +104,7 @@ export function useMicrocontrollersLive(uuids: string[]): StateMap {
               loading: false,
             },
           }));
-        }, OFFLINE_TIMEOUT_MS),
+        }, DEFAULT_HEARTBEAT_TIMEOUT_MS),
       });
 
       setState((prev) => ({

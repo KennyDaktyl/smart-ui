@@ -1,0 +1,28 @@
+<svg width="840" height="420" viewBox="0 0 840 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="840" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A120A"/>
+      <stop offset="1" stop-color="#3A2512"/>
+    </linearGradient>
+    <linearGradient id="tank" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="840" height="420" rx="24" fill="url(#bg3)"/>
+
+  <rect x="250" y="56" width="340" height="250" rx="26" fill="url(#tank)" stroke="#FCD34D" stroke-width="4"/>
+  <rect x="280" y="88" width="280" height="165" rx="18" fill="#FFF4C7"/>
+  <rect x="280" y="205" width="280" height="48" rx="0" fill="#FDBA74" opacity="0.65"/>
+
+  <path d="M180 140 C130 140, 130 235, 180 235" stroke="#FB923C" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="160" cy="188" r="18" fill="#FDBA74"/>
+
+  <path d="M660 140 C710 140, 710 235, 660 235" stroke="#F97316" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="680" cy="188" r="18" fill="#FDBA74"/>
+
+  <text x="420" y="338" text-anchor="middle" fill="#5B2A00" font-family="Arial" font-size="22" font-weight="700">Bufor ciepla 10 000 L</text>
+  <text x="420" y="362" text-anchor="middle" fill="#7C3E07" font-family="Arial" font-size="14">grzalka sterowana nadwyzka energii PV</text>
+  <text x="420" y="382" text-anchor="middle" fill="#7C3E07" font-family="Arial" font-size="14">pod obciazenia duzej pojemnosci cieplnej</text>
+</svg>

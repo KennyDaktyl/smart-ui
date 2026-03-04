@@ -2,9 +2,7 @@ import axiosClient from "@/api/axiosClient";
 import { ProviderDefinitionsResponse } from "@/features/providers/types/provider";
 import {
   ProviderEnergySeries,
-  ProviderMeasurementSeries,
   ProviderResponse,
-  UserProvider,
 } from "@/features/providers/types/userProvider";
 
 export const providersApi = {
@@ -19,6 +17,10 @@ export const providersApi = {
 
   createProvider: (payload: unknown) => {
     return axiosClient.post<ProviderResponse>("/providers", payload);
+  },
+
+  updateProvider: (uuid: string, payload: unknown) => {
+    return axiosClient.patch<ProviderResponse>(`/providers/${uuid}`, payload);
   },
 
   getProviderDefinitions: () =>
@@ -39,8 +41,7 @@ export const providersApi = {
   getProviderEnergy: (
     providerUuid: string,
     params?: {
-      date_start?: string;
-      date_end?: string;
+      date?: string;
     }
   ) => {
     return axiosClient.get<ProviderEnergySeries>(

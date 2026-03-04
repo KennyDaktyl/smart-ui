@@ -1,6 +1,6 @@
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Device } from "../types/devicesType";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
@@ -9,6 +9,7 @@ import { DeviceCard } from "@/features/devices/components/DeviceCard";
 import { useDeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
 import { DeviceForm } from "@/features/devices/components/DeviceForm";
 import { devicesApi } from "@/api/devicesApi";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   devices: Device[];
@@ -22,6 +23,7 @@ type Props = {
 
 export function DeviceList({
   devices,
+  liveInitialized,
   isOnline,
   microcontrollerUuid,
   provider,
@@ -29,11 +31,44 @@ export function DeviceList({
   onDeviceUpdate,
 }: Props) {
   const { t } = useTranslation();
-  const liveMap = useDeviceLiveState(microcontrollerUuid);
+  const microcontrollerStatus: "online" | "offline" | "pending" =
+    !liveInitialized ? "pending" : isOnline ? "online" : "offline";
+
+  const deviceHeartbeatSubscriptions = useMemo(
+    () =>
+      devices
+        .map((device) => ({ id: device.id, uuid: device.uuid }))
+        .filter((subscription) => Boolean(subscription.uuid))
+        .sort((left, right) => left.uuid.localeCompare(right.uuid)),
+    [devices]
+  );
+  const liveMap = useDeviceLiveState(
+    microcontrollerUuid,
+    deviceHeartbeatSubscriptions
+  );
   const [localState, setLocalState] = useState<Record<number, boolean | undefined>>({});
 
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setLocalState((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      Object.entries(prev).forEach(([id, override]) => {
+        if (override === undefined) return;
+
+        const live = liveMap[Number(id)];
+        if (live && live.isOn === override) {
+          next[Number(id)] = undefined;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [liveMap]);
 
   if (!devices.length) {
     return (
@@ -64,6 +99,8 @@ export function DeviceList({
             <DeviceCard
               device={device}
               liveState={liveMap[device.id]}
+              microcontrollerStatus={microcontrollerStatus}
+              localOverride={localState[device.id]}
               provider={provider}
               toggleDisabled={togglingIds.has(device.id) || !isOnline}
               onToggle={async (d, next) => {
@@ -72,15 +109,34 @@ export function DeviceList({
 
                 try {
                   const res = await devicesApi.setManualState(d.id, next);
-                  const updated = res.data?.device ?? res.data;
+                  const payload = res.data;
+                  const updated = payload?.device ?? payload;
+                  const acknowledgedState =
+                    typeof updated?.manual_state === "boolean"
+                      ? updated.manual_state
+                      : typeof updated?.is_on === "boolean"
+                        ? updated.is_on
+                        : typeof payload?.is_on === "boolean"
+                          ? payload.is_on
+                          : next;
 
                   if (updated?.id != null) {
-                    onDeviceUpdate?.(updated);
+                    const normalizedUpdated: Device = {
+                      ...d,
+                      ...updated,
+                      manual_state: acknowledgedState,
+                    };
+                    onDeviceUpdate?.(normalizedUpdated);
 
                     // backend acknowledged → update local state from response
                     setLocalState((s) => ({
                       ...s,
-                      [updated.id]: updated.manual_state,
+                      [updated.id]: acknowledgedState,
+                    }));
+                  } else {
+                    setLocalState((s) => ({
+                      ...s,
+                      [d.id]: acknowledgedState,
                     }));
                   }
                 } catch {
@@ -103,29 +159,38 @@ export function DeviceList({
         ))}
       </Box>
 
-      <Dialog
+      <StickyDialog
         open={Boolean(editingDevice)}
         onClose={() => setEditingDevice(null)}
-        fullWidth
         maxWidth="sm"
+        title={t("common.edit")}
+        actions={
+          <>
+            <Button variant="outlined" onClick={() => setEditingDevice(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="edit-device-form" variant="contained">
+              {t("common.save")}
+            </Button>
+          </>
+        }
       >
-        <DialogTitle>{t("common.edit")}</DialogTitle>
-        <DialogContent dividers>
-          {editingDevice && (
-            <DeviceForm
-              device={editingDevice}
-              provider={provider}
-              microcontrollerOnline={isOnline}
-              onSubmit={() => {
-                setEditingDevice(null);
-                onReload?.();
-              }}
-              onCancel={() => setEditingDevice(null)}
-              variant="modal"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {editingDevice && (
+          <DeviceForm
+            device={editingDevice}
+            provider={provider}
+            microcontrollerOnline={isOnline}
+            formId="edit-device-form"
+            hideActions
+            onSubmit={() => {
+              setEditingDevice(null);
+              onReload?.();
+            }}
+            onCancel={() => setEditingDevice(null)}
+            variant="modal"
+          />
+        )}
+      </StickyDialog>
     </>
   );
 }

@@ -13,6 +13,7 @@ const AUTH_EXCLUDED_ROUTES = [
   "/auth/password-reset/request",
   "/auth/password-reset/confirm",
   "/auth/refresh", // ⛔ bardzo ważne
+  "/public/contact-lead",
 ];
 
 declare module "axios" {

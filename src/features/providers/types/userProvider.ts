@@ -15,22 +15,59 @@ export interface UserProvider {
   created_at: string;
 }
 
+export type ProviderMeasurement = {
+  id?: number;
+  provider_uuid?: string;
+  measured_at: string;
+  measured_value: number | null;
+  measured_unit?: string | null;
+  metadata_payload?: Record<string, unknown> | null;
+  created_at?: string;
+};
+
+export type ProviderMeasurementSeries = {
+  unit: string | null;
+  entries: ProviderMeasurement[];
+};
+
 export type HourlyEnergyPoint = {
   hour: string;
   energy: number;
 };
 
+export type LegacyEnergyEntryPoint = {
+  timestamp: string;
+  energy: number;
+};
+
+export type ProviderTelemetryEntry =
+  | LegacyEnergyEntryPoint
+  | ProviderMeasurement;
+
 export type DayEnergy = {
   date: string;
-  total_energy: number;
-  import_energy: number;
-  export_energy: number;
-  hours: HourlyEnergyPoint[];
+  total_energy?: number;
+  import_energy?: number;
+  export_energy?: number;
+  hours?: HourlyEnergyPoint[];
+  entries: ProviderTelemetryEntry[];
 };
 
 export type ProviderEnergySeries = {
-  days: Record<string, DayEnergy>;
-  unit: string
+  days?: Record<
+    string,
+    {
+      date?: string;
+      entries?: ProviderTelemetryEntry[];
+      total_energy?: number;
+      import_energy?: number;
+      export_energy?: number;
+      hours?: HourlyEnergyPoint[];
+    }
+  >;
+  entries?: ProviderTelemetryEntry[];
+  date?: string;
+  unit?: string | null;
 };
 
 export interface ProviderResponse {
@@ -45,6 +82,7 @@ export interface ProviderResponse {
 
   external_id?: string | null;
   unit?: string | null;
+  power_source?: "inverter" | "meter" | null;
 
   value_min?: number | null;
   value_max?: number | null;

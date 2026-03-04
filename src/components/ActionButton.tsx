@@ -1,12 +1,7 @@
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-} from "@mui/material";
+import { Button } from "@mui/material";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { StickyDialog } from "@/components/dialogs/StickyDialog";
 
 type Props = {
   label: string;
@@ -76,30 +71,30 @@ export function ActionButton({
       </Button>
 
       {confirmRequired && (
-        <Dialog open={open} onClose={() => setOpen(false)}>
-          <DialogTitle>
-            {confirmTitle ?? t("common.confirmTitle")}
-          </DialogTitle>
+        <StickyDialog
+          open={open}
+          onClose={() => setOpen(false)}
+          title={confirmTitle ?? t("common.confirmTitle")}
+          actions={
+            <>
+              <Button onClick={() => setOpen(false)}>
+                {t("common.cancel")}
+              </Button>
 
-          <DialogContent>
-            {confirmMessage ?? t("common.confirmMessage")}
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-
-            <Button
-              color={color}
-              onClick={execute}
-              autoFocus
-              disabled={loading}
-            >
-              {t("common.confirm")}
-            </Button>
-          </DialogActions>
-        </Dialog>
+              <Button
+                color={color}
+                onClick={execute}
+                autoFocus
+                disabled={loading}
+              >
+                {t("common.confirm")}
+              </Button>
+            </>
+          }
+          maxWidth="xs"
+        >
+          {confirmMessage ?? t("common.confirmMessage")}
+        </StickyDialog>
       )}
     </>
   );
