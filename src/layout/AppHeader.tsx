@@ -91,112 +91,118 @@ export default function AppHeader({ mode }: AppHeaderProps) {
   return (
     <>
       <AppBar position="fixed" color="primary" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar
-          sx={{
-            minHeight: 84,
-            gap: { xs: 1, md: 1.5 },
-            px: { xs: 1, sm: 2, md: 3 },
-            flexWrap: "nowrap",
-          }}
-        >
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ display: { sm: "flex", md: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            component="div"
+        <Toolbar disableGutters sx={{ minHeight: 84 }}>
+          <Box
             sx={{
+              width: "100%",
+              maxWidth: 1320,
+              mx: "auto",
+              px: { xs: 1, sm: 2, md: 4 },
+              minHeight: 84,
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              cursor: "pointer",
-              fontWeight: 700,
-              flexShrink: 0,
-              whiteSpace: "nowrap",
-              mr: { md: 1 },
+              gap: { xs: 1, md: 1.5 },
+              flexWrap: "nowrap",
             }}
-            onClick={() => navigate("/")}
           >
-            <FlashOnIcon fontSize="small" />
-            {t("common.brand")}
-          </Typography>
+            <IconButton
+              color="inherit"
+              onClick={handleDrawerToggle}
+              sx={{ display: { sm: "flex", md: "none" }, ml: 0 }}
+            >
+              <MenuIcon />
+            </IconButton>
 
-          <Box
-            sx={{
-              minWidth: 0,
-              flexGrow: 1,
-              display: { xs: "none", md: "flex" },
-              gap: { md: 0.5, lg: 1 },
-              justifyContent: isPublic ? "flex-start" : "flex-end",
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              "&::-webkit-scrollbar": {
-                display: "none",
-              },
-            }}
-          >
-            {(isPublic ? publicNav : authenticatedNav).map((item) => (
-              <Button
-                key={item.label}
-                color="inherit"
-                variant="text"
-                onClick={() => handleItemClick(item)}
-                sx={{
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                  minWidth: "max-content",
-                  px: { md: 1.25, lg: 1.75 },
-                  flexShrink: 0,
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
-          </Box>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                fontWeight: 700,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+                mr: { md: 1 },
+              }}
+              onClick={() => navigate("/")}
+            >
+              <FlashOnIcon fontSize="small" />
+              {t("common.brand")}
+            </Typography>
 
-          <Box
-            sx={{
-              display: { xs: "none", sm: "flex" },
-              alignItems: "center",
-              gap: { sm: 0.5, md: 1 },
-              flexShrink: 0,
-            }}
-          >
-            {isPublic ? (
-              <>
+            <Box
+              sx={{
+                minWidth: 0,
+                flexGrow: 1,
+                display: { xs: "none", md: "flex" },
+                gap: { md: 0.5, lg: 1 },
+                justifyContent: isPublic ? "flex-start" : "flex-end",
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                },
+              }}
+            >
+              {(isPublic ? publicNav : authenticatedNav).map((item) => (
                 <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => navigate("/login")}
-                  sx={{ borderRadius: 999, whiteSpace: "nowrap" }}
-                >
-                  {t("landing.nav.login")}
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate("/register")}
+                  key={item.label}
+                  color="inherit"
+                  variant="text"
+                  onClick={() => handleItemClick(item)}
                   sx={{
-                    borderRadius: 999,
-                    boxShadow: "0 8px 22px rgba(15,139,111,0.35)",
+                    fontWeight: 600,
                     whiteSpace: "nowrap",
+                    minWidth: "max-content",
+                    px: { md: 1.25, lg: 1.75 },
+                    flexShrink: 0,
                   }}
                 >
-                  {t("landing.nav.register")}
+                  {item.label}
                 </Button>
-              </>
-            ) : (
-              <Button color="inherit" onClick={handleLogout} sx={{ whiteSpace: "nowrap" }}>
-                {t("header.menu.logout")}
-              </Button>
-            )}
-            <LanguageSwitcher />
+              ))}
+            </Box>
+
+            <Box
+              sx={{
+                display: { xs: "none", sm: "flex" },
+                alignItems: "center",
+                gap: { sm: 0.5, md: 1 },
+                flexShrink: 0,
+              }}
+            >
+              {isPublic ? (
+                <>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => navigate("/login")}
+                    sx={{ borderRadius: 999, whiteSpace: "nowrap" }}
+                  >
+                    {t("landing.nav.login")}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate("/register")}
+                    sx={{
+                      borderRadius: 999,
+                      boxShadow: "0 8px 22px rgba(15,139,111,0.35)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t("landing.nav.register")}
+                  </Button>
+                </>
+              ) : (
+                <Button color="inherit" onClick={handleLogout} sx={{ whiteSpace: "nowrap" }}>
+                  {t("header.menu.logout")}
+                </Button>
+              )}
+              <LanguageSwitcher />
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
@@ -215,7 +221,7 @@ export default function AppHeader({ mode }: AppHeaderProps) {
               "linear-gradient(160deg, rgba(7,20,32,0.98), rgba(9,26,38,0.96))",
             color: "#e8f1f8",
             borderRight: "1px solid rgba(255,255,255,0.08)",
-            backdropFilter: "blur(8px)",
+            backdropFilter: "none",
           },
         }}
       >

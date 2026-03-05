@@ -9,7 +9,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Stack,
   Tab,
   Tabs,
@@ -46,6 +45,7 @@ import {
   formatDateForInput,
   isFutureDate,
 } from "@/features/providers/telemetry/utils/date";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 
 type DeviceLocationState = {
   device?: Device;
@@ -378,15 +378,7 @@ export default function DeviceDetailsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!device) {
+  if (!device && !loading) {
     return (
       <Box p={3}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)}>
@@ -398,257 +390,265 @@ export default function DeviceDetailsPage() {
   }
 
   return (
-    <Box p={{ xs: 1.5, sm: 3 }}>
+    <Stack spacing={2} sx={{ width: "100%", minWidth: 0 }}>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)}>
         {t("common.back")}
       </Button>
 
-      <Box
-        sx={{
-          borderRadius: 3,
-          background: "linear-gradient(145deg, #0b1828 0%, #0f8b6f 120%)",
-          color: "#e2f2ec",
-          boxShadow: "0 24px 48px rgba(0,0,0,0.35)",
-          overflow: "hidden",
-        }}
+      <LoadingOverlay
+        loading={loading}
+        keepChildrenMounted={Boolean(device)}
+        minHeight="70vh"
       >
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h5" fontWeight={700}>
-            {device.name}
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>
-            GPIO {device.device_number}
-          </Typography>
-
-          <Tabs value={tab} onChange={handleTabChange} sx={{ mt: 2 }}>
-            <Tab value="details" label={t("devices.details.tabs.details")} />
-            <Tab value="telemetry" label={t("devices.details.tabs.telemetry")} />
-          </Tabs>
-        </Box>
-
-        <Box sx={{ background: "#f6fbf8", p: 3 }}>
-          {tab === "details" && (
-            <Stack spacing={2}>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.live.deviceHeartbeat"))}
-                    value={
-                      <Stack spacing={0.5}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <DeviceLiveStatus
-                            loading={!deviceLive}
-                            isOnline={Boolean(deviceLive?.isOn)}
-                          />
-                          <Typography variant="body2" fontWeight={600} color="#0f172a">
-                            {!deviceLive
-                              ? t("common.waitingForStatus")
-                              : deviceLive.isOn
-                                ? t("devices.details.stateOn")
-                                : t("devices.details.stateOff")}
-                          </Typography>
-                        </Stack>
-
-                        <Typography variant="caption" color="text.secondary">
-                          {t("devices.details.live.lastHeartbeat")}: {formattedLastUpdate}
-                        </Typography>
-                      </Stack>
-                    }
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.live.microcontroller"))}
-                    value={
-                      <Stack spacing={0.5}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <MicrocontrollerLiveStatus
-                            uuid={microcontroller?.uuid}
-                            state={microLive}
-                          />
-                          <Typography variant="body2" fontWeight={600} color="#0f172a">
-                            {microcontrollerStatusLabel}
-                          </Typography>
-                        </Stack>
-
-                        <Typography variant="caption" color="text.secondary">
-                          {t("providers.live.updatedAt")}: {microcontrollerLastSeen}
-                        </Typography>
-                      </Stack>
-                    }
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.live.providerPower"))}
-                    value={
-                      powerProvider ? (
-                        <Stack spacing={0.5}>
-                          <ProviderLiveEnergy
-                            key={powerProvider.uuid}
-                            provider={powerProvider}
-                          />
-                          <Typography variant="caption" color="text.secondary">
-                            {powerProvider.name}
-                          </Typography>
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          {t("devices.details.live.noProvider")}
-                        </Typography>
-                      )
-                    }
-                  />
-                </Grid>
-              </Grid>
-
-              <DeviceDetailsInfo
-                device={device}
-                isAutoMode={resolvedMode === "AUTO"}
-                modeLabel={modeLabel}
-                stateLabel={stateLabel}
-                onlineLabel={deviceStatusLabel}
-                formattedLastUpdate={formattedLastUpdate}
-                t={t}
-              />
-            </Stack>
-          )}
-
-          {tab === "telemetry" && (
-            <Stack spacing={2}>
-              <DeviceEventLiveWidget
-                deviceUuid={device.uuid}
-                enabled={tab === "telemetry"}
-                onEvent={handleLiveDeviceEvent}
-              />
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 2,
-                  gridTemplateColumns: {
-                    xs: "1fr",
-                    sm: "repeat(2, minmax(0, 1fr))",
-                    md: "repeat(3, minmax(0, 1fr))",
-                    lg: "repeat(5, minmax(0, 1fr))",
-                  },
-                }}
-              >
-                <Box>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.live.providerPower"))}
-                    value={
-                      powerProvider ? (
-                        <Stack spacing={0.5}>
-                          <ProviderLiveEnergy
-                            key={powerProvider.uuid}
-                            provider={powerProvider}
-                          />
-                          <Typography variant="caption" color="text.secondary">
-                            {powerProvider.name}
-                          </Typography>
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          {t("devices.details.live.noProvider")}
-                        </Typography>
-                      )
-                    }
-                  />
-                </Box>
-
-                <Box>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.fields.energy"))}
-                    value={
-                      eventsResponse?.energy != null && eventsResponse.energy_unit
-                        ? `${eventsResponse.energy.toFixed(2)} ${eventsResponse.energy_unit}`
-                        : t("common.notAvailable")
-                    }
-                  />
-                </Box>
-
-                <Box>
-                  <DeviceInfoTile
-                    label={String(
-                      t("devices.details.fields.energyCost", {
-                        rate: "0.62 zł/kWh",
-                      })
-                    )}
-                    value={
-                      eventsResponse?.energy != null
-                        ? formatEnergyCost(eventsResponse.energy)
-                        : t("common.notAvailable")
-                    }
-                  />
-                </Box>
-
-                <Box>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.fields.totalMinutes"))}
-                    value={
-                      eventsResponse?.total_minutes_on != null
-                        ? formatMinutesAsHours(eventsResponse.total_minutes_on)
-                        : t("common.notAvailable")
-                    }
-                  />
-                </Box>
-
-                <Box>
-                  <DeviceInfoTile
-                    label={String(t("devices.details.fields.ratedPower"))}
-                    value={
-                      eventsResponse?.rated_power != null && eventsResponse.power_unit
-                        ? (
-                            <Typography
-                              variant="subtitle1"
-                              fontWeight={600}
-                              sx={{ color: (theme) => theme.palette.info.main }}
-                            >
-                              {`${eventsResponse.rated_power} ${eventsResponse.power_unit}`}
-                            </Typography>
-                          )
-                        : (
-                            <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
-                              {t("common.notAvailable")}
-                            </Typography>
-                          )
-                    }
-                  />
-                </Box>
-              </Box>
-
-              <TelemetryDateNavigator
-                dateLabel={t("devices.details.dayLabel")}
-                previousDayLabel={t("devices.details.previousDay")}
-                nextDayLabel={t("devices.details.nextDay")}
-                selectedDate={selectedDate}
-                maxDate={today}
-                nextDisabled={nextDayDisabled}
-                onDateChange={handleDateChange}
-                onPreviousDay={goPreviousDay}
-                onNextDay={goNextDay}
-              />
-
-              <Typography variant="caption" color="text.secondary">
-                {t("devices.details.live.eventsMerged", {
-                  count: liveEventsCountForSelectedDay,
-                })}
+        {device && (
+          <Box
+            sx={{
+              borderRadius: 3,
+              background: "linear-gradient(145deg, #0b1828 0%, #0f8b6f 120%)",
+              color: "#e2f2ec",
+              boxShadow: "0 24px 48px rgba(0,0,0,0.35)",
+              overflow: "hidden",
+            }}
+          >
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h5" fontWeight={700}>
+                {device.name}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>
+                GPIO {device.device_number}
               </Typography>
 
-              <DeviceTelemetryTimeline
-                events={telemetryEvents}
-                loading={loadingEvents}
-                error={eventsError}
-                tNoData={t("devices.details.noEvents")}
-                selectedDate={selectedDate}
-              />
-            </Stack>
-          )}
-        </Box>
-      </Box>
-    </Box>
+              <Tabs value={tab} onChange={handleTabChange} sx={{ mt: 2 }}>
+                <Tab value="details" label={t("devices.details.tabs.details")} />
+                <Tab value="telemetry" label={t("devices.details.tabs.telemetry")} />
+              </Tabs>
+            </Box>
+
+            <Box sx={{ background: "#f6fbf8", p: 3 }}>
+              {tab === "details" && (
+                <Stack spacing={2}>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.live.deviceHeartbeat"))}
+                        value={
+                          <Stack spacing={0.5}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <DeviceLiveStatus
+                                loading={!deviceLive}
+                                isOnline={Boolean(deviceLive?.isOn)}
+                              />
+                              <Typography variant="body2" fontWeight={600} color="#0f172a">
+                                {!deviceLive
+                                  ? t("common.waitingForStatus")
+                                  : deviceLive.isOn
+                                    ? t("devices.details.stateOn")
+                                    : t("devices.details.stateOff")}
+                              </Typography>
+                            </Stack>
+
+                            <Typography variant="caption" color="text.secondary">
+                              {t("devices.details.live.lastHeartbeat")}: {formattedLastUpdate}
+                            </Typography>
+                          </Stack>
+                        }
+                      />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.live.microcontroller"))}
+                        value={
+                          <Stack spacing={0.5}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <MicrocontrollerLiveStatus
+                                uuid={microcontroller?.uuid}
+                                state={microLive}
+                              />
+                              <Typography variant="body2" fontWeight={600} color="#0f172a">
+                                {microcontrollerStatusLabel}
+                              </Typography>
+                            </Stack>
+
+                            <Typography variant="caption" color="text.secondary">
+                              {t("providers.live.updatedAt")}: {microcontrollerLastSeen}
+                            </Typography>
+                          </Stack>
+                        }
+                      />
+                    </Grid>
+
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.live.providerPower"))}
+                        value={
+                          powerProvider ? (
+                            <Stack spacing={0.5}>
+                              <ProviderLiveEnergy
+                                key={powerProvider.uuid}
+                                provider={powerProvider}
+                              />
+                              <Typography variant="caption" color="text.secondary">
+                                {powerProvider.name}
+                              </Typography>
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              {t("devices.details.live.noProvider")}
+                            </Typography>
+                          )
+                        }
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <DeviceDetailsInfo
+                    device={device}
+                    isAutoMode={resolvedMode === "AUTO"}
+                    modeLabel={modeLabel}
+                    stateLabel={stateLabel}
+                    onlineLabel={deviceStatusLabel}
+                    formattedLastUpdate={formattedLastUpdate}
+                    t={t}
+                  />
+                </Stack>
+              )}
+
+              {tab === "telemetry" && (
+                <Stack spacing={2}>
+                  <DeviceEventLiveWidget
+                    deviceUuid={device.uuid}
+                    enabled={tab === "telemetry"}
+                    onEvent={handleLiveDeviceEvent}
+                  />
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        md: "repeat(3, minmax(0, 1fr))",
+                        lg: "repeat(5, minmax(0, 1fr))",
+                      },
+                    }}
+                  >
+                    <Box>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.live.providerPower"))}
+                        value={
+                          powerProvider ? (
+                            <Stack spacing={0.5}>
+                              <ProviderLiveEnergy
+                                key={powerProvider.uuid}
+                                provider={powerProvider}
+                              />
+                              <Typography variant="caption" color="text.secondary">
+                                {powerProvider.name}
+                              </Typography>
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              {t("devices.details.live.noProvider")}
+                            </Typography>
+                          )
+                        }
+                      />
+                    </Box>
+
+                    <Box>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.fields.energy"))}
+                        value={
+                          eventsResponse?.energy != null && eventsResponse.energy_unit
+                            ? `${eventsResponse.energy.toFixed(2)} ${eventsResponse.energy_unit}`
+                            : t("common.notAvailable")
+                        }
+                      />
+                    </Box>
+
+                    <Box>
+                      <DeviceInfoTile
+                        label={String(
+                          t("devices.details.fields.energyCost", {
+                            rate: "0.62 zł/kWh",
+                          })
+                        )}
+                        value={
+                          eventsResponse?.energy != null
+                            ? formatEnergyCost(eventsResponse.energy)
+                            : t("common.notAvailable")
+                        }
+                      />
+                    </Box>
+
+                    <Box>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.fields.totalMinutes"))}
+                        value={
+                          eventsResponse?.total_minutes_on != null
+                            ? formatMinutesAsHours(eventsResponse.total_minutes_on)
+                            : t("common.notAvailable")
+                        }
+                      />
+                    </Box>
+
+                    <Box>
+                      <DeviceInfoTile
+                        label={String(t("devices.details.fields.ratedPower"))}
+                        value={
+                          eventsResponse?.rated_power != null && eventsResponse.power_unit
+                            ? (
+                                <Typography
+                                  variant="subtitle1"
+                                  fontWeight={600}
+                                  sx={{ color: (theme) => theme.palette.info.main }}
+                                >
+                                  {`${eventsResponse.rated_power} ${eventsResponse.power_unit}`}
+                                </Typography>
+                              )
+                            : (
+                                <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+                                  {t("common.notAvailable")}
+                                </Typography>
+                              )
+                        }
+                      />
+                    </Box>
+                  </Box>
+
+                  <TelemetryDateNavigator
+                    dateLabel={t("devices.details.dayLabel")}
+                    previousDayLabel={t("devices.details.previousDay")}
+                    nextDayLabel={t("devices.details.nextDay")}
+                    selectedDate={selectedDate}
+                    maxDate={today}
+                    nextDisabled={nextDayDisabled}
+                    onDateChange={handleDateChange}
+                    onPreviousDay={goPreviousDay}
+                    onNextDay={goNextDay}
+                  />
+
+                  <Typography variant="caption" color="text.secondary">
+                    {t("devices.details.live.eventsMerged", {
+                      count: liveEventsCountForSelectedDay,
+                    })}
+                  </Typography>
+
+                  <DeviceTelemetryTimeline
+                    events={telemetryEvents}
+                    loading={loadingEvents}
+                    error={eventsError}
+                    tNoData={t("devices.details.noEvents")}
+                    selectedDate={selectedDate}
+                  />
+                </Stack>
+              )}
+            </Box>
+          </Box>
+        )}
+      </LoadingOverlay>
+    </Stack>
   );
 }

@@ -15,7 +15,7 @@ export default function ContentContainer({ children, sx }: ContentContainerProps
           maxWidth: 1320,
           mx: "auto",
           pt: { xs: 2, sm: 3, md: 4 },
-          px: { xs: 1, sm: 2, md: 4 },
+          px: { xs: 2, sm: 2, md: 4 },
         }}
       >
         {children}

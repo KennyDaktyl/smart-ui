@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Stack,
   Typography,
 } from "@mui/material";
@@ -27,6 +26,7 @@ import {
   formatDateForInput,
   isFutureDate,
 } from "@/features/providers/telemetry/utils/date";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import type {
   ProviderTelemetryEntry,
   ProviderResponse,
@@ -238,7 +238,7 @@ export default function ProviderTelemetryPage() {
   };
 
   return (
-    <Box p={{ xs: 1.5, sm: 3 }}>
+    <Stack spacing={2} sx={{ width: "100%", minWidth: 0 }}>
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate(-1)}
@@ -335,31 +335,29 @@ export default function ProviderTelemetryPage() {
             onNextDay={goNextDay}
           />
 
-          {loading ? (
-            <Stack
-              alignItems="center"
-              justifyContent="center"
-              sx={{ height: 240 }}
-            >
-              <CircularProgress />
-            </Stack>
-          ) : !day ? (
-            <Typography color="text.secondary">
-              {t("providers.telemetry.noData")}
-            </Typography>
-          ) : (
-            <ProviderTelemetryChart
-              day={day}
-              points={dayWithLiveEntries}
-              unit={chartUnit}
-              yMin={provider?.value_min ?? null}
-              yMax={provider?.value_max ?? null}
-              noDataLabel={t("providers.telemetry.noDayData")}
-              noEntriesLabel={t("providers.telemetry.noEntriesData")}
-            />
-          )}
+          <LoadingOverlay
+            loading={loading}
+            keepChildrenMounted={Boolean(day)}
+            minHeight={240}
+          >
+            {!day ? (
+              <Typography color="text.secondary">
+                {t("providers.telemetry.noData")}
+              </Typography>
+            ) : (
+              <ProviderTelemetryChart
+                day={day}
+                points={dayWithLiveEntries}
+                unit={chartUnit}
+                yMin={provider?.value_min ?? null}
+                yMax={provider?.value_max ?? null}
+                noDataLabel={t("providers.telemetry.noDayData")}
+                noEntriesLabel={t("providers.telemetry.noEntriesData")}
+              />
+            )}
+          </LoadingOverlay>
         </Stack>
       </TelemetryPanel>
-    </Box>
+    </Stack>
   );
 }

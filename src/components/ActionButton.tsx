@@ -17,6 +17,7 @@ type Props = {
   navigate?: (path: string) => void;
 
   disabled?: boolean;
+  fullWidth?: boolean;
 };
 
 export function ActionButton({
@@ -30,6 +31,7 @@ export function ActionButton({
   onSuccessNavigateTo,
   navigate,
   disabled,
+  fullWidth,
 }: Props) {
   const { t } = useTranslation();
 
@@ -66,6 +68,7 @@ export function ActionButton({
         color={color}
         onClick={handleClick}
         disabled={disabled || loading}
+        fullWidth={fullWidth}
       >
         {label}
       </Button>

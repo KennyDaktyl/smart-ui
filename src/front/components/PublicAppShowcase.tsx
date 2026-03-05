@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Box,
   Button,
@@ -321,7 +321,7 @@ function OfferSection({
         />
 
         <Grid2 container spacing={3}>
-          <Grid2 size={{ xs: 12, md: 3 }}>
+          <Grid2 size={{ xs: 12, xl: 3 }}>
             <CardShell title="Informacje kluczowe" sx={{ minHeight: "100%" }}>
               <Stack spacing={1.1}>
                 {highlights.map((item) => (
@@ -333,13 +333,13 @@ function OfferSection({
             </CardShell>
           </Grid2>
 
-          <Grid2 size={{ xs: 12, md: 3 }}>
+          <Grid2 size={{ xs: 12, xl: 3 }}>
             <CardShell title="Live / NATS" subtitle="strumienie realtime" sx={{ minHeight: "100%" }}>
               {livePanel}
             </CardShell>
           </Grid2>
 
-          <Grid2 size={{ xs: 12, md: 6 }}>
+          <Grid2 size={{ xs: 12, xl: 6 }}>
             <CardShell title="Demo UI" subtitle="realne komponenty aplikacji" sx={{ minHeight: "100%" }}>
               {demoPanel}
             </CardShell>
@@ -354,6 +354,10 @@ export default function PublicAppShowcase() {
   const { t, i18n } = useTranslation();
   const isPl = i18n.language.startsWith("pl");
   const [deviceOverride, setDeviceOverride] = useState<Record<number, boolean | undefined>>({});
+  const [simulatedPower, setSimulatedPower] = useState(
+    mockProvider.last_value?.measured_value ?? 7.46
+  );
+  const [streamFrames, setStreamFrames] = useState<string[]>([]);
 
   const copy = useMemo(
     () =>
@@ -370,6 +374,51 @@ export default function PublicAppShowcase() {
           },
     [isPl]
   );
+
+  useEffect(() => {
+    setDeviceOverride({
+      11: mockLiveState[11].isOn,
+      12: mockLiveState[12].isOn,
+      13: mockLiveState[13].isOn,
+    });
+
+    setStreamFrames([
+      "13:48:12 | HEARTBEAT | mc-demo-301 | online",
+      "13:48:13 | PROVIDER | provider-demo-71 | 7.46 kW",
+      "13:48:14 | DEVICE | device-demo-11 | ON",
+      "13:48:15 | EVENT | AUTO_TRIGGER | POWER_ABOVE_THRESHOLD",
+    ]);
+
+    let tick = 0;
+    const timer = window.setInterval(() => {
+      tick += 1;
+
+      setSimulatedPower((prev) => {
+        const next = prev + Math.sin(tick / 2.2) * 0.35 + (tick % 2 ? 0.18 : -0.14);
+        return Math.max(1.6, Math.min(11.8, Number(next.toFixed(2))));
+      });
+
+      setDeviceOverride((prev) => {
+        const target = mockDevices[tick % mockDevices.length];
+        const current = prev[target.id] ?? mockLiveState[target.id].isOn;
+        const nextState = !current;
+        const next = { ...prev, [target.id]: nextState };
+
+        const stamp = new Date().toLocaleTimeString(isPl ? "pl-PL" : "en-US", {
+          hour12: false,
+        });
+
+        setStreamFrames((history) => {
+          const row = `${stamp} | DEVICE | ${target.uuid} | ${nextState ? "ON" : "OFF"}`;
+          return [row, ...history].slice(0, 5);
+        });
+
+        return next;
+      });
+    }, 2400);
+
+    return () => clearInterval(timer);
+  }, [isPl]);
 
   return (
     <Stack spacing={{ xs: 4, md: 6 }}>
@@ -404,7 +453,7 @@ export default function PublicAppShowcase() {
           />
 
           <Grid2 container spacing={3}>
-            <Grid2 size={{ xs: 12, md: 4 }}>
+            <Grid2 size={{ xs: 12, lg: 4 }}>
               <CardShell title="Tematy realtime">
                 <Stack spacing={1}>
                   <Chip size="small" label="microcontroller_heartbeat" variant="outlined" />
@@ -413,7 +462,7 @@ export default function PublicAppShowcase() {
                 </Stack>
               </CardShell>
             </Grid2>
-            <Grid2 size={{ xs: 12, md: 4 }}>
+            <Grid2 size={{ xs: 12, lg: 4 }}>
               <CardShell title="Co to daje w UI">
                 <Stack spacing={1}>
                   <Typography variant="body2" color="text.secondary">- Status ON/OFF kart urzadzen odswieza sie live.</Typography>
@@ -422,13 +471,14 @@ export default function PublicAppShowcase() {
                 </Stack>
               </CardShell>
             </Grid2>
-            <Grid2 size={{ xs: 12, md: 4 }}>
+            <Grid2 size={{ xs: 12, lg: 4 }}>
               <CardShell title="Symulowany strumien" subtitle="ostatnie ramki NATS">
                 <Stack spacing={0.9}>
-                  <Typography variant="caption">13:48:12 | HEARTBEAT | mc-demo-301 | online</Typography>
-                  <Typography variant="caption">13:48:13 | PROVIDER | provider-demo-71 | 7.46 kW</Typography>
-                  <Typography variant="caption">13:48:14 | DEVICE | device-demo-11 | ON</Typography>
-                  <Typography variant="caption">13:48:15 | EVENT | AUTO_TRIGGER | POWER_ABOVE_THRESHOLD</Typography>
+                  {streamFrames.map((row) => (
+                    <Typography key={row} variant="caption">
+                      {row}
+                    </Typography>
+                  ))}
                 </Stack>
               </CardShell>
             </Grid2>
@@ -461,7 +511,7 @@ export default function PublicAppShowcase() {
         }
         livePanel={
           <ProviderPowerGauge
-            power={7.46}
+            power={simulatedPower}
             unit="kW"
             min={0}
             max={12}
@@ -480,7 +530,7 @@ export default function PublicAppShowcase() {
         demoPanel={
           <Grid2 container spacing={2}>
             {mockDevices.map((device) => (
-              <Grid2 key={device.id} size={{ xs: 12, md: 6 }}>
+              <Grid2 key={device.id} size={{ xs: 12, lg: 6 }}>
                 <DeviceCard
                   device={device}
                   provider={mockProvider}
@@ -607,7 +657,7 @@ export default function PublicAppShowcase() {
         }
         demoPanel={
           <Grid2 container spacing={2.1}>
-            <Grid2 size={{ xs: 12, md: 6 }}>
+            <Grid2 size={{ xs: 12, lg: 6 }}>
               <Stack spacing={1.5}>
                 {mockMicrocontrollers.map(({ microcontroller, live }) => (
                   <CardShell
@@ -626,7 +676,7 @@ export default function PublicAppShowcase() {
                 ))}
               </Stack>
             </Grid2>
-            <Grid2 size={{ xs: 12, md: 6 }}>
+            <Grid2 size={{ xs: 12, lg: 6 }}>
               <FormCard maxWidth={2200}>
                 <Typography variant="h6" fontWeight={800}>
                   {isPl ? "Dodaj nowe urzadzenie" : "Add new device"}
@@ -675,7 +725,7 @@ export default function PublicAppShowcase() {
         }
         livePanel={
           <ProviderPowerGauge
-            power={mockProvider.last_value?.measured_value ?? null}
+            power={simulatedPower}
             unit="kW"
             min={0}
             max={12}

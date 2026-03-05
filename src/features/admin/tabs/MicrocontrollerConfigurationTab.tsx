@@ -2,7 +2,6 @@ import {
   Alert,
   Box,
   Button,
-  CardContent,
   Stack,
   TextField,
   Typography,
@@ -118,7 +117,7 @@ export function MicrocontrollerConfigurationTab({
   };
 
   return (
-    <CardContent>
+    <Box sx={{ p: 0 }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="subtitle1" fontWeight={600}>
@@ -176,11 +175,17 @@ export function MicrocontrollerConfigurationTab({
           }}
         />
 
-        <Box display="flex" justifyContent="flex-end" gap={1}>
+        <Box
+          display="flex"
+          justifyContent="flex-end"
+          gap={1}
+          flexDirection={{ xs: "column", sm: "row" }}
+        >
           <Button
             variant="outlined"
             onClick={loadAgentFiles}
             disabled={disabled || loading || saving}
+            fullWidth
           >
             {t("microcontroller.agentConfig.load")}
           </Button>
@@ -188,11 +193,12 @@ export function MicrocontrollerConfigurationTab({
             variant="contained"
             onClick={handleSave}
             disabled={disabled || loading || saving}
+            fullWidth
           >
             {t("microcontroller.agentConfig.save")}
           </Button>
         </Box>
       </Stack>
-    </CardContent>
+    </Box>
   );
 }

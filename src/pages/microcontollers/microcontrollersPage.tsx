@@ -1,8 +1,5 @@
 import {
   Alert,
-  Box,
-  CircularProgress,
-
   Stack,
   Typography,
 } from "@mui/material";
@@ -15,6 +12,7 @@ import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { MicrocontrollerCard } from "@/features/microcontrollers/components/MicrocontrollerCard";
 import { MicrocontrollerWithLive } from "@/features/microcontrollers/types/microcontroller";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 
 export default function MicrocontrollersPage() {
   const { token } = useAuth();
@@ -67,14 +65,7 @@ export default function MicrocontrollersPage() {
   }, [token, t]);
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        maxWidth: { xs: "100%", md: 1320 },
-        mx: "auto",
-        minHeight: "80vh",
-      }}
-    >
+    <Stack spacing={2.5} sx={{ width: "100%", minWidth: 0 }}>
       <Typography variant="h4" mb={3}>
         {t("microcontrollers.title")}
       </Typography>
@@ -85,16 +76,11 @@ export default function MicrocontrollersPage() {
         </Alert>
       )}
 
-      {loading ? (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="60vh"
-        >
-          <CircularProgress />
-        </Box>
-      ) : (
+      <LoadingOverlay
+        loading={loading}
+        keepChildrenMounted={items.length > 0}
+        sx={{ minHeight: { xs: 280, sm: 340, md: 400 } }}
+      >
         <Stack spacing={{ xs: 3, md: 4 }}>
           {items.map((item) => (
             <MicrocontrollerCard
@@ -104,7 +90,7 @@ export default function MicrocontrollersPage() {
             />
           ))}
         </Stack>
-      )}
-    </Box>
+      </LoadingOverlay>
+    </Stack>
   );
 }

@@ -99,6 +99,7 @@ export function AdminMicrocontrollersPage() {
             endActions={
               <Button
                 variant="contained"
+                sx={{ width: { xs: "100%", sm: "auto" } }}
                 onClick={() => {
                   setSelected(null);
                   setModalOpen(true);
@@ -122,8 +123,8 @@ export function AdminMicrocontrollersPage() {
 
           {error && <Alert severity="error">{error}</Alert>}
 
-          <Box sx={{ overflowX: "auto" }}>
-            <Table size="small">
+          <Box sx={{ width: "100%", overflowX: "auto" }}>
+            <Table size="small" sx={{ minWidth: 860 }}>
               <TableHead>
                 <TableRow>
                   <TableCell align="center">
@@ -204,13 +205,15 @@ export function AdminMicrocontrollersPage() {
 
                       <TableCell align="right">
                         <Stack
-                          direction="row"
+                          direction={{ xs: "column", sm: "row" }}
                           spacing={1}
                           justifyContent="flex-end"
+                          alignItems={{ xs: "stretch", sm: "center" }}
                         >
                           <Button
                             size="small"
                             variant="outlined"
+                            fullWidth
                             onClick={() =>
                               navigate(
                                 `/admin/microcontrollers/${mc.id}`
@@ -223,6 +226,7 @@ export function AdminMicrocontrollersPage() {
                           <Button
                             size="small"
                             variant="outlined"
+                            fullWidth
                             onClick={() => {
                               setSelected(mc);
                               setModalOpen(true);
@@ -235,6 +239,7 @@ export function AdminMicrocontrollersPage() {
                             label={t("common.delete")}
                             color="error"
                             variant="text"
+                            fullWidth
                             confirmRequired
                             confirmTitle={t(
                               "common.confirmDelete"

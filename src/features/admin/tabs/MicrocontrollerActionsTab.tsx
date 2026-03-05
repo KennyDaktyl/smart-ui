@@ -1,7 +1,7 @@
 import {
   Alert,
+  Box,
   Button,
-  CardContent,
   Divider,
   Stack,
   Typography,
@@ -69,7 +69,7 @@ export function MicrocontrollerActionsTab({
   };
 
   return (
-    <CardContent>
+    <Box sx={{ p: 0 }}>
       <Typography variant="subtitle1" fontWeight={600}>
         {t("microcontroller.actions.title")}
       </Typography>
@@ -153,6 +153,6 @@ export function MicrocontrollerActionsTab({
       >
         {t("microcontroller.actions.restartConfirmMessage")}
       </StickyDialog>
-    </CardContent>
+    </Box>
   );
 }

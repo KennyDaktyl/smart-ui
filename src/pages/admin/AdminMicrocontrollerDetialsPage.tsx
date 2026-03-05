@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  Box,
   Button,
   Tabs,
   Tab,
@@ -20,7 +21,6 @@ import { AdminMicrocontrollerFormModal } from "@/features/microcontrollers/compo
 import { MicrocontrollerActionsTab } from "@/features/admin/tabs/MicrocontrollerActionsTab";
 import { MicrocontrollerConfigurationTab } from "@/features/admin/tabs/MicrocontrollerConfigurationTab";
 import { AdminPageHeader } from "@/features/admin/components/layout/AdminPageLayout";
-import SurfacePanel from "@/layout/SurfacePanel";
 import { PageShell } from "@/features/admin/components/layout/PageShell";
 import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 
@@ -61,7 +61,7 @@ export default function AdminMicrocontrollerDetailsPage() {
         const header = (
           <AdminPageHeader
             title={
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
                 <span>{mc?.name ?? t("admin.microcontrollers.title")}</span>
 
                 {mc && (
@@ -89,6 +89,7 @@ export default function AdminMicrocontrollerDetailsPage() {
             startAction={
               <Button
                 startIcon={<ArrowBackIcon />}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
                 onClick={() => navigate("/admin/microcontrollers")}
               >
                 {t("common.backToList")}
@@ -98,6 +99,7 @@ export default function AdminMicrocontrollerDetailsPage() {
               <Button
                 variant="contained"
                 startIcon={<EditIcon />}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
                 onClick={() => setEditOpen(true)}
               >
                 {t("common.edit")}
@@ -107,12 +109,29 @@ export default function AdminMicrocontrollerDetailsPage() {
         );
 
         const tabs = (
-          <SurfacePanel sx={{ mt: 2, px: 0, py: 0 }}>
+          <Box
+            sx={{
+              mt: 1.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
             <Tabs
               value={tab}
               onChange={(_, value) => setTab(value)}
               variant="scrollable"
               allowScrollButtonsMobile
+              sx={{
+                "& .MuiTab-root": {
+                  color: "rgba(232,241,248,0.72)",
+                },
+                "& .MuiTab-root.Mui-selected": {
+                  color: "#f7b733",
+                },
+                "& .MuiTabs-indicator": {
+                  backgroundColor: "#f7b733",
+                },
+              }}
             >
               <Tab value="details" label={t("common.details")} />
 
@@ -128,7 +147,7 @@ export default function AdminMicrocontrollerDetailsPage() {
                 disabled={!canSendCommands}
               />
             </Tabs>
-          </SurfacePanel>
+          </Box>
         );
 
         return (

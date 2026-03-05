@@ -1,18 +1,5 @@
-// // src/pages/admin/AdminPage.tsx
-// import { Outlet } from "react-router-dom";
-// import { AdminPageContainer } from "@/features/admin/components/layout/AdminPageLayout";
-
-// export default function AdminPage() {
-//   return (
-//     <AdminPageContainer>
-//       <Outlet />
-//     </AdminPageContainer>
-//   );
-// }
-
-// src/pages/admin/AdminPage.tsx
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Tabs, Tab, Stack, Typography } from "@mui/material";
+import { Box, Tabs, Tab, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import { AdminPageContainer } from "@/features/admin/components/layout/AdminPageLayout";
@@ -32,22 +19,42 @@ export default function AdminPage() {
 
   return (
     <AdminPageContainer>
-      <Stack spacing={3}>
-        <Typography variant="h4" fontWeight={800}>
+      <Stack spacing={{ xs: 2, md: 3 }}>
+        <Typography variant="h4" fontWeight={800} sx={{ color: "#e8f1f8" }}>
           {t("admin.title")}
         </Typography>
 
         {showTabs && (
-          <Tabs
-            value={currentTab}
-            onChange={(_, value) => navigate(`/admin/${value}`)}
+          <Box
+            sx={{
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
           >
-            <Tab value="users" label={t("admin.tabs.users")} />
-            <Tab
-              value="microcontrollers"
-              label={t("admin.tabs.microcontrollers")}
-            />
-          </Tabs>
+            <Tabs
+              value={currentTab}
+              onChange={(_, value) => navigate(`/admin/${value}`)}
+              variant="scrollable"
+              allowScrollButtonsMobile
+              sx={{
+                "& .MuiTab-root": {
+                  color: "rgba(232,241,248,0.72)",
+                },
+                "& .MuiTab-root.Mui-selected": {
+                  color: "#f7b733",
+                },
+                "& .MuiTabs-indicator": {
+                  backgroundColor: "#f7b733",
+                },
+              }}
+            >
+              <Tab value="users" label={t("admin.tabs.users")} />
+              <Tab
+                value="microcontrollers"
+                label={t("admin.tabs.microcontrollers")}
+              />
+            </Tabs>
+          </Box>
         )}
 
         <Outlet />

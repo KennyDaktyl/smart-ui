@@ -3,16 +3,10 @@ import {
   Breadcrumbs,
   Link as MuiLink,
   Stack,
-  Tabs,
-  Tab,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import type { ReactNode } from "react";
-
-import ContentContainer from "@/layout/ContentContainer";
-import SurfacePanel from "@/layout/SurfacePanel";
-import { useTranslation } from "react-i18next";
 
 export type AdminBreadcrumb = {
   label: ReactNode;
@@ -27,30 +21,8 @@ type AdminPageHeaderProps = {
   endActions?: ReactNode;
 };
 
-const outerStyles = {
-  width: "100%",
-  display: "flex",
-  justifyContent: "center",
-  px: { xs: 2, md: 3 },
-  py: { xs: 3, md: 4 },
-};
-
 export function AdminPageContainer({ children }: { children: ReactNode }) {
-  return (
-    <Box sx={outerStyles}>
-      <ContentContainer
-        sx={{
-          backgroundColor: "transparent",
-          boxShadow: "none",
-          border: "none",
-          px: { xs: 0, md: 1 },
-          pt: { xs: 0, md: 1 },
-        }}
-      >
-        <SurfacePanel>{children}</SurfacePanel>
-      </ContentContainer>
-    </Box>
-  );
+  return <Box sx={{ width: "100%", minWidth: 0 }}>{children}</Box>;
 }
 
 export function AdminPageHeader({
@@ -60,8 +32,9 @@ export function AdminPageHeader({
   startAction,
   endActions,
 }: AdminPageHeaderProps) {
-  const breadcrumbColor = "text.secondary";
-  const subtitleColor = "text.secondary";
+  const breadcrumbColor = "rgba(232,241,248,0.74)";
+  const subtitleColor = "rgba(232,241,248,0.74)";
+  const titleColor = "#e8f1f8";
 
   return (
     <Stack
@@ -81,12 +54,12 @@ export function AdminPageHeader({
 
             if (isLast || !crumb.to) {
               return (
-            <Typography
-              key={`${index}`}
-              sx={{ color: breadcrumbColor }}
-            >
-              {crumb.label}
-            </Typography>
+                <Typography
+                  key={`${index}`}
+                  sx={{ color: breadcrumbColor }}
+                >
+                  {crumb.label}
+                </Typography>
               );
             }
 
@@ -106,7 +79,13 @@ export function AdminPageHeader({
       )}
 
       {/* HEADER ROW */}
-      <Box display="flex" justifyContent="space-between" alignItems="center">
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "center" }}
+        flexDirection={{ xs: "column", sm: "row" }}
+        gap={{ xs: 1.25, sm: 1.5 }}
+      >
         <Stack spacing={0.25}>
           {/* ✅ SUBTITLE (np. "Panel administratora") */}
           {subtitle && (
@@ -118,12 +97,16 @@ export function AdminPageHeader({
             </Typography>
           )}
 
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={1}
+          >
             {startAction}
             <Typography
               variant="h5"
               fontWeight={700}
-              sx={{ color: "text.primary" }}
+              sx={{ color: titleColor }}
             >
               {title}
             </Typography>
@@ -131,7 +114,12 @@ export function AdminPageHeader({
         </Stack>
 
         {endActions && (
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "stretch", sm: "center" }}
+            spacing={1}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
+          >
             {endActions}
           </Stack>
         )}

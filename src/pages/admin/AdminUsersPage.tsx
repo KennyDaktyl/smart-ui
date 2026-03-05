@@ -84,6 +84,7 @@ export function AdminUsersPage() {
           endActions={
             <Button
               variant="contained"
+              sx={{ width: { xs: "100%", sm: "auto" } }}
               onClick={() => {
                 setSelectedUser(null);
                 setIsModalOpen(true);
@@ -107,8 +108,8 @@ export function AdminUsersPage() {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <Box sx={{ overflowX: "auto" }}>
-          <Table size="small">
+        <Box sx={{ width: "100%", overflowX: "auto" }}>
+          <Table size="small" sx={{ minWidth: 760 }}>
             <TableHead>
               <TableRow>
                 <TableCell align="center">{t("user.form.email")}</TableCell>
@@ -154,13 +155,15 @@ export function AdminUsersPage() {
 
                   <TableCell align="center">
                     <Stack
-                      direction="row"
+                      direction={{ xs: "column", sm: "row" }}
                       spacing={1}
                       justifyContent="flex-end"
+                      alignItems={{ xs: "stretch", sm: "center" }}
                     >
                       <Button
                         size="small"
                         variant="text"
+                        fullWidth
                         onClick={() => navigate(`/admin/users/${u.id}`)}
                       >
                         {t("common.details")}
@@ -169,6 +172,7 @@ export function AdminUsersPage() {
                       <Button
                         size="small"
                         variant="outlined"
+                        fullWidth
                         onClick={() => {
                           setSelectedUser(u);
                           setIsModalOpen(true);
@@ -180,6 +184,7 @@ export function AdminUsersPage() {
                       <Button
                         size="small"
                         color="error"
+                        fullWidth
                         onClick={async () => {
                           await adminApi.deleteUser(u.id);
                           loadUsers();

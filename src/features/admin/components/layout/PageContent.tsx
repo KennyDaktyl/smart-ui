@@ -6,5 +6,13 @@ interface PageContentProps {
 }
 
 export function PageContent({ children }: PageContentProps) {
-  return <SurfacePanel>{children}</SurfacePanel>;
+  return (
+    <SurfacePanel
+      sx={{
+        p: { xs: 2, sm: 2.5, md: 3 },
+      }}
+    >
+      {children}
+    </SurfacePanel>
+  );
 }

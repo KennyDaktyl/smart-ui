@@ -8,7 +8,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { useTranslation } from "react-i18next";
 
-import CenteredSpinner from "@/features/common/components/CenteredSpinner";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import { parseApiError } from "@/api/parseApiError";
 import { schedulersApi } from "@/api/schedulersApi";
 import { useToast } from "@/context/ToastContext";
@@ -108,12 +108,8 @@ export default function SchedulersPage() {
     }
   };
 
-  if (loading) {
-    return <CenteredSpinner />;
-  }
-
   return (
-    <Box p={{ xs: 2, sm: 3 }}>
+    <Stack spacing={2.5} sx={{ width: "100%", minWidth: 0 }}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -139,44 +135,50 @@ export default function SchedulersPage() {
         </Button>
       </Stack>
 
-      {schedulers.length === 0 ? (
-        <Box
-          sx={{
-            p: 3,
-            border: "1px dashed",
-            borderColor: "divider",
-            borderRadius: 3,
-            textAlign: "center",
-          }}
-        >
-          <Typography variant="body1" fontWeight={600} mb={1}>
-            {t("schedulers.empty.title")}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t("schedulers.empty.description")}
-          </Typography>
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              md: "repeat(2, minmax(0, 1fr))",
-            },
-            gap: 2,
-          }}
-        >
-          {schedulers.map((scheduler) => (
-            <SchedulerCard
-              key={scheduler.id}
-              scheduler={scheduler}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </Box>
-      )}
+      <LoadingOverlay
+        loading={loading}
+        keepChildrenMounted={schedulers.length > 0}
+        sx={{ minHeight: { xs: 260, sm: 320, md: 360 } }}
+      >
+        {schedulers.length === 0 ? (
+          <Box
+            sx={{
+              p: 3,
+              border: "1px dashed",
+              borderColor: "divider",
+              borderRadius: 3,
+              textAlign: "center",
+            }}
+          >
+            <Typography variant="body1" fontWeight={600} mb={1}>
+              {t("schedulers.empty.title")}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t("schedulers.empty.description")}
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+              gap: 2,
+            }}
+          >
+            {schedulers.map((scheduler) => (
+              <SchedulerCard
+                key={scheduler.id}
+                scheduler={scheduler}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </Box>
+        )}
+      </LoadingOverlay>
 
       <StickyDialog
         open={dialogOpen}
@@ -209,6 +211,6 @@ export default function SchedulersPage() {
           onCancel={closeDialog}
         />
       </StickyDialog>
-    </Box>
+    </Stack>
   );
 }

@@ -53,6 +53,7 @@ export function AdminUserDetailsPage() {
       startAction={
         <Button
           startIcon={<ArrowBackIcon />}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
           onClick={() => navigate("/admin/users")}
         >
           {t("common.backToList")}
@@ -62,6 +63,7 @@ export function AdminUserDetailsPage() {
         <Button
           variant="contained"
           startIcon={<EditIcon />}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
           onClick={() => setEditOpen(true)}
         >
           {t("common.edit")}

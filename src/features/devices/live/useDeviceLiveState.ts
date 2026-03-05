@@ -175,6 +175,32 @@ const normalizeSubscriptions = (
     .map(([uuid, id]) => ({ uuid, id }));
 };
 
+const hasFiniteSubscriptionId = (
+  subscription: DeviceHeartbeatSubscription
+): boolean => Number.isFinite(Number(subscription.id));
+
+const collectHeartbeatSubjectUuids = (
+  microcontrollerUuid: string | undefined,
+  subscriptions: DeviceHeartbeatSubscription[]
+): Set<string> => {
+  const subjects = new Set<string>();
+
+  const normalizedMicrocontrollerUuid = microcontrollerUuid?.trim();
+  if (normalizedMicrocontrollerUuid) {
+    subjects.add(normalizedMicrocontrollerUuid);
+  }
+
+  subscriptions.forEach((subscription) => {
+    if (hasFiniteSubscriptionId(subscription)) {
+      return;
+    }
+
+    subjects.add(subscription.uuid);
+  });
+
+  return subjects;
+};
+
 export function useDeviceLiveState(
   microcontrollerUuid?: string,
   deviceSubscriptions: DeviceHeartbeatSubscription[] = []
@@ -201,15 +227,10 @@ export function useDeviceLiveState(
   );
 
   useEffect(() => {
-    const nextSubscriptionUuids = new Set<string>();
-
-    if (microcontrollerUuid) {
-      nextSubscriptionUuids.add(microcontrollerUuid);
-    }
-
-    normalizedSubscriptions.forEach((subscription) => {
-      nextSubscriptionUuids.add(subscription.uuid);
-    });
+    const nextSubscriptionUuids = collectHeartbeatSubjectUuids(
+      microcontrollerUuid,
+      normalizedSubscriptions
+    );
 
     subscriptionsRef.current.forEach((handler, uuid) => {
       if (!nextSubscriptionUuids.has(uuid)) {

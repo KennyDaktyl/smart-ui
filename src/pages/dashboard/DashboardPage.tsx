@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Box,
   Button,
-  CircularProgress,
   Stack,
   Typography,
 } from "@mui/material";
@@ -18,6 +16,7 @@ import { useMicrocontrollersOnlineStatus } from "@/features/microcontrollers/hoo
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { useProvidersLive } from "@/features/providers/hooks/useProvidersLive";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 
 function resolvePowerProvider(
   microcontroller: MicrocontrollerResponse
@@ -161,14 +160,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Box
-        sx={{
-          p: 2,
-          maxWidth: { xs: "100%", xl: 1680 },
-          mx: "auto",
-          minHeight: "80vh",
-        }}
-      >
+      <Stack spacing={2} sx={{ width: "100%", minWidth: 0 }}>
         <Stack spacing={0.75} mb={2.5}>
           <Typography variant="h4">{t("dashboard.title")}</Typography>
           <Typography color="text.secondary">{t("dashboard.subtitle")}</Typography>
@@ -183,27 +175,24 @@ export default function DashboardPage() {
           </Alert>
         )}
 
-        {loading ? (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="60vh"
-          >
-            <CircularProgress />
-          </Box>
-        ) : dashboardDevices.length === 0 ? (
-          <Typography color="text.secondary">{t("dashboard.empty")}</Typography>
-        ) : (
-          <DashboardDeviceList
-            items={sortedDashboardDevices}
-            deviceLiveMap={deviceLiveMap}
-            microcontrollerLiveMap={microcontrollerLiveMap}
-            providerLiveMap={providerLiveMap}
-            onEditDevice={setEditingDeviceId}
-          />
-        )}
-      </Box>
+        <LoadingOverlay
+          loading={loading}
+          keepChildrenMounted={dashboardDevices.length > 0}
+          sx={{ minHeight: { xs: 280, sm: 340, md: 420 } }}
+        >
+          {dashboardDevices.length === 0 ? (
+            <Typography color="text.secondary">{t("dashboard.empty")}</Typography>
+          ) : (
+            <DashboardDeviceList
+              items={sortedDashboardDevices}
+              deviceLiveMap={deviceLiveMap}
+              microcontrollerLiveMap={microcontrollerLiveMap}
+              providerLiveMap={providerLiveMap}
+              onEditDevice={setEditingDeviceId}
+            />
+          )}
+        </LoadingOverlay>
+      </Stack>
 
       <StickyDialog
         open={Boolean(editingItem)}

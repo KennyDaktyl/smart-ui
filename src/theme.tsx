@@ -219,7 +219,7 @@ export const solarTheme = createTheme({
           background: "rgba(8, 19, 31, 0.94)",
           color: "#e8f1f8",
           borderRight: "1px solid rgba(255,255,255,0.08)",
-          backdropFilter: "blur(10px)",
+          backdropFilter: "none",
         },
       },
     },

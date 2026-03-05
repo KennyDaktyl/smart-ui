@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import CenteredSpinner from "@/features/common/components/CenteredSpinner";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import { PageContent } from "./PageContent";
 
 interface PageShellProps {
@@ -20,7 +20,9 @@ export function PageShell({
       {header}
       {tabs}
       <PageContent>
-        {loading ? <CenteredSpinner /> : children}
+        <LoadingOverlay loading={loading} keepChildrenMounted minHeight={260}>
+          {children}
+        </LoadingOverlay>
       </PageContent>
     </>
   );

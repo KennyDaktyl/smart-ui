@@ -1,9 +1,9 @@
-import { Box, Typography, Button, Stack } from "@mui/material";
+import { Typography, Button, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
-import CenteredSpinner from "@/features/common/components/CenteredSpinner";
+import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import { useProviders } from "@/features/providers/hooks/useProviders";
 import ProvidersEmptyState from "@/features/providers/components/ProvidersEmptyState";
 import AddProviderWizardDialog from "@/features/providers/components/AddProviderWizardDialog";
@@ -76,12 +76,8 @@ export default function ProvidersPage() {
     setEditingProvider(null);
   }, []);
 
-  if (loading) {
-    return <CenteredSpinner />;
-  }
-
   return (
-    <Box p={{ xs: 2, sm: 3 }}>
+    <Stack spacing={2.5} sx={{ width: "100%", minWidth: 0 }}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -108,17 +104,23 @@ export default function ProvidersPage() {
           </Button>
         )}
       </Stack>
-  
-      {providers.length === 0 ? (
-        <ProvidersEmptyState onAdd={() => setWizardOpen(true)} />
-      ) : (
-        <ProvidersList
-          providers={providers}
-          onProviderEnabledChange={handleProviderEnabledChange}
-          onProviderEdit={handleProviderEdit}
-        />
-      )}
-  
+
+      <LoadingOverlay
+        loading={loading}
+        keepChildrenMounted={providers.length > 0}
+        sx={{ minHeight: { xs: 260, sm: 320, md: 360 } }}
+      >
+        {providers.length === 0 ? (
+          <ProvidersEmptyState onAdd={() => setWizardOpen(true)} />
+        ) : (
+          <ProvidersList
+            providers={providers}
+            onProviderEnabledChange={handleProviderEnabledChange}
+            onProviderEdit={handleProviderEdit}
+          />
+        )}
+      </LoadingOverlay>
+
       <AddProviderWizardDialog
         open={wizardOpen}
         onClose={handleWizardClose}
@@ -129,6 +131,6 @@ export default function ProvidersPage() {
         provider={editingProvider}
         onClose={handleEditClose}
       />
-    </Box>
+    </Stack>
   );
 }
