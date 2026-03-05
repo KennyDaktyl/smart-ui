@@ -366,6 +366,8 @@ class WebSocketManager {
       this.send({
         action: "subscribe",
         subject,
+        uuid,
+        event: eventName,
       });
     }
   }
