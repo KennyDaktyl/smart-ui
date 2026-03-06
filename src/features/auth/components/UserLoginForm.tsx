@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import { AuthContext } from "@/context/AuthContext";
 
 import FormCard from "@/components/forms/FormCard";
@@ -58,11 +59,8 @@ export default function UserLoginForm() {
 
       auth?.login(access_token, refresh_token);
       navigate("/");
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          t("auth.login.errorDefault")
-      );
+    } catch (err) {
+      setError(parseApiError(err).message || t("auth.login.errorDefault"));
       setToastOpen(true);
     } finally {
       setLoading(false);

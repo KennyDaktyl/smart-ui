@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 
@@ -47,8 +48,8 @@ export function AuthPanel() {
         setSuccess(t("landing.authPanel.registerSuccess"));
         setMode("login");
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t("landing.authPanel.errors.generic"));
+    } catch (err) {
+      setError(parseApiError(err).message || t("landing.authPanel.errors.generic"));
     } finally {
       setLoading(false);
     }

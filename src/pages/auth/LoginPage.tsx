@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useToast } from "@/context/ToastContext";
+import { parseApiError } from "@/api/parseApiError";
 import { authApi } from "../../api/authApi";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -45,9 +46,8 @@ export default function LoginPage() {
       notifySuccess(t("auth.login.success"));
 
       navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail || t("auth.login.errorDefault");
+    } catch (err) {
+      const message = parseApiError(err).message || t("auth.login.errorDefault");
 
       setError(message);
       notifyError(message);

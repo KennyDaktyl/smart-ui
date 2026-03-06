@@ -3,6 +3,7 @@ import { Alert, AlertColor, Button, Stack, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import Toast from "@/components/Toast";
 
 export default function UserForgotPasswordForm() {
@@ -38,10 +39,8 @@ export default function UserForgotPasswordForm() {
       const successMessage = t("auth.forgot.success");
       setSuccess(successMessage);
       setToast({ open: true, severity: "success", message: successMessage });
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ||
-        t("auth.forgot.error");
+    } catch (err) {
+      const message = parseApiError(err).message || t("auth.forgot.error");
 
       setError(message);
       setToast({ open: true, severity: "error", message });

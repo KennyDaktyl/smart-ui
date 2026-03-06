@@ -13,6 +13,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { authApi } from "@/api/authApi";
+import { parseApiError } from "@/api/parseApiError";
 import Toast from "@/components/Toast";
 
 export default function UserResetPasswordForm() {
@@ -73,10 +74,8 @@ export default function UserResetPasswordForm() {
       setToast({ open: true, severity: "success", message: successMessage });
 
       setTimeout(() => navigate("/login"), 2000);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ||
-        t("auth.reset.error");
+    } catch (err) {
+      const message = parseApiError(err).message || t("auth.reset.error");
 
       setError(message);
       setToast({ open: true, severity: "error", message });
