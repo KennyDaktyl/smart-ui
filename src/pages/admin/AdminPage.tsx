@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Box, Tabs, Tab, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import { AdminPageContainer } from "@/features/admin/components/layout/AdminPageLayout";
@@ -31,34 +31,66 @@ export default function AdminPage() {
               borderColor: "divider",
             }}
           >
-            <Tabs
-              value={currentTab}
-              onChange={(_, value) => navigate(`/admin/${value}`)}
-              variant="scrollable"
-              allowScrollButtonsMobile
+            <Stack
+              direction="row"
+              spacing={1}
               sx={{
-                "& .MuiTab-root": {
-                  color: "rgba(232,241,248,0.72)",
-                },
-                "& .MuiTab-root.Mui-selected": {
-                  color: "#f7b733",
-                },
-                "& .MuiTabs-indicator": {
-                  backgroundColor: "#f7b733",
-                },
+                alignItems: "stretch",
               }}
             >
-              <Tab value="users" label={t("admin.tabs.users")} />
-              <Tab
-                value="microcontrollers"
-                label={t("admin.tabs.microcontrollers")}
+              <AdminTopTabButton
+                active={currentTab === "users"}
+                label={t("admin.tabs.users")}
+                onClick={() => navigate("/admin/users")}
               />
-            </Tabs>
+              <AdminTopTabButton
+                active={currentTab === "microcontrollers"}
+                label={t("admin.tabs.microcontrollers")}
+                onClick={() => navigate("/admin/microcontrollers")}
+              />
+            </Stack>
           </Box>
         )}
 
         <Outlet />
       </Stack>
     </AdminPageContainer>
+  );
+}
+
+function AdminTopTabButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      onClick={onClick}
+      variant="text"
+      disableElevation
+      sx={{
+        cursor: "pointer",
+        borderRadius: 0,
+        px: 0.5,
+        py: 1.25,
+        minWidth: 0,
+        minHeight: 44,
+        color: active ? "#f7b733" : "rgba(232,241,248,0.72)",
+        borderBottom: "2px solid",
+        borderColor: active ? "#f7b733" : "transparent",
+        fontWeight: active ? 700 : 600,
+        "&:hover": {
+          backgroundColor: "transparent",
+          color: active ? "#f7b733" : "#e8f1f8",
+          borderBottomColor: active ? "#f7b733" : "rgba(232,241,248,0.45)",
+        },
+      }}
+    >
+      {label}
+    </Button>
   );
 }

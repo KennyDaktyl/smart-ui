@@ -6,8 +6,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import JSONEditor, { JSONEditorOptions } from "jsoneditor";
 import { useTranslation } from "react-i18next";
+import "jsoneditor/dist/jsoneditor.css";
 
 import { adminApi } from "@/api/adminApi";
 import { parseApiError } from "@/api/parseApiError";
@@ -19,7 +21,8 @@ type Props = {
   disabled?: boolean;
 };
 
-const EMPTY_JSON = "{}";
+type JsonObject = Record<string, unknown>;
+const EMPTY_JSON: JsonObject = {};
 
 export function MicrocontrollerConfigurationTab({
   microcontroller,
@@ -28,8 +31,8 @@ export function MicrocontrollerConfigurationTab({
   const { t } = useTranslation();
   const { notifyError, notifySuccess } = useToast();
 
-  const [configJsonText, setConfigJsonText] = useState(EMPTY_JSON);
-  const [hardwareConfigJsonText, setHardwareConfigJsonText] = useState(EMPTY_JSON);
+  const [configJson, setConfigJson] = useState<JsonObject>(EMPTY_JSON);
+  const [hardwareConfigJson, setHardwareConfigJson] = useState<JsonObject>(EMPTY_JSON);
   const [envFileText, setEnvFileText] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,10 +49,8 @@ export function MicrocontrollerConfigurationTab({
         microcontroller.id
       );
 
-      setConfigJsonText(JSON.stringify(response.data.config_json ?? {}, null, 2));
-      setHardwareConfigJsonText(
-        JSON.stringify(response.data.hardware_config_json ?? {}, null, 2)
-      );
+      setConfigJson(toJsonObject(response.data.config_json));
+      setHardwareConfigJson(toJsonObject(response.data.hardware_config_json));
       setEnvFileText(response.data.env_file_content ?? "");
     } catch (err) {
       const parsed = parseApiError(err);
@@ -64,23 +65,19 @@ export function MicrocontrollerConfigurationTab({
     void loadAgentFiles();
   }, [loadAgentFiles]);
 
-  const parseJson = (
-    raw: string,
+  const parseJsonObject = (
+    value: unknown,
     fileTranslationKey: "microcontroller.agentConfig.configFile" | "microcontroller.agentConfig.hardwareConfigFile"
   ) => {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error("Invalid object");
-      }
-      return parsed as Record<string, unknown>;
-    } catch {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new Error(
         t("microcontroller.agentConfig.invalidJson", {
           file: t(fileTranslationKey),
         })
       );
     }
+
+    return value as JsonObject;
   };
 
   const handleSave = async () => {
@@ -90,18 +87,18 @@ export function MicrocontrollerConfigurationTab({
       setSaving(true);
       setError(null);
 
-      const configJson = parseJson(
-        configJsonText,
+      const parsedConfigJson = parseJsonObject(
+        configJson,
         "microcontroller.agentConfig.configFile"
       );
-      const hardwareConfigJson = parseJson(
-        hardwareConfigJsonText,
+      const parsedHardwareConfigJson = parseJsonObject(
+        hardwareConfigJson,
         "microcontroller.agentConfig.hardwareConfigFile"
       );
 
       await adminApi.updateMicrocontrollerAgentConfigFiles(microcontroller.id, {
-        config_json: configJson,
-        hardware_config_json: hardwareConfigJson,
+        config_json: parsedConfigJson,
+        hardware_config_json: parsedHardwareConfigJson,
         env_file_content: envFileText,
       });
 
@@ -130,34 +127,18 @@ export function MicrocontrollerConfigurationTab({
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <TextField
+        <JsonObjectEditor
           label={t("microcontroller.agentConfig.configFile")}
-          multiline
-          minRows={10}
-          value={configJsonText}
-          onChange={(event) => setConfigJsonText(event.target.value)}
-          fullWidth
+          value={configJson}
+          onChange={setConfigJson}
           disabled={disabled || loading || saving}
-          sx={{
-            "& .MuiInputBase-input": {
-              fontFamily: "monospace",
-            },
-          }}
         />
 
-        <TextField
+        <JsonObjectEditor
           label={t("microcontroller.agentConfig.hardwareConfigFile")}
-          multiline
-          minRows={10}
-          value={hardwareConfigJsonText}
-          onChange={(event) => setHardwareConfigJsonText(event.target.value)}
-          fullWidth
+          value={hardwareConfigJson}
+          onChange={setHardwareConfigJson}
           disabled={disabled || loading || saving}
-          sx={{
-            "& .MuiInputBase-input": {
-              fontFamily: "monospace",
-            },
-          }}
         />
 
         <TextField
@@ -201,4 +182,85 @@ export function MicrocontrollerConfigurationTab({
       </Stack>
     </Box>
   );
+}
+
+function JsonObjectEditor({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: JsonObject;
+  onChange: (next: JsonObject) => void;
+  disabled: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<JSONEditor | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const options: JSONEditorOptions = {
+      mode: "tree",
+      modes: ["tree", "code"],
+      onChangeJSON: (json) => {
+        onChange(toJsonObject(json));
+      },
+      onEditable: () => !disabled,
+      mainMenuBar: false,
+      navigationBar: false,
+      statusBar: false,
+    };
+
+    editorRef.current = new JSONEditor(containerRef.current, options, value);
+
+    return () => {
+      editorRef.current?.destroy();
+      editorRef.current = null;
+    };
+  }, [disabled, onChange]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    try {
+      editorRef.current.update(value);
+    } catch {
+      editorRef.current.set(value);
+    }
+  }, [value]);
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        {label}
+      </Typography>
+      <Box
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1,
+          overflow: "hidden",
+          "& .jsoneditor": {
+            border: 0,
+            minHeight: 0,
+          },
+          "& .jsoneditor-outer": {
+            minHeight: 0,
+          },
+        }}
+      >
+        <Box ref={containerRef} />
+      </Box>
+    </Box>
+  );
+}
+
+function toJsonObject(input: unknown): JsonObject {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {};
+  }
+
+  return input as JsonObject;
 }

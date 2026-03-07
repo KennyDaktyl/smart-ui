@@ -18,6 +18,7 @@
 		"@mui/system": "^7.3.5",
 		"axios": "^1.13.2",
 		"i18next": "^23.16.8",
+		"jsoneditor": "^10.4.2",
 		"notistack": "^3.0.2",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0",
@@ -27,6 +28,7 @@
 		"zod": "^4.2.1"
 	},
 	"devDependencies": {
+		"@types/jsoneditor": "^9.9.6",
 		"@types/node": "^24.10.0",
 		"@types/react": "^19.2.2",
 		"@types/react-dom": "^19.2.2",
