@@ -7,12 +7,16 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  IconButton,
   Stack,
+  Tooltip,
   Switch,
   Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -300,6 +304,8 @@ export function DashboardDeviceCard({
   const heartbeatLabel = deviceLive?.seenAt
     ? new Date(deviceLive.seenAt).toLocaleTimeString()
     : t("common.notAvailable");
+  const canEditDevice = Boolean(onEditRequest);
+  const canOpenProvider = Boolean(provider?.uuid);
   const metaCellSx = {
     minHeight: 56,
     display: "flex",
@@ -377,6 +383,29 @@ export function DashboardDeviceCard({
       : pendingManualState
         ? t("dashboard.cards.stateOn")
         : t("dashboard.cards.stateOff");
+  const handleEditRequest = () => onEditRequest?.(device);
+  const handleOpenProvider = () => {
+    if (!provider?.uuid) return;
+    navigate(`/providers/${provider.uuid}/telemetry`, {
+      state: { provider },
+    });
+  };
+  const handleOpenMicrocontroller = () => {
+    navigate("/microcontrollers");
+  };
+  const interactiveMetaSx = {
+    alignItems: "flex-start",
+    borderRadius: 1.5,
+    px: 0.5,
+    py: 0.35,
+    mx: -0.5,
+    transition: "transform 140ms ease, background-color 140ms ease",
+    cursor: "pointer",
+    "&:hover": {
+      transform: "scale(1.02)",
+      backgroundColor: (theme: any) => alpha(theme.palette.primary.main, 0.05),
+    },
+  } as const;
 
   return (
     <>
@@ -409,23 +438,39 @@ export function DashboardDeviceCard({
             alignItems="flex-end"
             sx={{ minHeight: 62, justifyContent: "space-between", textAlign: "right" }}
           >
-          <Chip
-            size="small"
-            label={modeLabel}
-            clickable={Boolean(onEditRequest)}
-            onClick={() => onEditRequest?.(device)}
-            color="primary"
-            variant="outlined"
-            sx={{
-              minWidth: 74,
-              ...(onEditRequest
-                ? {
-                    cursor: "pointer",
-                    "& .MuiChip-label": { px: 1.25 },
-                  }
-                : {}),
-            }}
-          />
+          <Tooltip
+            title={
+              canEditDevice
+                ? t("dashboard.cards.editDeviceHint")
+                : ""
+            }
+          >
+            <span>
+              <Chip
+                size="small"
+                icon={canEditDevice ? <EditOutlinedIcon fontSize="small" /> : undefined}
+                label={modeLabel}
+                clickable={canEditDevice}
+                onClick={handleEditRequest}
+                color="primary"
+                variant="outlined"
+                sx={{
+                  minWidth: 74,
+                  ...(canEditDevice
+                    ? {
+                        cursor: "pointer",
+                        transition: "transform 140ms ease, background-color 140ms ease",
+                        "&:hover": {
+                          transform: "scale(1.04)",
+                          backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                        },
+                        "& .MuiChip-label": { px: 1.25 },
+                      }
+                    : {}),
+                }}
+              />
+            </span>
+          </Tooltip>
           <Stack
             direction="row"
             spacing={0.5}
@@ -561,9 +606,21 @@ export function DashboardDeviceCard({
               <Typography variant="caption" color="text.secondary" noWrap>
                 {t("dashboard.cards.microcontroller")}
               </Typography>
-              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-                {microcontroller.name}
-              </Typography>
+              <Stack
+                direction="row"
+                spacing={0.35}
+                onClick={handleOpenMicrocontroller}
+                sx={interactiveMetaSx}
+              >
+                <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                  {microcontroller.name}
+                </Typography>
+                <Tooltip title={t("dashboard.cards.openMicrocontroller")}>
+                  <IconButton size="small" sx={{ p: 0.15 }}>
+                    <OpenInNewIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
             </Stack>
           </Grid>
 
@@ -572,9 +629,23 @@ export function DashboardDeviceCard({
               <Typography variant="caption" color="text.secondary" noWrap>
                 {t("dashboard.cards.provider")}
               </Typography>
-              <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
-                {provider?.name ?? t("dashboard.cards.providerMissing")}
-              </Typography>
+              <Stack
+                direction="row"
+                spacing={0.35}
+                onClick={canOpenProvider ? handleOpenProvider : undefined}
+                sx={canOpenProvider ? interactiveMetaSx : undefined}
+              >
+                <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>
+                  {provider?.name ?? t("dashboard.cards.providerMissing")}
+                </Typography>
+                {canOpenProvider && (
+                  <Tooltip title={t("dashboard.cards.openProvider")}>
+                    <IconButton size="small" sx={{ p: 0.15 }}>
+                      <OpenInNewIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Stack>
             </Stack>
           </Grid>
 
