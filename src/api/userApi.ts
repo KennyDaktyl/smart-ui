@@ -1,4 +1,3 @@
-import { get } from "node_modules/axios/index.cjs";
 import axiosClient from "./axiosClient";
 
 export const userApi = {

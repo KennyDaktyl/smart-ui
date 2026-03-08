@@ -12,6 +12,8 @@ interface DeviceDetailsInfoProps {
   stateLabel: string;
   onlineLabel: string;
   formattedLastUpdate: string;
+  powerUnit?: string | null;
+  thresholdUnit?: string | null;
   t: (key: string, opts?: any) => ReactNode;
 }
 
@@ -22,8 +24,13 @@ export function DeviceDetailsInfo({
   stateLabel,
   onlineLabel,
   formattedLastUpdate,
+  powerUnit,
+  thresholdUnit,
   t,
 }: DeviceDetailsInfoProps) {
+  const resolvedPowerUnit = powerUnit ?? null;
+  const resolvedThresholdUnit = thresholdUnit ?? resolvedPowerUnit;
+
   return (
     <Grid container spacing={2}>
       <Grid xs={12} sm={6} md={4}>
@@ -36,14 +43,14 @@ export function DeviceDetailsInfo({
         <DeviceInfoTile
           label={String(t("devices.details.fields.power"))}
           value={
-            device.rated_power != null
+            device.rated_power != null && resolvedPowerUnit
               ? (
                   <Typography
                     variant="subtitle1"
                     fontWeight={600}
                     sx={{ color: (theme) => theme.palette.info.main }}
                   >
-                    {`${device.rated_power} W`}
+                    {`${device.rated_power} ${resolvedPowerUnit}`}
                   </Typography>
                 )
               : (
@@ -58,14 +65,14 @@ export function DeviceDetailsInfo({
         <DeviceInfoTile
           label={String(t("devices.details.fields.threshold"))}
           value={
-            isAutoMode && device.threshold_value != null
+            isAutoMode && device.threshold_value != null && resolvedThresholdUnit
               ? (
                   <Typography
                     variant="subtitle1"
                     fontWeight={600}
                     sx={{ color: (theme) => theme.palette.warning.dark }}
                   >
-                    {`${device.threshold_value} W`}
+                    {`${device.threshold_value} ${resolvedThresholdUnit}`}
                   </Typography>
                 )
               : (

@@ -123,6 +123,20 @@ export function AdminUserDetailsPage() {
                     {t("account.profile.companyVat")}:{" "}
                     {user.profile.company_vat || "-"}
                   </Typography>
+                  <Typography>
+                    {t("account.profile.energyPriceAmount")}:{" "}
+                    {user.profile.energy_price_amount != null
+                      ? [
+                          user.profile.energy_price_amount,
+                          user.profile.energy_price_currency,
+                          user.profile.energy_price_unit
+                            ? `/${user.profile.energy_price_unit}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" ")
+                      : "-"}
+                  </Typography>
                 </Stack>
               </>
             )}

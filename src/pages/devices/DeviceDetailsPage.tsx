@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 
 import { devicesApi } from "@/api/devicesApi";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
+import { userApi } from "@/api/userApi";
 
 import type { Device } from "@/features/devices/types/devicesType";
 import type {
@@ -29,6 +30,10 @@ import type {
 } from "@/features/devices/types/deviceEvents";
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
+import type {
+  EnergyPriceUnit,
+  UserProfileResponse,
+} from "@/features/users/types/profile";
 
 import { DeviceDetailsInfo } from "@/features/devices/components/DeviceDetailsInfo";
 import { DeviceTelemetryTimeline } from "@/features/devices/components/DeviceTelemetryTimeline";
@@ -51,7 +56,11 @@ type DeviceLocationState = {
   device?: Device;
 };
 
-const ELECTRICITY_RATE = 0.62; // zł / kWh
+type EnergyPriceConfig = {
+  amount: number;
+  currency: string;
+  unit: EnergyPriceUnit;
+};
 
 function formatMinutesAsHours(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
@@ -62,8 +71,47 @@ function formatMinutesAsHours(totalMinutes: number): string {
   return `${hours} h ${minutes} min`;
 }
 
-function formatEnergyCost(energyKwh: number): string {
-  return `${(energyKwh * ELECTRICITY_RATE).toFixed(2)} zł`;
+function resolveEnergyPriceConfig(
+  profile?: UserProfileResponse | null
+): EnergyPriceConfig | null {
+  if (
+    profile?.energy_price_amount == null ||
+    !profile.energy_price_currency ||
+    !profile.energy_price_unit
+  ) {
+    return null;
+  }
+
+  return {
+    amount: profile.energy_price_amount,
+    currency: profile.energy_price_currency,
+    unit: profile.energy_price_unit,
+  };
+}
+
+function convertEnergyValue(
+  value: number,
+  fromUnit: string,
+  toUnit: EnergyPriceUnit
+): number | null {
+  if (fromUnit === toUnit) return value;
+  if (fromUnit === "kWh" && toUnit === "Wh") return value * 1000;
+  if (fromUnit === "Wh" && toUnit === "kWh") return value / 1000;
+  return null;
+}
+
+function formatEnergyRateLabel(config: EnergyPriceConfig): string {
+  return `${config.amount.toFixed(2)} ${config.currency}/${config.unit}`;
+}
+
+function formatEnergyCost(
+  energy: number,
+  energyUnit: string,
+  config: EnergyPriceConfig
+): string | null {
+  const normalizedEnergy = convertEnergyValue(energy, energyUnit, config.unit);
+  if (normalizedEnergy == null) return null;
+  return `${(normalizedEnergy * config.amount).toFixed(2)} ${config.currency}`;
 }
 
 function resolvePowerProvider(
@@ -118,6 +166,8 @@ export default function DeviceDetailsPage() {
   const [powerProvider, setPowerProvider] = useState<ProviderResponse | null>(
     null
   );
+  const [energyPriceConfig, setEnergyPriceConfig] =
+    useState<EnergyPriceConfig | null>(null);
 
   const [liveDeviceEvents, setLiveDeviceEvents] = useState<DeviceEvent[]>(
     []
@@ -143,6 +193,28 @@ export default function DeviceDetailsPage() {
   const deviceLive = device?.id ? deviceLiveMap[device.id] : undefined;
 
   const microLive = useMicrocontrollerLive(microcontroller?.uuid);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchUserProfile = async () => {
+      try {
+        const response = await userApi.getUserDetails();
+        if (cancelled) return;
+        setEnergyPriceConfig(resolveEnergyPriceConfig(response.data.profile));
+      } catch {
+        if (!cancelled) {
+          setEnergyPriceConfig(null);
+        }
+      }
+    };
+
+    void fetchUserProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!deviceId || device) return;
@@ -348,6 +420,20 @@ export default function DeviceDetailsPage() {
   const microcontrollerLastSeen = microLive.lastSeen
     ? new Date(microLive.lastSeen).toLocaleString(locale)
     : t("common.notAvailable");
+  const devicePowerUnit = powerProvider?.unit ?? eventsResponse?.power_unit ?? null;
+  const energyCostLabel = energyPriceConfig
+    ? `${t("devices.details.fields.energyCost")} (${formatEnergyRateLabel(energyPriceConfig)})`
+    : String(t("devices.details.fields.energyCost"));
+  const energyCostValue =
+    eventsResponse?.energy != null &&
+    eventsResponse.energy_unit &&
+    energyPriceConfig
+      ? formatEnergyCost(
+          eventsResponse.energy,
+          eventsResponse.energy_unit,
+          energyPriceConfig
+        )
+      : null;
 
   const nextDayDisabled = selectedDate >= today;
 
@@ -509,6 +595,8 @@ export default function DeviceDetailsPage() {
                     stateLabel={stateLabel}
                     onlineLabel={deviceStatusLabel}
                     formattedLastUpdate={formattedLastUpdate}
+                    powerUnit={devicePowerUnit}
+                    thresholdUnit={powerProvider?.unit ?? null}
                     t={t}
                   />
                 </Stack>
@@ -570,15 +658,39 @@ export default function DeviceDetailsPage() {
 
                     <Box>
                       <DeviceInfoTile
-                        label={String(
-                          t("devices.details.fields.energyCost", {
-                            rate: "0.62 zł/kWh",
-                          })
-                        )}
+                        label={energyCostLabel}
                         value={
-                          eventsResponse?.energy != null
-                            ? formatEnergyCost(eventsResponse.energy)
-                            : t("common.notAvailable")
+                          energyCostValue ? (
+                            <Stack spacing={0.5}>
+                              <Typography
+                                variant="subtitle1"
+                                fontWeight={600}
+                                sx={{ color: (theme) => theme.palette.success.main }}
+                              >
+                                {energyCostValue}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {energyPriceConfig
+                                  ? formatEnergyRateLabel(energyPriceConfig)
+                                  : ""}
+                              </Typography>
+                            </Stack>
+                          ) : energyPriceConfig ? (
+                            t("common.notAvailable")
+                          ) : (
+                            <Stack spacing={0.75}>
+                              <Typography variant="body2" color="text.secondary">
+                                {t("devices.details.energyPriceMissing")}
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => navigate("/account")}
+                              >
+                                {t("devices.details.setEnergyPrice")}
+                              </Button>
+                            </Stack>
+                          )
                         }
                       />
                     </Box>
