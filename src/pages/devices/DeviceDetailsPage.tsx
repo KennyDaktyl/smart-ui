@@ -661,7 +661,7 @@ export default function DeviceDetailsPage() {
                         label={energyCostLabel}
                         value={
                           energyCostValue ? (
-                            <Stack spacing={0.5}>
+                            <Stack spacing={0.75}>
                               <Typography
                                 variant="subtitle1"
                                 fontWeight={600}
@@ -674,9 +674,29 @@ export default function DeviceDetailsPage() {
                                   ? formatEnergyRateLabel(energyPriceConfig)
                                   : ""}
                               </Typography>
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ alignSelf: "flex-start", minWidth: "auto", px: 0 }}
+                                onClick={() => navigate("/account")}
+                              >
+                                {t("devices.details.changeEnergyPrice")}
+                              </Button>
                             </Stack>
                           ) : energyPriceConfig ? (
-                            t("common.notAvailable")
+                            <Stack spacing={0.75}>
+                              <Typography variant="body2" color="text.secondary">
+                                {t("common.notAvailable")}
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ alignSelf: "flex-start", minWidth: "auto", px: 0 }}
+                                onClick={() => navigate("/account")}
+                              >
+                                {t("devices.details.changeEnergyPrice")}
+                              </Button>
+                            </Stack>
                           ) : (
                             <Stack spacing={0.75}>
                               <Typography variant="body2" color="text.secondary">

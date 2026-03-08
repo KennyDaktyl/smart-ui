@@ -533,6 +533,7 @@ const resources = {
           energyPriceMissing:
             "Ustaw cenę energii w profilu, aby wyliczać koszt zużycia.",
           setEnergyPrice: "Ustaw cenę energii",
+          changeEnergyPrice: "Zmień cenę",
           eventsListTitle: "Ostatnie zdarzenia",
           legend: "Legenda:",
           zoom: "Powiększenie",
@@ -1272,6 +1273,7 @@ const resources = {
           energyPriceMissing:
             "Set the energy price in your profile to calculate the consumption cost.",
           setEnergyPrice: "Set energy price",
+          changeEnergyPrice: "Change price",
           eventsListTitle: "Recent events",
           legend: "Legend:",
           zoom: "Zoom",
