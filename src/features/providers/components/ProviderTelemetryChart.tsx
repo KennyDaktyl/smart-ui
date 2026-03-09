@@ -68,12 +68,14 @@ type HoverTooltipState = {
   left: number;
   value: number;
   dateTimeLabel: string;
+  unit: string;
 };
 
 type ProviderTelemetryChartProps = {
   day: DayEnergy;
   points: TelemetryChartPoint[];
-  unit?: string | null;
+  measuredUnit?: string | null;
+  energyUnit?: string | null;
   yMin?: number | null;
   yMax?: number | null;
   noDataLabel: string;
@@ -217,10 +219,26 @@ const StickyYAxis = ({ ticks, yFor, height }: StickyYAxisProps) => (
   </Box>
 );
 
+const deriveEnergyUnit = (measuredUnit?: string | null) => {
+  const normalized = measuredUnit?.trim();
+  if (!normalized) return "kWh";
+
+  const lower = normalized.toLowerCase();
+  if (lower === "w") return "Wh";
+  if (lower === "kw") return "kWh";
+  if (lower === "mw") return "MWh";
+  if (lower === "gw") return "GWh";
+
+  return normalized.endsWith("W")
+    ? `${normalized.slice(0, -1)}Wh`
+    : `${normalized}h`;
+};
+
 export function ProviderTelemetryChart({
   day,
   points,
-  unit = "kW",
+  measuredUnit,
+  energyUnit,
   yMin,
   yMax,
   noDataLabel,
@@ -374,7 +392,8 @@ export function ProviderTelemetryChart({
     };
   }, [chartWidth, dayStartMs, locale, points, yMax, yMin]);
 
-  const unitLabel = unit ?? "kW";
+  const measuredUnitLabel = measuredUnit ?? "kW";
+  const energyUnitLabel = energyUnit ?? deriveEnergyUnit(measuredUnitLabel);
   const totalEnergy = day.total_energy ?? 0;
   const importEnergy = day.import_energy ?? 0;
   const exportEnergy = day.export_energy ?? 0;
@@ -382,13 +401,15 @@ export function ProviderTelemetryChart({
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
     value: number,
-    dateTimeLabel: string
+    dateTimeLabel: string,
+    unit: string
   ) => {
     setHoverTooltip({
       top: Math.round(event.clientY + TOOLTIP_OFFSET),
       left: Math.round(event.clientX + TOOLTIP_OFFSET),
       value,
       dateTimeLabel,
+      unit,
     });
   };
 
@@ -437,13 +458,13 @@ export function ProviderTelemetryChart({
 
       <Stack direction="row" spacing={3} mb={1} flexWrap="wrap">
         <Typography color="success.main">
-          +{formatValue(exportEnergy)} {unitLabel}
+          +{formatValue(exportEnergy)} {energyUnitLabel}
         </Typography>
         <Typography color="error.main">
-          -{formatValue(importEnergy)} {unitLabel}
+          -{formatValue(importEnergy)} {energyUnitLabel}
         </Typography>
         <Typography fontWeight={700} color="primary">
-          Σ {formatValue(totalEnergy)} {unitLabel}
+          Σ {formatValue(totalEnergy)} {energyUnitLabel}
         </Typography>
       </Stack>
 
@@ -518,10 +539,10 @@ export function ProviderTelemetryChart({
                   fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(event) =>
-                    showTooltip(event, bar.value, bar.dateTimeLabel)
+                    showTooltip(event, bar.value, bar.dateTimeLabel, energyUnitLabel)
                   }
                   onMouseMove={(event) =>
-                    showTooltip(event, bar.value, bar.dateTimeLabel)
+                    showTooltip(event, bar.value, bar.dateTimeLabel, energyUnitLabel)
                   }
                   onMouseLeave={hideTooltip}
                 />
@@ -619,10 +640,20 @@ export function ProviderTelemetryChart({
                 key={`entry-point-${index}`}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={(event) =>
-                  showTooltip(event, point.value, point.dateTimeLabel)
+                  showTooltip(
+                    event,
+                    point.value,
+                    point.dateTimeLabel,
+                    measuredUnitLabel
+                  )
                 }
                 onMouseMove={(event) =>
-                  showTooltip(event, point.value, point.dateTimeLabel)
+                  showTooltip(
+                    event,
+                    point.value,
+                    point.dateTimeLabel,
+                    measuredUnitLabel
+                  )
                 }
                 onMouseLeave={hideTooltip}
               >
@@ -646,7 +677,7 @@ export function ProviderTelemetryChart({
       )}
 
       <Typography variant="caption" color="text.secondary" mt={1.5} display="block">
-        {unitLabel}
+        {measuredUnitLabel}
       </Typography>
 
       {hoverTooltip && (
@@ -672,7 +703,7 @@ export function ProviderTelemetryChart({
             color="#000"
             display="block"
           >
-            {`${formatValue(hoverTooltip.value)} ${unitLabel}`}
+            {`${formatValue(hoverTooltip.value)} ${hoverTooltip.unit}`}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
             {hoverTooltip.dateTimeLabel}

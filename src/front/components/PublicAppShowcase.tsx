@@ -749,7 +749,8 @@ export default function PublicAppShowcase() {
             <ProviderTelemetryChart
               day={telemetryDay}
               points={telemetryPoints}
-              unit="kW"
+              measuredUnit="kW"
+              energyUnit="kWh"
               noDataLabel={t("common.notAvailable")}
               noEntriesLabel={isPl ? "Brak punktow" : "No points"}
             />

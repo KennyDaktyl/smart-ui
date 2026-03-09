@@ -14,14 +14,16 @@ type UseProviderTelemetryDayOptions = {
 
 type UseProviderTelemetryDayState = {
   day: DayEnergy | null;
-  unit: string | null;
+  measuredUnit: string | null;
+  energyUnit: string | null;
   loading: boolean;
   error: string | null;
 };
 
 const INITIAL_STATE: UseProviderTelemetryDayState = {
   day: null,
-  unit: null,
+  measuredUnit: null,
+  energyUnit: null,
   loading: false,
   error: null,
 };
@@ -126,7 +128,16 @@ const normalizeHours = (hours: unknown) => {
     .sort((left, right) => Date.parse(left.hour) - Date.parse(right.hour));
 };
 
-const resolveResponseUnit = (
+const resolveMeasuredUnit = (
+  entries: ProviderTelemetryEntry[]
+): string | null => {
+  const measuredEntry = entries.find(
+    (entry): entry is ProviderMeasurement => "measured_at" in entry
+  );
+  return measuredEntry?.measured_unit ?? null;
+};
+
+const resolveEnergyUnit = (
   payload: unknown,
   entries: ProviderTelemetryEntry[]
 ): string | null => {
@@ -135,16 +146,17 @@ const resolveResponseUnit = (
     if (unit) return unit;
   }
 
-  const measuredEntry = entries.find(
-    (entry): entry is ProviderMeasurement => "measured_at" in entry
-  );
-  return measuredEntry?.measured_unit ?? null;
+  return null;
 };
 
 const normalizeDayFromPayload = (
   payload: unknown,
   requestedDate: string
-): { day: DayEnergy | null; unit: string | null } => {
+): {
+  day: DayEnergy | null;
+  measuredUnit: string | null;
+  energyUnit: string | null;
+} => {
   if (isRecord(payload) && isRecord(payload.days)) {
     const dayMap = payload.days;
     const candidateFromRequestedDate = dayMap[requestedDate];
@@ -162,7 +174,9 @@ const normalizeDayFromPayload = (
       ? ([requestedDate, candidateFromRequestedDate] as const)
       : fallback;
 
-    if (!candidateTuple) return { day: null, unit: null };
+    if (!candidateTuple) {
+      return { day: null, measuredUnit: null, energyUnit: null };
+    }
 
     const [candidateDateKey, candidate] = candidateTuple;
 
@@ -178,12 +192,15 @@ const normalizeDayFromPayload = (
         hours: normalizeHours(candidate.hours),
         entries,
       },
-      unit: resolveResponseUnit(payload, entries),
+      measuredUnit: resolveMeasuredUnit(entries),
+      energyUnit: resolveEnergyUnit(payload, entries),
     };
   }
 
   const entries = normalizeEntries(isRecord(payload) ? payload.entries : payload);
-  if (!entries.length && !isRecord(payload)) return { day: null, unit: null };
+  if (!entries.length && !isRecord(payload)) {
+    return { day: null, measuredUnit: null, energyUnit: null };
+  }
 
   const dateFromPayload = isRecord(payload)
     ? toNullableString(payload.date)
@@ -198,7 +215,8 @@ const normalizeDayFromPayload = (
       hours: isRecord(payload) ? normalizeHours(payload.hours) : [],
       entries,
     },
-    unit: resolveResponseUnit(payload, entries),
+    measuredUnit: resolveMeasuredUnit(entries),
+    energyUnit: resolveEnergyUnit(payload, entries),
   };
 };
 
@@ -232,11 +250,15 @@ export function useProviderTelemetryDay({
         });
 
         if (cancelled) return;
-        const { day, unit } = normalizeDayFromPayload(res.data, date);
+        const { day, measuredUnit, energyUnit } = normalizeDayFromPayload(
+          res.data,
+          date
+        );
 
         setState({
           day,
-          unit,
+          measuredUnit,
+          energyUnit,
           loading: false,
           error: null,
         });
@@ -244,7 +266,8 @@ export function useProviderTelemetryDay({
         if (cancelled) return;
         setState({
           day: null,
-          unit: null,
+          measuredUnit: null,
+          energyUnit: null,
           loading: false,
           error: loadErrorMessage,
         });

@@ -108,7 +108,7 @@ export default function ProviderTelemetryPage() {
     initialProvider,
   });
 
-  const { day, unit, loading, error } = useProviderTelemetryDay({
+  const { day, measuredUnit, energyUnit, loading, error } = useProviderTelemetryDay({
     providerUuid,
     date: selectedDate,
     loadErrorMessage: t("providers.telemetry.error"),
@@ -219,7 +219,7 @@ export default function ProviderTelemetryPage() {
   const nextDayDisabled = selectedDate >= today;
   const isTodaySelected = selectedDate === today;
   const liveSubscriptionEnabled = Boolean(providerUuid) && (provider?.enabled ?? true);
-  const chartUnit = unit ?? liveUnit ?? provider?.unit ?? null;
+  const chartMeasuredUnit = measuredUnit ?? liveUnit ?? provider?.unit ?? null;
 
   const handleDateChange = (nextDate: string) => {
     if (!nextDate) return;
@@ -295,7 +295,7 @@ export default function ProviderTelemetryPage() {
                       {live.power == null || Number.isNaN(live.power)
                         ? "--"
                         : `${live.power.toFixed(3)} ${
-                            live.unit ?? chartUnit ?? ""
+                            live.unit ?? chartMeasuredUnit ?? ""
                           }`.trim()}
                     </Typography>
                     {live.measuredAt && (
@@ -348,7 +348,8 @@ export default function ProviderTelemetryPage() {
               <ProviderTelemetryChart
                 day={day}
                 points={dayWithLiveEntries}
-                unit={chartUnit}
+                measuredUnit={chartMeasuredUnit}
+                energyUnit={energyUnit}
                 yMin={provider?.value_min ?? null}
                 yMax={provider?.value_max ?? null}
                 noDataLabel={t("providers.telemetry.noDayData")}
