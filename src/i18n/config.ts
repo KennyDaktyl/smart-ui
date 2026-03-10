@@ -495,6 +495,13 @@ const resources = {
           gpio: "GPIO",
           threshold: "Próg mocy",
           scheduler: "Harmonogram",
+          autoLogicTitle: "Logika AUTO",
+          autoLogicDescription:
+            "Zdefiniuj warunki mocy i baterii, które mają pozwolić na włączenie urządzenia.",
+          autoPreviewWarning:
+            "Warunki baterii i logika ALL/ANY są na razie tylko preview w UI. Backend zapisuje obecnie pierwszy warunek mocy.",
+          persistablePowerRequired:
+            "Do zapisu trybu AUTO nadal wymagany jest poprawny warunek mocy providera.",
           noSchedulers:
             "Brak harmonogramów. Najpierw utwórz harmonogram w sekcji Harmonogramy.",
           submitError: "Nie udało się zapisać urządzenia: {{message}}",
@@ -593,10 +600,18 @@ const resources = {
           editTitle: "Edytuj harmonogram",
           name: "Nazwa harmonogramu",
           enableSlotPowerThreshold: "Włącz próg mocy dla tego przedziału",
+          enableSlotConditions: "Włącz warunki uruchomienia w tym przedziale",
+          slotRuleTitle: "Warunki uruchomienia",
+          slotRuleDescription:
+            "W tym oknie czasowym urządzenie może się włączyć tylko po spełnieniu warunków. Koniec przedziału nadal wymusza wyłączenie.",
           powerUnit: "Jednostka mocy",
           powerThreshold: "Próg mocy",
           invalidThreshold: "Podaj poprawną wartość progu mocy (>= 0).",
           noUnitsAvailable: "Brak dostępnych jednostek mocy dla konta.",
+          previewWarning:
+            "Warunki baterii oraz logika ALL/ANY są na razie preview w UI. Backend zapisuje obecnie tylko pierwszy warunek mocy w danym przedziale.",
+          persistablePowerRequired:
+            "Aby zapis był zgodny z obecnym backendem, przedział musi mieć poprawny warunek mocy providera.",
           timeBlocks: "Dni i zakresy godzin",
           start: "Od",
           end: "Do",
@@ -619,6 +634,30 @@ const resources = {
         createSuccess: "Harmonogram został utworzony.",
         updateSuccess: "Harmonogram został zaktualizowany.",
         deleteSuccess: "Harmonogram został usunięty.",
+      },
+      automation: {
+        enable: "Aktywuj",
+        disabledHint: "Warunki są wyłączone dla tego zakresu.",
+        matchMode: "Spełnij warunki",
+        matchAll: "Wszystkie (AND)",
+        matchAny: "Dowolny (OR)",
+        addCondition: "Dodaj warunek",
+        conditionSource: "Źródło",
+        comparator: "Porównanie",
+        conditionValue: "Wartość",
+        valuePreset: "Preset",
+        customBatteryValue: "Własna wartość baterii",
+        customBatteryHint: "Możesz wpisać dowolną wartość od 0 do 100%.",
+        batteryPresetHint: "Szybki wybór co 5%.",
+        unit: "Jednostka",
+        comparators: {
+          gte: "Więcej lub równe",
+          lte: "Mniej lub równe",
+        },
+        sources: {
+          provider_primary_power: "Moc bieżąca providera",
+          provider_battery_soc: "Poziom baterii providera",
+        },
       },
       microcontroller: {
         uuid: "UUID",
@@ -1240,6 +1279,13 @@ const resources = {
           gpio: "GPIO",
           threshold: "Power threshold",
           scheduler: "Schedule",
+          autoLogicTitle: "AUTO logic",
+          autoLogicDescription:
+            "Define power and battery conditions that allow the device to turn on.",
+          autoPreviewWarning:
+            "Battery conditions and ALL/ANY logic are preview-only in UI for now. The backend currently saves only the first power condition.",
+          persistablePowerRequired:
+            "AUTO mode still requires a valid provider power condition to be saved.",
           noSchedulers:
             "No schedules found. Create one first in the Schedulers section.",
           submitError: "Failed to save device: {{message}}",
@@ -1338,10 +1384,18 @@ const resources = {
           editTitle: "Edit schedule",
           name: "Schedule name",
           enableSlotPowerThreshold: "Enable power threshold for this range",
+          enableSlotConditions: "Enable start conditions for this range",
+          slotRuleTitle: "Start conditions",
+          slotRuleDescription:
+            "Inside this time window the device may turn on only when the conditions are met. End of the range still forces OFF.",
           powerUnit: "Power unit",
           powerThreshold: "Power threshold",
           invalidThreshold: "Enter a valid threshold value (>= 0).",
           noUnitsAvailable: "No power units available for this account.",
+          previewWarning:
+            "Battery conditions and ALL/ANY logic are preview-only in UI for now. The backend currently saves only the first power condition per time range.",
+          persistablePowerRequired:
+            "To stay compatible with the current backend, the range still needs a valid provider power condition.",
           timeBlocks: "Days and time ranges",
           start: "Start",
           end: "End",
@@ -1364,6 +1418,30 @@ const resources = {
         createSuccess: "Schedule has been created.",
         updateSuccess: "Schedule has been updated.",
         deleteSuccess: "Schedule has been deleted.",
+      },
+      automation: {
+        enable: "Enable",
+        disabledHint: "Conditions are disabled for this range.",
+        matchMode: "Condition match",
+        matchAll: "All (AND)",
+        matchAny: "Any (OR)",
+        addCondition: "Add condition",
+        conditionSource: "Source",
+        comparator: "Comparator",
+        conditionValue: "Value",
+        valuePreset: "Preset",
+        customBatteryValue: "Custom battery value",
+        customBatteryHint: "You can enter any value from 0 to 100%.",
+        batteryPresetHint: "Quick 5% presets.",
+        unit: "Unit",
+        comparators: {
+          gte: "Greater or equal",
+          lte: "Less or equal",
+        },
+        sources: {
+          provider_primary_power: "Current provider power",
+          provider_battery_soc: "Provider battery level",
+        },
       },
       microcontroller: {
         uuid: "UUID",

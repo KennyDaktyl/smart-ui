@@ -15,14 +15,23 @@ import {
   Typography,
   Button,
 } from "@mui/material";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Device } from "@/features/devices/types/devicesType";
+import { AutomationRuleBuilder } from "@/features/automation/components/AutomationRuleBuilder";
+import {
+  type AutomationRuleComparator,
+  type AutomationRuleConditionDraft,
+  type AutomationRuleGroupOperator,
+  type AutomationRuleSource,
+  createAutomationConditionDraft,
+  isBatteryRuleSource,
+  isPowerRuleSource,
+} from "@/features/automation/types/rules";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
 import type { Scheduler } from "@/features/schedulers/types/scheduler";
-import { DeviceThresholdControl } from "@/features/devices/components/DeviceThresholdControl";
 import { useDeviceActions } from "@/features/devices/hooks/useDeviceActions";
 import { devicesApi } from "@/api/devicesApi";
 import { parseApiError } from "@/api/parseApiError";
@@ -77,6 +86,16 @@ const parseDecimalInput = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const createInitialAutoConditions = (
+  powerUnit: string,
+  thresholdValue?: number | null,
+) => [
+  {
+    ...createAutomationConditionDraft("provider_primary_power", powerUnit),
+    value: thresholdValue != null ? String(thresholdValue) : "",
+  },
+];
+
 export function DeviceForm({
   device,
   provider,
@@ -111,8 +130,15 @@ export function DeviceForm({
   const [manualState, setManualStateValue] = useState<boolean>(
     device?.manual_state ?? false,
   );
-  const [thresholdValue, setThresholdValue] = useState<number>(
-    device?.threshold_value ?? provider?.value_min ?? 0,
+  const [autoRuleOperator, setAutoRuleOperator] =
+    useState<AutomationRuleGroupOperator>("ANY");
+  const [autoConditions, setAutoConditions] = useState<
+    AutomationRuleConditionDraft[]
+  >(
+    createInitialAutoConditions(
+      provider?.unit ?? "W",
+      device?.threshold_value ?? provider?.value_min ?? 0,
+    ),
   );
   const [schedulerId, setSchedulerId] = useState<number | "">(
     device?.scheduler_id ?? "",
@@ -134,11 +160,17 @@ export function DeviceForm({
       device?.rated_power != null ? String(device.rated_power) : "",
     );
     setManualStateValue(device?.manual_state ?? false);
-    setThresholdValue(device?.threshold_value ?? provider?.value_min ?? 0);
+    setAutoRuleOperator("ANY");
+    setAutoConditions(
+      createInitialAutoConditions(
+        provider?.unit ?? "W",
+        device?.threshold_value ?? provider?.value_min ?? 0,
+      ),
+    );
     setSchedulerId(device?.scheduler_id ?? "");
     setSubmitted(false);
     setSubmitError(null);
-  }, [device, existingDevices, maxDevices, provider?.value_min]);
+  }, [device, existingDevices, maxDevices, provider?.value_min, provider?.unit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,11 +211,11 @@ export function DeviceForm({
   const ratedPowerNumber = parseDecimalInput(ratedPower);
   const isRatedPowerValid = ratedPowerNumber != null;
 
-  const thresholdMin = provider?.value_min ?? 0;
-  const thresholdMax = provider?.value_max ?? 0;
   const thresholdUnit = provider?.unit ?? null;
-  const thresholdStep =
-    thresholdUnit === "kW" ? 0.1 : thresholdUnit === "W" ? 10 : 1;
+  const autoPowerUnits = useMemo(
+    () => (thresholdUnit ? [thresholdUnit] : ["W"]),
+    [thresholdUnit],
+  );
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
       backgroundColor: "#ffffff",
@@ -215,6 +247,60 @@ export function DeviceForm({
     },
   };
 
+  const autoConditionsValid = useMemo(
+    () =>
+      autoConditions.every((condition) => {
+        const parsedValue = parseDecimalInput(condition.value);
+        if (isBatteryRuleSource(condition.source)) {
+          return (
+            parsedValue != null &&
+            parsedValue >= 0 &&
+            parsedValue <= 100 &&
+            condition.unit === "%"
+          );
+        }
+
+        return (
+          parsedValue != null &&
+          parsedValue >= 0 &&
+          condition.unit !== "" &&
+          autoPowerUnits.includes(condition.unit)
+        );
+      }),
+    [autoConditions, autoPowerUnits],
+  );
+
+  const persistedAutoPowerCondition = useMemo(() => {
+    const powerCondition = autoConditions.find((condition) =>
+      isPowerRuleSource(condition.source),
+    );
+    if (!powerCondition) {
+      return null;
+    }
+
+    const parsedValue = parseDecimalInput(powerCondition.value);
+    if (
+      parsedValue == null ||
+      parsedValue < 0 ||
+      !autoPowerUnits.includes(powerCondition.unit)
+    ) {
+      return null;
+    }
+
+    return {
+      parsedValue,
+      condition: powerCondition,
+    };
+  }, [autoConditions, autoPowerUnits]);
+
+  const autoAdvancedPreviewWarning = useMemo(
+    () =>
+      autoRuleOperator !== "ANY" ||
+      autoConditions.length !== 1 ||
+      autoConditions.some((condition) => !isPowerRuleSource(condition.source)),
+    [autoConditions, autoRuleOperator],
+  );
+
   const handleManualToggle = async (next: boolean) => {
     if (!device?.id) return;
     clearError();
@@ -239,13 +325,90 @@ export function DeviceForm({
     }
   };
 
+  const handleAddAutoCondition = () => {
+    setAutoConditions((prev) => [
+      ...prev,
+      createAutomationConditionDraft("provider_primary_power", autoPowerUnits[0] ?? "W"),
+    ]);
+  };
+
+  const handleRemoveAutoCondition = (conditionId: string) => {
+    setAutoConditions((prev) =>
+      prev.filter((condition) => condition.id !== conditionId),
+    );
+  };
+
+  const handleAutoConditionSourceChange = (
+    conditionId: string,
+    source: AutomationRuleSource,
+  ) => {
+    setAutoConditions((prev) =>
+      prev.map((condition) =>
+        condition.id === conditionId
+          ? {
+              ...condition,
+              source,
+              comparator: "gte",
+              value: source === "provider_battery_soc" ? "30" : condition.value,
+              unit:
+                source === "provider_battery_soc"
+                  ? "%"
+                  : autoPowerUnits[0] ?? condition.unit,
+            }
+          : condition,
+      ),
+    );
+  };
+
+  const handleAutoConditionComparatorChange = (
+    conditionId: string,
+    comparator: AutomationRuleComparator,
+  ) => {
+    setAutoConditions((prev) =>
+      prev.map((condition) =>
+        condition.id === conditionId
+          ? { ...condition, comparator }
+          : condition,
+      ),
+    );
+  };
+
+  const handleAutoConditionValueChange = (
+    conditionId: string,
+    value: string,
+  ) => {
+    const nextValue = value.replace(/\s+/g, "");
+    if (nextValue !== "" && !DECIMAL_INPUT_PATTERN.test(nextValue)) {
+      return;
+    }
+
+    setAutoConditions((prev) =>
+      prev.map((condition) =>
+        condition.id === conditionId
+          ? { ...condition, value: nextValue }
+          : condition,
+      ),
+    );
+  };
+
+  const handleAutoConditionUnitChange = (
+    conditionId: string,
+    unit: string,
+  ) => {
+    setAutoConditions((prev) =>
+      prev.map((condition) =>
+        condition.id === conditionId ? { ...condition, unit } : condition,
+      ),
+    );
+  };
+
   const handleSubmit = async () => {
     if (!onSubmit) return;
     setSubmitError(null);
     setSubmitted(true);
     if (isAtCapacity) return;
     if (!name.trim()) return;
-    if (isAuto && (thresholdValue == null || Number.isNaN(thresholdValue))) {
+    if (isAuto && (!autoConditionsValid || persistedAutoPowerCondition == null)) {
       return;
     }
     if (isSchedule && (schedulerId === "" || Number.isNaN(Number(schedulerId)))) {
@@ -260,7 +423,9 @@ export function DeviceForm({
           name: name.trim(),
           device_number: deviceNumber,
           mode,
-          threshold_value: isAuto ? thresholdValue : null,
+          threshold_value: isAuto
+            ? persistedAutoPowerCondition?.parsedValue ?? null
+            : null,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -269,7 +434,9 @@ export function DeviceForm({
           name: name.trim(),
           device_number: deviceNumber,
           mode,
-          threshold_value: isAuto ? thresholdValue : null,
+          threshold_value: isAuto
+            ? persistedAutoPowerCondition?.parsedValue ?? null
+            : null,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -277,7 +444,9 @@ export function DeviceForm({
       await onSubmit({
         name: name.trim(),
         mode,
-        thresholdValue: isAuto ? thresholdValue : null,
+        thresholdValue: isAuto
+          ? persistedAutoPowerCondition?.parsedValue ?? null
+          : null,
         schedulerId: isSchedule ? Number(schedulerId) : null,
       });
     } catch (err) {
@@ -424,20 +593,44 @@ export function DeviceForm({
         </Stack>
       ) : isAuto ? (
         <Stack spacing={2}>
-          <DeviceThresholdControl
-            value={thresholdValue}
-            min={thresholdMin}
-            max={thresholdMax}
-            unit={thresholdUnit}
-            label={
-              thresholdUnit
-                ? `${tt("devices.form.threshold")} (${thresholdUnit})`
-                : tt("devices.form.threshold")
-            }
-            step={thresholdStep}
+          {autoAdvancedPreviewWarning && (
+            <Alert severity="info">
+              {tt("devices.form.autoPreviewWarning")}
+            </Alert>
+          )}
+          <AutomationRuleBuilder
+            title={tt("devices.form.autoLogicTitle")}
+            description={tt("devices.form.autoLogicDescription")}
+            enabled
+            hideToggle
+            operator={autoRuleOperator}
+            onOperatorChange={setAutoRuleOperator}
+            conditions={autoConditions}
+            onAddCondition={handleAddAutoCondition}
+            onRemoveCondition={handleRemoveAutoCondition}
+            onSourceChange={handleAutoConditionSourceChange}
+            onComparatorChange={handleAutoConditionComparatorChange}
+            onValueChange={handleAutoConditionValueChange}
+            onUnitChange={handleAutoConditionUnitChange}
+            powerUnits={autoPowerUnits}
+            canUseBatterySoc={Boolean(provider?.has_energy_storage)}
             disabled={!canUseForm}
-            onChange={setThresholdValue}
           />
+          <Box sx={{ minHeight: 20 }}>
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{
+                visibility:
+                  submitted &&
+                  (!autoConditionsValid || persistedAutoPowerCondition == null)
+                    ? "visible"
+                    : "hidden",
+              }}
+            >
+              {tt("devices.form.persistablePowerRequired")}
+            </Typography>
+          </Box>
           <Divider />
         </Stack>
       ) : (
@@ -456,11 +649,10 @@ export function DeviceForm({
             <Select
               label={tt("devices.form.scheduler")}
               value={schedulerId}
-              onChange={(event) =>
-                setSchedulerId(
-                  event.target.value === "" ? "" : Number(event.target.value),
-                )
-              }
+              onChange={(event) => {
+                const nextValue = String(event.target.value);
+                setSchedulerId(nextValue === "" ? "" : Number(nextValue));
+              }}
               disabled={schedulersLoading || schedulers.length === 0}
             >
               <MenuItem value="">
