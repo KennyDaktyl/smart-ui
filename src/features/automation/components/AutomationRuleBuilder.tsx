@@ -1,5 +1,7 @@
 import AddIcon from "@mui/icons-material/Add";
+import BatteryChargingFullIcon from "@mui/icons-material/BatteryChargingFull";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import SolarPowerIcon from "@mui/icons-material/SolarPower";
 import {
   Box,
   Button,
@@ -13,8 +15,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import IconLabel from "@/components/atoms/IconLabel";
 import type {
   AutomationRuleComparator,
   AutomationRuleConditionDraft,
@@ -80,10 +84,12 @@ export function AutomationRuleBuilder({
   const sourceOptions: Array<{
     value: AutomationRuleSource;
     label: string;
+    icon: ReactNode;
   }> = [
     {
       value: "provider_primary_power",
       label: t("automation.sources.provider_primary_power"),
+      icon: <SolarPowerIcon fontSize="small" />,
     },
   ];
 
@@ -91,6 +97,7 @@ export function AutomationRuleBuilder({
     sourceOptions.push({
       value: "provider_battery_soc",
       label: t("automation.sources.provider_battery_soc"),
+      icon: <BatteryChargingFullIcon fontSize="small" />,
     });
   }
 
@@ -183,6 +190,21 @@ export function AutomationRuleBuilder({
                         <Select
                           label={t("automation.conditionSource")}
                           value={condition.source}
+                          renderValue={(selected) => {
+                            const selectedOption = sourceOptions.find(
+                              (option) => option.value === selected,
+                            );
+
+                            if (!selectedOption) {
+                              return String(selected);
+                            }
+
+                            return (
+                              <IconLabel icon={selectedOption.icon}>
+                                {selectedOption.label}
+                              </IconLabel>
+                            );
+                          }}
                           onChange={(event) =>
                             onSourceChange(
                               condition.id,
@@ -192,7 +214,9 @@ export function AutomationRuleBuilder({
                         >
                           {sourceOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
-                              {option.label}
+                              <IconLabel icon={option.icon}>
+                                {option.label}
+                              </IconLabel>
                             </MenuItem>
                           ))}
                         </Select>

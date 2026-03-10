@@ -1,3 +1,6 @@
+import BatteryChargingFullIcon from "@mui/icons-material/BatteryChargingFull";
+import ElectricMeterIcon from "@mui/icons-material/ElectricMeter";
+import SolarPowerIcon from "@mui/icons-material/SolarPower";
 import {
   Box,
   TextField,
@@ -13,6 +16,8 @@ import {
 } from "@mui/material";
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+
+import IconLabel from "@/components/atoms/IconLabel";
 
 type Props = {
   defaultUnit: string;
@@ -61,6 +66,7 @@ export default function ProviderFinalForm({
   const isPowerSourceError = Boolean(errors.power_source);
   const isPowerMeterError = Boolean(errors.has_power_meter);
   const isEnergyStorageError = Boolean(errors.has_energy_storage);
+  const powerSourceLabel = t("providers.wizard.finalForm.powerSource");
 
   const nameHelper = isNameError
     ? t("providers.validation.backendError", {
@@ -149,21 +155,44 @@ export default function ProviderFinalForm({
 
       <FormControl fullWidth error={isPowerSourceError}>
         <InputLabel id="provider-power-source-label">
-          {t("providers.wizard.finalForm.powerSource")}
+          <IconLabel icon={<SolarPowerIcon fontSize="small" />}>
+            {powerSourceLabel}
+          </IconLabel>
         </InputLabel>
         <Select
           labelId="provider-power-source-label"
-          label={t("providers.wizard.finalForm.powerSource")}
+          label={powerSourceLabel}
           value={powerSource}
           onChange={(e) =>
             setPowerSource(e.target.value as "inverter" | "meter")
           }
           disabled={loading}
+          renderValue={(selected) => (
+            <IconLabel
+              icon={
+                selected === "meter" ? (
+                  <ElectricMeterIcon fontSize="small" />
+                ) : (
+                  <SolarPowerIcon fontSize="small" />
+                )
+              }
+            >
+              {selected === "meter"
+                ? t("providers.powerSource.meter")
+                : t("providers.powerSource.inverter")}
+            </IconLabel>
+          )}
         >
           <MenuItem value="inverter">
-            {t("providers.powerSource.inverter")}
+            <IconLabel icon={<SolarPowerIcon fontSize="small" />}>
+              {t("providers.powerSource.inverter")}
+            </IconLabel>
           </MenuItem>
-          <MenuItem value="meter">{t("providers.powerSource.meter")}</MenuItem>
+          <MenuItem value="meter">
+            <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+              {t("providers.powerSource.meter")}
+            </IconLabel>
+          </MenuItem>
         </Select>
         {powerSourceHelper && (
           <FormHelperText>{powerSourceHelper}</FormHelperText>
@@ -184,7 +213,11 @@ export default function ProviderFinalForm({
                 disabled={loading}
               />
             }
-            label={t("providers.wizard.finalForm.hasPowerMeter")}
+            label={
+              <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+                {t("providers.wizard.finalForm.hasPowerMeter")}
+              </IconLabel>
+            }
           />
           <FormControlLabel
             control={
@@ -194,7 +227,11 @@ export default function ProviderFinalForm({
                 disabled={loading}
               />
             }
-            label={t("providers.wizard.finalForm.hasEnergyStorage")}
+            label={
+              <IconLabel icon={<BatteryChargingFullIcon fontSize="small" />}>
+                {t("providers.wizard.finalForm.hasEnergyStorage")}
+              </IconLabel>
+            }
           />
         </FormGroup>
         {powerMeterHelper ? (

@@ -1,3 +1,6 @@
+import BatteryChargingFullIcon from "@mui/icons-material/BatteryChargingFull";
+import ElectricMeterIcon from "@mui/icons-material/ElectricMeter";
+import SolarPowerIcon from "@mui/icons-material/SolarPower";
 import {
   Button,
   Checkbox,
@@ -17,6 +20,7 @@ import { useTranslation } from "react-i18next";
 
 import { providersApi } from "@/api/providersApi";
 import { parseApiError } from "@/api/parseApiError";
+import IconLabel from "@/components/atoms/IconLabel";
 import { StickyDialog } from "@/components/dialogs/StickyDialog";
 import { useToast } from "@/context/ToastContext";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
@@ -72,6 +76,7 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
     if (valueMin >= valueMax) return true;
     return loading;
   }, [loading, name, provider, valueMax, valueMin]);
+  const powerSourceLabel = t("providers.wizard.finalForm.powerSource");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -145,19 +150,44 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
 
         <FormControl fullWidth error={Boolean(fieldErrors.power_source)}>
           <InputLabel id="provider-edit-power-source-label">
-            {t("providers.wizard.finalForm.powerSource")}
+            <IconLabel icon={<SolarPowerIcon fontSize="small" />}>
+              {powerSourceLabel}
+            </IconLabel>
           </InputLabel>
           <Select
             labelId="provider-edit-power-source-label"
-            label={t("providers.wizard.finalForm.powerSource")}
+            label={powerSourceLabel}
             value={powerSource}
             onChange={(event) =>
               setPowerSource(event.target.value as "inverter" | "meter")
             }
             disabled={loading}
+            renderValue={(selected) => (
+              <IconLabel
+                icon={
+                  selected === "meter" ? (
+                    <ElectricMeterIcon fontSize="small" />
+                  ) : (
+                    <SolarPowerIcon fontSize="small" />
+                  )
+                }
+              >
+                {selected === "meter"
+                  ? t("providers.powerSource.meter")
+                  : t("providers.powerSource.inverter")}
+              </IconLabel>
+            )}
           >
-            <MenuItem value="inverter">{t("providers.powerSource.inverter")}</MenuItem>
-            <MenuItem value="meter">{t("providers.powerSource.meter")}</MenuItem>
+            <MenuItem value="inverter">
+              <IconLabel icon={<SolarPowerIcon fontSize="small" />}>
+                {t("providers.powerSource.inverter")}
+              </IconLabel>
+            </MenuItem>
+            <MenuItem value="meter">
+              <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+                {t("providers.powerSource.meter")}
+              </IconLabel>
+            </MenuItem>
           </Select>
           {fieldErrors.power_source && (
             <FormHelperText>
@@ -184,7 +214,11 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
                   disabled={loading}
                 />
               }
-              label={t("providers.wizard.finalForm.hasPowerMeter")}
+              label={
+                <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+                  {t("providers.wizard.finalForm.hasPowerMeter")}
+                </IconLabel>
+              }
             />
             <FormControlLabel
               control={
@@ -196,7 +230,11 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
                   disabled={loading}
                 />
               }
-              label={t("providers.wizard.finalForm.hasEnergyStorage")}
+              label={
+                <IconLabel icon={<BatteryChargingFullIcon fontSize="small" />}>
+                  {t("providers.wizard.finalForm.hasEnergyStorage")}
+                </IconLabel>
+              }
             />
           </FormGroup>
           {fieldErrors.has_power_meter ? (

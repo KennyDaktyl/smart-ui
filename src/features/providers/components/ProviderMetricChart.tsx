@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { type MouseEvent, useMemo, useState } from "react";
+import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
 
 import type {
   ProviderMetricSeries,
@@ -34,7 +34,7 @@ type HoverTooltipState = {
 };
 
 type ProviderMetricChartProps = {
-  title: string;
+  title: ReactNode;
   series: ProviderMetricSeries | null;
   noDataLabel: string;
 };

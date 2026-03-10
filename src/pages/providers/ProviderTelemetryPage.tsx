@@ -1,4 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import BatteryChargingFullIcon from "@mui/icons-material/BatteryChargingFull";
+import ElectricMeterIcon from "@mui/icons-material/ElectricMeter";
+import SolarPowerIcon from "@mui/icons-material/SolarPower";
 import {
   Alert,
   Box,
@@ -10,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import IconLabel from "@/components/atoms/IconLabel";
 import { LiveIndicator } from "@/features/common/components/atoms/LiveIndicator";
 import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
 import { ProviderMetricChart } from "@/features/providers/components/ProviderMetricChart";
@@ -127,6 +131,16 @@ export default function ProviderTelemetryPage() {
     provider?.has_energy_storage && batterySocMetric
   );
   const shouldShowGridChart = Boolean(provider?.has_power_meter && gridPowerMetric);
+  const primaryPowerLabel =
+    provider?.power_source === "meter"
+      ? t("providers.powerSource.meter")
+      : t("providers.powerSource.inverter");
+  const primaryPowerIcon =
+    provider?.power_source === "meter" ? (
+      <ElectricMeterIcon fontSize="small" />
+    ) : (
+      <SolarPowerIcon fontSize="small" />
+    );
 
   useEffect(() => {
     setLiveEntriesByDate({});
@@ -356,16 +370,27 @@ export default function ProviderTelemetryPage() {
                 {t("providers.telemetry.noData")}
               </Typography>
             ) : (
-              <ProviderTelemetryChart
-                day={day}
-                points={dayWithLiveEntries}
-                measuredUnit={chartMeasuredUnit}
-                energyUnit={energyUnit}
-                yMin={provider?.value_min ?? null}
-                yMax={provider?.value_max ?? null}
-                noDataLabel={t("providers.telemetry.noDayData")}
-                noEntriesLabel={t("providers.telemetry.noEntriesData")}
-              />
+              <Stack spacing={1}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={700}
+                  color="text.secondary"
+                >
+                  <IconLabel icon={primaryPowerIcon}>
+                    {primaryPowerLabel}
+                  </IconLabel>
+                </Typography>
+                <ProviderTelemetryChart
+                  day={day}
+                  points={dayWithLiveEntries}
+                  measuredUnit={chartMeasuredUnit}
+                  energyUnit={energyUnit}
+                  yMin={provider?.value_min ?? null}
+                  yMax={provider?.value_max ?? null}
+                  noDataLabel={t("providers.telemetry.noDayData")}
+                  noEntriesLabel={t("providers.telemetry.noEntriesData")}
+                />
+              </Stack>
             )}
           </LoadingOverlay>
 
@@ -376,7 +401,11 @@ export default function ProviderTelemetryPage() {
               minHeight={180}
             >
               <ProviderMetricChart
-                title={batterySocMetric?.label ?? "Battery SOC"}
+                title={
+                  <IconLabel icon={<BatteryChargingFullIcon fontSize="small" />}>
+                    {batterySocMetric?.label ?? "Battery SOC"}
+                  </IconLabel>
+                }
                 series={batterySocMetric}
                 noDataLabel={t("providers.telemetry.noData")}
               />
@@ -390,7 +419,11 @@ export default function ProviderTelemetryPage() {
               minHeight={180}
             >
               <ProviderMetricChart
-                title={gridPowerMetric?.label ?? "Grid power"}
+                title={
+                  <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+                    {gridPowerMetric?.label ?? "Grid power"}
+                  </IconLabel>
+                }
                 series={gridPowerMetric}
                 noDataLabel={t("providers.telemetry.noData")}
               />
