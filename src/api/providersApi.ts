@@ -1,7 +1,9 @@
 import axiosClient from "@/api/axiosClient";
 import { ProviderDefinitionsResponse } from "@/features/providers/types/provider";
 import {
+  ProviderMetricSeries,
   ProviderEnergySeries,
+  ProviderTelemetryResponse,
   ProviderResponse,
 } from "@/features/providers/types/userProvider";
 
@@ -46,6 +48,31 @@ export const providersApi = {
   ) => {
     return axiosClient.get<ProviderEnergySeries>(
       `/provider-measurements/provider/${providerUuid}/energy`,
+      { params }
+    );
+  },
+
+  getProviderTelemetry: (
+    providerUuid: string,
+    params?: {
+      date?: string;
+    }
+  ) => {
+    return axiosClient.get<ProviderTelemetryResponse>(
+      `/provider-measurements/provider/${providerUuid}/telemetry`,
+      { params }
+    );
+  },
+
+  getProviderMetric: (
+    providerUuid: string,
+    metricKey: string,
+    params?: {
+      date?: string;
+    }
+  ) => {
+    return axiosClient.get<ProviderMetricSeries>(
+      `/provider-measurements/provider/${providerUuid}/metrics/${metricKey}`,
       { params }
     );
   },

@@ -48,6 +48,8 @@ export interface ProviderCreatePayload {
    */
   unit?: PowerUnit | null;
   power_source?: ProviderPowerSource | null;
+  has_power_meter?: boolean;
+  has_energy_storage?: boolean;
 
   /**
    * Allowed value range

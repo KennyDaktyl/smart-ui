@@ -365,6 +365,8 @@ const resources = {
             minValue: "Minimalna wartość ({{unit}})",
             maxValue: "Maksymalna wartość ({{unit}})",
             powerSource: "Źródło pomiaru",
+            hasPowerMeter: "Pokaż licznik energii / grid",
+            hasEnergyStorage: "Pokaż magazyn energii / baterię",
           },
         },
         errors: {
@@ -1111,6 +1113,8 @@ const resources = {
             minValue: "Min value ({{unit}})",
             maxValue: "Max value ({{unit}})",
             powerSource: "Measurement source",
+            hasPowerMeter: "Show power meter / grid",
+            hasEnergyStorage: "Show energy storage / battery",
           },
         },
         errors: {

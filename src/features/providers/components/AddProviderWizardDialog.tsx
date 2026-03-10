@@ -191,6 +191,8 @@ export default function AddProviderWizardDialog({
     value_min: number;
     value_max: number;
     power_source: "inverter" | "meter";
+    has_power_meter: boolean;
+    has_energy_storage: boolean;
   }) => {
     if (!selectedVendor) return;
 
@@ -210,6 +212,8 @@ export default function AddProviderWizardDialog({
         value_min: form.value_min,
         value_max: form.value_max,
         power_source: form.power_source,
+        has_power_meter: form.has_power_meter,
+        has_energy_storage: form.has_energy_storage,
 
         wizard_session_id:
           wizardData?.context?.wizard_session_id,
@@ -380,6 +384,8 @@ export default function AddProviderWizardDialog({
                   ? "inverter"
                   : "meter"
               }
+              defaultHasPowerMeter={Boolean(finalConfig?.has_power_meter)}
+              defaultHasEnergyStorage={Boolean(finalConfig?.has_energy_storage)}
               onSubmit={handleCreateProvider}
               loading={finalLoading}
               errors={finalFieldErrors}

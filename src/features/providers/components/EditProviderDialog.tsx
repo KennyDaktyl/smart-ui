@@ -1,6 +1,9 @@
 import {
   Button,
+  Checkbox,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   FormHelperText,
   InputLabel,
   MenuItem,
@@ -34,6 +37,8 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
   const [valueMin, setValueMin] = useState<number>(0);
   const [valueMax, setValueMax] = useState<number>(0);
   const [powerSource, setPowerSource] = useState<"inverter" | "meter">("meter");
+  const [hasPowerMeter, setHasPowerMeter] = useState(false);
+  const [hasEnergyStorage, setHasEnergyStorage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -44,6 +49,8 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
       setValueMin(0);
       setValueMax(0);
       setPowerSource("meter");
+      setHasPowerMeter(false);
+      setHasEnergyStorage(false);
       setFormError(null);
       setFieldErrors({});
       return;
@@ -53,6 +60,8 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
     setValueMin(provider.value_min ?? 0);
     setValueMax(provider.value_max ?? 0);
     setPowerSource(provider.power_source === "inverter" ? "inverter" : "meter");
+    setHasPowerMeter(Boolean(provider.has_power_meter));
+    setHasEnergyStorage(Boolean(provider.has_energy_storage));
     setFormError(null);
     setFieldErrors({});
   }, [provider]);
@@ -78,6 +87,8 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
         value_min: valueMin,
         value_max: valueMax,
         power_source: powerSource,
+        has_power_meter: hasPowerMeter,
+        has_energy_storage: hasEnergyStorage,
       });
 
       notifySuccess(t("providers.success.update"));
@@ -155,6 +166,53 @@ export default function EditProviderDialog({ open, provider, onClose }: Props) {
               })}
             </FormHelperText>
           )}
+        </FormControl>
+
+        <FormControl
+          fullWidth
+          error={
+            Boolean(fieldErrors.has_power_meter) ||
+            Boolean(fieldErrors.has_energy_storage)
+          }
+        >
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasPowerMeter}
+                  onChange={(event) => setHasPowerMeter(event.target.checked)}
+                  disabled={loading}
+                />
+              }
+              label={t("providers.wizard.finalForm.hasPowerMeter")}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasEnergyStorage}
+                  onChange={(event) =>
+                    setHasEnergyStorage(event.target.checked)
+                  }
+                  disabled={loading}
+                />
+              }
+              label={t("providers.wizard.finalForm.hasEnergyStorage")}
+            />
+          </FormGroup>
+          {fieldErrors.has_power_meter ? (
+            <FormHelperText>
+              {t("providers.validation.backendError", {
+                message: fieldErrors.has_power_meter,
+              })}
+            </FormHelperText>
+          ) : null}
+          {fieldErrors.has_energy_storage ? (
+            <FormHelperText>
+              {t("providers.validation.backendError", {
+                message: fieldErrors.has_energy_storage,
+              })}
+            </FormHelperText>
+          ) : null}
         </FormControl>
 
         <TextField

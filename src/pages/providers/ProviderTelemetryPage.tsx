@@ -12,6 +12,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { LiveIndicator } from "@/features/common/components/atoms/LiveIndicator";
 import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
+import { ProviderMetricChart } from "@/features/providers/components/ProviderMetricChart";
 import {
   ProviderTelemetryChart,
   type TelemetryChartPoint,
@@ -19,8 +20,7 @@ import {
 import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
 import { TelemetryDateNavigator } from "@/features/providers/telemetry/components/TelemetryDateNavigator";
 import { TelemetryPanel } from "@/features/providers/telemetry/components/TelemetryPanel";
-import { useProviderDetails } from "@/features/providers/telemetry/hooks/useProviderDetails";
-import { useProviderTelemetryDay } from "@/features/providers/telemetry/hooks/useProviderTelemetryDay";
+import { useProviderTelemetry } from "@/features/providers/telemetry/hooks/useProviderTelemetry";
 import {
   addDays,
   formatDateForInput,
@@ -103,19 +103,30 @@ export default function ProviderTelemetryPage() {
     Record<string, TelemetryChartPoint[]>
   >({});
 
-  const { provider } = useProviderDetails({
-    providerUuid,
-    initialProvider,
-  });
-
-  const { day, measuredUnit, energyUnit, loading, error } = useProviderTelemetryDay({
+  const { telemetry, loading, error } = useProviderTelemetry({
     providerUuid,
     date: selectedDate,
     loadErrorMessage: t("providers.telemetry.error"),
   });
+  const provider = telemetry?.provider ?? initialProvider;
+  const day = telemetry?.day ?? null;
+  const measuredUnit = telemetry?.measured_unit ?? null;
+  const energyUnit = telemetry?.energy_unit ?? null;
 
   const providerName =
     provider?.name ?? providerUuid ?? t("common.notAvailable");
+
+  const batterySocMetric = telemetry?.metrics?.find(
+    (metric) => metric.metric_key === "battery_soc"
+  ) ?? null;
+  const gridPowerMetric = telemetry?.metrics?.find(
+    (metric) => metric.metric_key === "grid_power"
+  ) ?? null;
+
+  const shouldShowBatteryChart = Boolean(
+    provider?.has_energy_storage && batterySocMetric
+  );
+  const shouldShowGridChart = Boolean(provider?.has_power_meter && gridPowerMetric);
 
   useEffect(() => {
     setLiveEntriesByDate({});
@@ -357,6 +368,34 @@ export default function ProviderTelemetryPage() {
               />
             )}
           </LoadingOverlay>
+
+          {shouldShowBatteryChart ? (
+            <LoadingOverlay
+              loading={loading}
+              keepChildrenMounted
+              minHeight={180}
+            >
+              <ProviderMetricChart
+                title={batterySocMetric?.label ?? "Battery SOC"}
+                series={batterySocMetric}
+                noDataLabel={t("providers.telemetry.noData")}
+              />
+            </LoadingOverlay>
+          ) : null}
+
+          {shouldShowGridChart ? (
+            <LoadingOverlay
+              loading={loading}
+              keepChildrenMounted
+              minHeight={180}
+            >
+              <ProviderMetricChart
+                title={gridPowerMetric?.label ?? "Grid power"}
+                series={gridPowerMetric}
+                noDataLabel={t("providers.telemetry.noData")}
+              />
+            </LoadingOverlay>
+          ) : null}
         </Stack>
       </TelemetryPanel>
     </Stack>
