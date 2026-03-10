@@ -8,13 +8,14 @@ import type {
 
 const CHART_WIDTH = 960;
 const CHART_HEIGHT = 260;
-const PADDING_LEFT = 16;
+const PADDING_LEFT = 60;
 const PADDING_RIGHT = 20;
 const PADDING_TOP = 20;
 const PADDING_BOTTOM = 42;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const WARSAW_TZ = "Europe/Warsaw";
+const BATTERY_SOC_TICKS = [0, 25, 50, 75, 100];
 
 type ChartPoint = {
   ts: number;
@@ -47,6 +48,16 @@ const formatValue = (value: number) => {
   if (abs < 10) return value.toFixed(2);
   if (abs < 100) return value.toFixed(1);
   return value.toFixed(0);
+};
+
+const formatAxisLabel = (value: number, isPercentAxis: boolean) =>
+  isPercentAxis ? `${Math.round(value)}%` : formatValue(value);
+
+const formatTooltipValue = (value: number, unit: string) => {
+  if (unit === "%") {
+    return `${Math.round(value)} ${unit}`.trim();
+  }
+  return `${formatValue(value)} ${unit}`.trim();
 };
 
 const formatTimeWarsaw = (ts: number) =>
@@ -82,7 +93,12 @@ const buildTicks = (min: number, max: number) => {
   });
 };
 
-const buildGeometry = (dayStartMs: number, min: number, max: number) => {
+const buildGeometry = (
+  dayStartMs: number,
+  min: number,
+  max: number,
+  yTicksOverride?: number[]
+) => {
   const graphWidth = CHART_WIDTH - PADDING_LEFT - PADDING_RIGHT;
   const graphHeight = CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
   const safeRange = Math.abs(max - min) < 1e-9 ? 1 : max - min;
@@ -100,7 +116,7 @@ const buildGeometry = (dayStartMs: number, min: number, max: number) => {
     max,
     xFor,
     yFor,
-    yTicks: buildTicks(min, max),
+    yTicks: yTicksOverride ?? buildTicks(min, max),
     zeroY: yFor(0),
   };
 };
@@ -112,6 +128,8 @@ export function ProviderMetricChart({
 }: ProviderMetricChartProps) {
   const [tooltip, setTooltip] = useState<HoverTooltipState | null>(null);
   const unit = series?.unit ?? "";
+  const isBatterySocChart =
+    series?.metric_key === "battery_soc" || series?.unit === "%";
   const dayStartMs = useMemo(
     () => Date.parse(`${series?.date ?? "1970-01-01"}T00:00:00Z`),
     [series?.date]
@@ -164,6 +182,13 @@ export function ProviderMetricChart({
 
     let min = Math.min(...normalized.map((point) => point.value));
     let max = Math.max(...normalized.map((point) => point.value));
+    let yTicksOverride: number[] | undefined;
+
+    if (isBatterySocChart) {
+      min = 0;
+      max = 100;
+      yTicksOverride = BATTERY_SOC_TICKS;
+    }
 
     if (series.chart_type === "bar") {
       min = Math.min(0, min);
@@ -176,7 +201,7 @@ export function ProviderMetricChart({
       max += delta;
     }
 
-    const geometry = buildGeometry(dayStartMs, min, max);
+    const geometry = buildGeometry(dayStartMs, min, max, yTicksOverride);
     const points = normalized.map((point) => ({
       ...point,
       x: geometry.xFor(point.ts),
@@ -193,7 +218,7 @@ export function ProviderMetricChart({
           : 0,
       geometry,
     };
-  }, [dayStartMs, series]);
+  }, [dayStartMs, isBatterySocChart, series]);
 
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
@@ -223,7 +248,7 @@ export function ProviderMetricChart({
       </Stack>
 
       <Box sx={{ overflowX: "auto" }} onMouseLeave={() => setTooltip(null)}>
-        <svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+        <svg width={CHART_WIDTH} height={CHART_HEIGHT} style={{ display: "block" }}>
           {chart.geometry.yTicks.map((value, index) => {
             const y = chart.geometry.yFor(value);
             return (
@@ -236,13 +261,13 @@ export function ProviderMetricChart({
                   stroke="#e5e7eb"
                 />
                 <text
-                  x={PADDING_LEFT - 6}
+                  x={PADDING_LEFT - 10}
                   y={y + 4}
                   fontSize={11}
                   textAnchor="end"
                   fill="#6b7280"
                 >
-                  {formatValue(value)}
+                  {formatAxisLabel(value, isBatterySocChart)}
                 </text>
               </g>
             );
@@ -362,7 +387,7 @@ export function ProviderMetricChart({
           }}
         >
           <Typography variant="caption" fontWeight={700} color="#000" display="block">
-            {`${formatValue(tooltip.value)} ${tooltip.unit}`.trim()}
+            {formatTooltipValue(tooltip.value, tooltip.unit)}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
             {tooltip.dateTimeLabel}
