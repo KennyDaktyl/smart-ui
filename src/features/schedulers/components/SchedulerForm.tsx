@@ -956,27 +956,40 @@ export function SchedulerForm({
                 }}
               >
                 <Stack
-                  direction="row"
-                  alignItems="center"
+                  direction={{ xs: "column", sm: "row" }}
+                  alignItems={{ xs: "stretch", sm: "center" }}
                   justifyContent="space-between"
                   spacing={1}
                 >
                   <Typography variant="body2" fontWeight={600}>
                     {t(`schedulers.days.${day}`)}
                   </Typography>
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={0.75}
+                    alignItems={{ xs: "stretch", sm: "center" }}
+                    width={{ xs: "100%", sm: "auto" }}
+                  >
                     <Button
                       size="small"
                       startIcon={<AddIcon fontSize="small" />}
                       disabled={!row.enabled || loading}
                       onClick={() => handleAddSlot(day)}
+                      fullWidth
                     >
                       {t("schedulers.form.addRange")}
                     </Button>
-                    <Switch
-                      checked={row.enabled}
-                      disabled={loading}
-                      onChange={(_, checked) => handleRowToggle(day, checked)}
+                    <FormControlLabel
+                      sx={{ m: 0, justifyContent: "space-between" }}
+                      control={
+                        <Switch
+                          checked={row.enabled}
+                          disabled={loading}
+                          onChange={(_, checked) => handleRowToggle(day, checked)}
+                        />
+                      }
+                      label={t("common.enabled")}
+                      labelPlacement="start"
                     />
                   </Stack>
                 </Stack>

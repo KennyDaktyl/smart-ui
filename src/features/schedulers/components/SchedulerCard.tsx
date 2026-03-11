@@ -49,9 +49,9 @@ export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
                 key={`${slot.day_of_week}-${
                   slot.start_local_time ?? slot.start_time ?? slot.start_utc_time ?? ""
                 }-${slot.end_local_time ?? slot.end_time ?? slot.end_utc_time ?? ""}-${index}`}
-                direction="row"
+                direction={{ xs: "column", sm: "row" }}
                 justifyContent="space-between"
-                alignItems="center"
+                alignItems={{ xs: "flex-start", sm: "center" }}
                 spacing={1}
               >
                 <Chip
@@ -59,7 +59,10 @@ export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
                   label={t(`schedulers.days.${slot.day_of_week}`)}
                   variant="outlined"
                 />
-                <Box textAlign="right">
+                <Box
+                  textAlign={{ xs: "left", sm: "right" }}
+                  width={{ xs: "100%", sm: "auto" }}
+                >
                   <Typography variant="body2" fontWeight={600}>
                     {`${slot.start_local_time ?? slot.start_time ?? "--:--"} - ${
                       slot.end_local_time ?? slot.end_time ?? "--:--"
@@ -80,7 +83,12 @@ export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
             ))}
           </Stack>
 
-          <Box display="flex" justifyContent="flex-end" gap={1}>
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            gap={1}
+            flexDirection={{ xs: "column", sm: "row" }}
+          >
             <Button size="small" variant="outlined" onClick={() => onEdit(scheduler)}>
               {t("common.edit")}
             </Button>

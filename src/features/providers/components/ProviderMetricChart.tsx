@@ -8,6 +8,7 @@ import type {
 
 const CHART_WIDTH = 960;
 const CHART_HEIGHT = 260;
+const Y_AXIS_WIDTH = 58;
 const PADDING_LEFT = 60;
 const PADDING_RIGHT = 20;
 const PADDING_TOP = 20;
@@ -31,6 +32,13 @@ type HoverTooltipState = {
   value: number;
   dateTimeLabel: string;
   unit: string;
+};
+
+type StickyYAxisProps = {
+  ticks: number[];
+  yFor: (value: number) => number;
+  height: number;
+  isPercentAxis: boolean;
 };
 
 type ProviderMetricChartProps = {
@@ -120,6 +128,49 @@ const buildGeometry = (
     zeroY: yFor(0),
   };
 };
+
+const StickyYAxis = ({
+  ticks,
+  yFor,
+  height,
+  isPercentAxis,
+}: StickyYAxisProps) => (
+  <Box
+    sx={{
+      width: Y_AXIS_WIDTH,
+      minWidth: Y_AXIS_WIDTH,
+      flexShrink: 0,
+      borderRight: "1px solid #eef2f7",
+      bgcolor: "background.paper",
+    }}
+  >
+    <svg width={Y_AXIS_WIDTH} height={height} style={{ display: "block" }}>
+      {ticks.map((value, index) => {
+        const y = yFor(value);
+        return (
+          <g key={`axis-y-${index}`}>
+            <line
+              x1={Y_AXIS_WIDTH - 6}
+              x2={Y_AXIS_WIDTH}
+              y1={y}
+              y2={y}
+              stroke="#d1d5db"
+            />
+            <text
+              x={Y_AXIS_WIDTH - 10}
+              y={y + 4}
+              fontSize={11}
+              textAnchor="end"
+              fill="#6b7280"
+            >
+              {formatAxisLabel(value, isPercentAxis)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  </Box>
+);
 
 export function ProviderMetricChart({
   title,
@@ -247,29 +298,26 @@ export function ProviderMetricChart({
         ) : null}
       </Stack>
 
-      <Box sx={{ overflowX: "auto" }} onMouseLeave={() => setTooltip(null)}>
-        <svg width={CHART_WIDTH} height={CHART_HEIGHT} style={{ display: "block" }}>
+      <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
+        <StickyYAxis
+          ticks={chart.geometry.yTicks}
+          yFor={chart.geometry.yFor}
+          height={CHART_HEIGHT}
+          isPercentAxis={isBatterySocChart}
+        />
+        <Box sx={{ overflowX: "auto", flex: 1 }} onMouseLeave={() => setTooltip(null)}>
+          <svg width={CHART_WIDTH} height={CHART_HEIGHT} style={{ display: "block" }}>
           {chart.geometry.yTicks.map((value, index) => {
             const y = chart.geometry.yFor(value);
             return (
-              <g key={`grid-${index}`}>
-                <line
-                  x1={PADDING_LEFT}
-                  x2={CHART_WIDTH - PADDING_RIGHT}
-                  y1={y}
-                  y2={y}
-                  stroke="#e5e7eb"
-                />
-                <text
-                  x={PADDING_LEFT - 10}
-                  y={y + 4}
-                  fontSize={11}
-                  textAnchor="end"
-                  fill="#6b7280"
-                >
-                  {formatAxisLabel(value, isBatterySocChart)}
-                </text>
-              </g>
+              <line
+                key={`grid-${index}`}
+                x1={PADDING_LEFT}
+                x2={CHART_WIDTH - PADDING_RIGHT}
+                y1={y}
+                y2={y}
+                stroke="#e5e7eb"
+              />
             );
           })}
 
@@ -360,7 +408,8 @@ export function ProviderMetricChart({
               ))}
             </>
           )}
-        </svg>
+          </svg>
+        </Box>
       </Box>
 
       {!chart.points.length ? (
