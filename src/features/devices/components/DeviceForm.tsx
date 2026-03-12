@@ -19,19 +19,27 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Device } from "@/features/devices/types/devicesType";
-import { AutomationRuleBuilder } from "@/features/automation/components/AutomationRuleBuilder";
 import {
   type AutomationRuleComparator,
   type AutomationRuleConditionDraft,
+  type AutomationRuleConditionPayload,
+  type AutomationRuleGroupDraft,
   type AutomationRuleGroupOperator,
+  type AutomationRuleGroupPayload,
+  type AutomationRuleNodeDraft,
+  type AutomationRuleNodePayload,
   type AutomationRuleSource,
   createAutomationConditionDraft,
+  createAutomationGroupDraft,
+  isAutomationRuleGroupDraft,
+  isAutomationRuleGroupPayload,
   isBatteryRuleSource,
   isPowerRuleSource,
 } from "@/features/automation/types/rules";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
 import type { Scheduler } from "@/features/schedulers/types/scheduler";
+import { SchedulerRuleTreeBuilder } from "@/features/schedulers/components/SchedulerRuleTreeBuilder";
 import { useDeviceActions } from "@/features/devices/hooks/useDeviceActions";
 import { devicesApi } from "@/api/devicesApi";
 import { parseApiError } from "@/api/parseApiError";
@@ -42,6 +50,7 @@ export type DeviceFormValues = {
   name: string;
   mode: DeviceMode;
   thresholdValue?: number | null;
+  autoRule?: AutomationRuleGroupPayload | null;
   schedulerId?: number | null;
 };
 
@@ -86,15 +95,388 @@ const parseDecimalInput = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const createInitialAutoConditions = (
+const normalizeRulePayload = (
+  rule: AutomationRuleGroupPayload | null | undefined,
+): AutomationRuleGroupPayload | null => {
+  if (!rule) {
+    return null;
+  }
+
+  const rawItems = rule.items ?? rule.conditions ?? [];
+  if (rawItems.length === 0) {
+    return null;
+  }
+
+  return {
+    operator: rule.operator,
+    items: rawItems.flatMap((item) => {
+      if (isAutomationRuleGroupPayload(item)) {
+        const normalizedGroup = normalizeRulePayload(item);
+        return normalizedGroup ? [normalizedGroup] : [];
+      }
+
+      return [item];
+    }),
+  };
+};
+
+const createDraftRuleFromPayload = (
+  rule: AutomationRuleGroupPayload,
+): AutomationRuleGroupDraft =>
+  createAutomationGroupDraft(
+    rule.operator,
+    (rule.items ?? []).map((item): AutomationRuleNodeDraft => {
+      if (isAutomationRuleGroupPayload(item)) {
+        return createDraftRuleFromPayload(item);
+      }
+
+      return {
+        id: `${item.source}-${Math.random().toString(36).slice(2, 10)}`,
+        source: item.source,
+        comparator: item.comparator,
+        value: String(item.value),
+        unit: item.unit,
+      };
+    }),
+  );
+
+const toEditableAutoRule = (
+  device?: Device,
+): AutomationRuleGroupPayload | null =>
+  normalizeRulePayload(device?.auto_rule ?? device?.auto_rule_json);
+
+const createInitialAutoRule = (
+  device: Device | undefined,
   powerUnit: string,
   thresholdValue?: number | null,
-) => [
-  {
-    ...createAutomationConditionDraft("provider_primary_power", powerUnit),
-    value: thresholdValue != null ? String(thresholdValue) : "",
-  },
-];
+): AutomationRuleGroupDraft => {
+  const autoRule = toEditableAutoRule(device);
+  if (autoRule) {
+    return createDraftRuleFromPayload(autoRule);
+  }
+
+  return createDefaultAutoRule(powerUnit, thresholdValue);
+};
+
+const validateAutoCondition = (
+  condition: AutomationRuleConditionDraft,
+  availableUnits: string[],
+): AutoConditionValidation => {
+  if (isBatteryRuleSource(condition.source)) {
+    const parsedValue = parseDecimalInput(condition.value);
+    return {
+      parsedValue,
+      errors: {
+        value:
+          condition.value.trim() === ""
+            ? "required"
+            : parsedValue == null
+              ? "invalid"
+              : parsedValue < 0 || parsedValue > 100
+                ? "batteryRange"
+                : undefined,
+        unit: condition.unit === "%" ? undefined : "invalid",
+      },
+    };
+  }
+
+  const parsedValue = parseDecimalInput(condition.value);
+  return {
+    parsedValue,
+    errors: {
+      value:
+        condition.value.trim() === ""
+          ? "required"
+          : parsedValue == null || parsedValue < 0
+            ? "invalid"
+            : undefined,
+      unit:
+        condition.unit === ""
+          ? "required"
+          : availableUnits.includes(condition.unit)
+            ? undefined
+            : "invalid",
+    },
+  };
+};
+
+const validateAutoRuleDraft = (
+  group: AutomationRuleGroupDraft,
+  availableUnits: string[],
+): AutoRuleValidation => {
+  if (group.items.length === 0) {
+    return {
+      hasInvalidCondition: false,
+      hasEmptyGroup: true,
+      groupErrors: {
+        [group.id]: "empty",
+      },
+      conditionErrors: {},
+    };
+  }
+
+  return group.items.reduce(
+    (acc, item) => {
+      if (isAutomationRuleGroupDraft(item)) {
+        const nested = validateAutoRuleDraft(item, availableUnits);
+        return {
+          hasInvalidCondition:
+            acc.hasInvalidCondition || nested.hasInvalidCondition,
+          hasEmptyGroup: acc.hasEmptyGroup || nested.hasEmptyGroup,
+          groupErrors: {
+            ...acc.groupErrors,
+            ...nested.groupErrors,
+          },
+          conditionErrors: {
+            ...acc.conditionErrors,
+            ...nested.conditionErrors,
+          },
+        };
+      }
+
+      const validation = validateAutoCondition(item, availableUnits);
+      const hasConditionError = Boolean(
+        validation.errors.value || validation.errors.unit,
+      );
+      return {
+        hasInvalidCondition: acc.hasInvalidCondition || hasConditionError,
+        hasEmptyGroup: acc.hasEmptyGroup,
+        groupErrors: acc.groupErrors,
+        conditionErrors: hasConditionError
+          ? {
+              ...acc.conditionErrors,
+              [item.id]: validation.errors,
+            }
+          : acc.conditionErrors,
+      };
+    },
+    {
+      hasInvalidCondition: false,
+      hasEmptyGroup: false,
+      groupErrors: {},
+      conditionErrors: {},
+    },
+  );
+};
+
+const buildAutoRulePayload = (
+  group: AutomationRuleGroupDraft,
+  availableUnits: string[],
+): AutomationRuleGroupPayload | null => {
+  const items = group.items.flatMap((item): AutomationRuleNodePayload[] => {
+    if (isAutomationRuleGroupDraft(item)) {
+      const nested = buildAutoRulePayload(item, availableUnits);
+      return nested ? [nested] : [];
+    }
+
+    const validation = validateAutoCondition(item, availableUnits);
+    if (
+      validation.errors.value ||
+      validation.errors.unit ||
+      validation.parsedValue == null
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        source: item.source,
+        comparator: item.comparator,
+        value: validation.parsedValue,
+        unit: item.unit,
+      },
+    ];
+  });
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return {
+    operator: group.operator,
+    items,
+  };
+};
+
+const isConditionPayload = (
+  item: AutomationRuleNodePayload,
+): item is AutomationRuleConditionPayload => "source" in item;
+
+const isLegacyPowerOnlyRule = (rule: AutomationRuleGroupPayload | null): boolean => {
+  if (rule == null || rule.operator !== "ANY") {
+    return false;
+  }
+
+  const items = rule.items ?? [];
+  if (items.length !== 1) {
+    return false;
+  }
+
+  const [item] = items;
+  return (
+    isConditionPayload(item) &&
+    item.source === "provider_primary_power" &&
+    item.comparator === "gte"
+  );
+};
+
+const getPersistedAutoPowerCondition = (
+  group: AutomationRuleGroupDraft,
+  availableUnits: string[],
+) => {
+  const autoRule = buildAutoRulePayload(group, availableUnits);
+  if (!isLegacyPowerOnlyRule(autoRule)) {
+    return null;
+  }
+
+  const [condition] = autoRule.items ?? [];
+  if (!condition || !isConditionPayload(condition)) {
+    return null;
+  }
+
+  return {
+    condition,
+    parsedValue: condition.value,
+  };
+};
+
+const isLegacyPowerOnlyDraft = (group: AutomationRuleGroupDraft): boolean => {
+  if (group.operator !== "ANY" || group.items.length !== 1) {
+    return false;
+  }
+
+  const [item] = group.items;
+  return (
+    !isAutomationRuleGroupDraft(item) &&
+    item.source === "provider_primary_power" &&
+    item.comparator === "gte"
+  );
+};
+
+const updateGroupById = (
+  group: AutomationRuleGroupDraft,
+  targetGroupId: string,
+  updater: (currentGroup: AutomationRuleGroupDraft) => AutomationRuleGroupDraft,
+): AutomationRuleGroupDraft => {
+  if (group.id === targetGroupId) {
+    return updater(group);
+  }
+
+  let changed = false;
+  const nextItems = group.items.map((item) => {
+    if (!isAutomationRuleGroupDraft(item)) {
+      return item;
+    }
+
+    const nextGroup = updateGroupById(item, targetGroupId, updater);
+    if (nextGroup !== item) {
+      changed = true;
+    }
+    return nextGroup;
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
+};
+
+const updateConditionById = (
+  group: AutomationRuleGroupDraft,
+  targetConditionId: string,
+  updater: (
+    condition: AutomationRuleConditionDraft,
+  ) => AutomationRuleConditionDraft,
+): AutomationRuleGroupDraft => {
+  let changed = false;
+  const nextItems = group.items.map((item) => {
+    if (isAutomationRuleGroupDraft(item)) {
+      const nextGroup = updateConditionById(item, targetConditionId, updater);
+      if (nextGroup !== item) {
+        changed = true;
+      }
+      return nextGroup;
+    }
+
+    if (item.id !== targetConditionId) {
+      return item;
+    }
+
+    changed = true;
+    return updater(item);
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
+};
+
+const removeNodeById = (
+  group: AutomationRuleGroupDraft,
+  targetNodeId: string,
+): AutomationRuleGroupDraft => {
+  let changed = false;
+  const nextItems = group.items.flatMap((item) => {
+    if (item.id === targetNodeId) {
+      changed = true;
+      return [];
+    }
+
+    if (!isAutomationRuleGroupDraft(item)) {
+      return [item];
+    }
+
+    const nextGroup = removeNodeById(item, targetNodeId);
+    if (nextGroup !== item) {
+      changed = true;
+    }
+    return [nextGroup];
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
+};
+
+type AutoConditionValidation = {
+  parsedValue: number | null;
+  errors: {
+    value?: "required" | "invalid" | "batteryRange";
+    unit?: "required" | "invalid";
+  };
+};
+
+type AutoRuleValidation = {
+  hasInvalidCondition: boolean;
+  hasEmptyGroup: boolean;
+  groupErrors: Record<string, "empty">;
+  conditionErrors: Record<
+    string,
+    {
+      value?: "required" | "invalid" | "batteryRange";
+      unit?: "required" | "invalid";
+    }
+  >;
+};
+
+const createDefaultAutoRule = (
+  powerUnit: string,
+  thresholdValue?: number | null,
+): AutomationRuleGroupDraft =>
+  createAutomationGroupDraft("ANY", [
+    {
+      ...createAutomationConditionDraft("provider_primary_power", powerUnit),
+      value: thresholdValue != null ? String(thresholdValue) : "",
+    },
+  ]);
 
 export function DeviceForm({
   device,
@@ -130,16 +512,6 @@ export function DeviceForm({
   const [manualState, setManualStateValue] = useState<boolean>(
     device?.manual_state ?? false,
   );
-  const [autoRuleOperator, setAutoRuleOperator] =
-    useState<AutomationRuleGroupOperator>("ANY");
-  const [autoConditions, setAutoConditions] = useState<
-    AutomationRuleConditionDraft[]
-  >(
-    createInitialAutoConditions(
-      provider?.unit ?? "W",
-      device?.threshold_value ?? provider?.value_min ?? 0,
-    ),
-  );
   const [schedulerId, setSchedulerId] = useState<number | "">(
     device?.scheduler_id ?? "",
   );
@@ -151,26 +523,6 @@ export function DeviceForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setName(device?.name ?? "");
-    setMode(device?.mode ?? "AUTO");
-    setDeviceNumber(getNextDeviceNumber(device, existingDevices, maxDevices));
-    setRatedPower(
-      device?.rated_power != null ? String(device.rated_power) : "",
-    );
-    setManualStateValue(device?.manual_state ?? false);
-    setAutoRuleOperator("ANY");
-    setAutoConditions(
-      createInitialAutoConditions(
-        provider?.unit ?? "W",
-        device?.threshold_value ?? provider?.value_min ?? 0,
-      ),
-    );
-    setSchedulerId(device?.scheduler_id ?? "");
-    setSubmitted(false);
-    setSubmitError(null);
-  }, [device, existingDevices, maxDevices, provider?.value_min, provider?.unit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,6 +568,13 @@ export function DeviceForm({
     () => (thresholdUnit ? [thresholdUnit] : ["W"]),
     [thresholdUnit],
   );
+  const [autoRule, setAutoRule] = useState<AutomationRuleGroupDraft>(
+    createInitialAutoRule(
+      device,
+      autoPowerUnits[0] ?? "W",
+      device?.threshold_value ?? provider?.value_min ?? 0,
+    ),
+  );
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
       backgroundColor: "#ffffff",
@@ -247,58 +606,45 @@ export function DeviceForm({
     },
   };
 
-  const autoConditionsValid = useMemo(
-    () =>
-      autoConditions.every((condition) => {
-        const parsedValue = parseDecimalInput(condition.value);
-        if (isBatteryRuleSource(condition.source)) {
-          return (
-            parsedValue != null &&
-            parsedValue >= 0 &&
-            parsedValue <= 100 &&
-            condition.unit === "%"
-          );
-        }
+  useEffect(() => {
+    setName(device?.name ?? "");
+    setMode(device?.mode ?? "AUTO");
+    setDeviceNumber(getNextDeviceNumber(device, existingDevices, maxDevices));
+    setRatedPower(
+      device?.rated_power != null ? String(device.rated_power) : "",
+    );
+    setManualStateValue(device?.manual_state ?? false);
+    setAutoRule(
+      createInitialAutoRule(
+        device,
+        autoPowerUnits[0] ?? "W",
+        device?.threshold_value ?? provider?.value_min ?? 0,
+      ),
+    );
+    setSchedulerId(device?.scheduler_id ?? "");
+    setSubmitted(false);
+    setSubmitError(null);
+  }, [autoPowerUnits, device, existingDevices, maxDevices, provider?.value_min]);
 
-        return (
-          parsedValue != null &&
-          parsedValue >= 0 &&
-          condition.unit !== "" &&
-          autoPowerUnits.includes(condition.unit)
-        );
-      }),
-    [autoConditions, autoPowerUnits],
+  const autoRuleValidation = useMemo(
+    () => validateAutoRuleDraft(autoRule, autoPowerUnits),
+    [autoPowerUnits, autoRule],
   );
 
-  const persistedAutoPowerCondition = useMemo(() => {
-    const powerCondition = autoConditions.find((condition) =>
-      isPowerRuleSource(condition.source),
-    );
-    if (!powerCondition) {
-      return null;
-    }
+  const autoRuleValid = useMemo(
+    () =>
+      !autoRuleValidation.hasInvalidCondition && !autoRuleValidation.hasEmptyGroup,
+    [autoRuleValidation],
+  );
 
-    const parsedValue = parseDecimalInput(powerCondition.value);
-    if (
-      parsedValue == null ||
-      parsedValue < 0 ||
-      !autoPowerUnits.includes(powerCondition.unit)
-    ) {
-      return null;
-    }
-
-    return {
-      parsedValue,
-      condition: powerCondition,
-    };
-  }, [autoConditions, autoPowerUnits]);
+  const persistedAutoPowerCondition = useMemo(
+    () => getPersistedAutoPowerCondition(autoRule, autoPowerUnits),
+    [autoPowerUnits, autoRule],
+  );
 
   const autoAdvancedPreviewWarning = useMemo(
-    () =>
-      autoRuleOperator !== "ANY" ||
-      autoConditions.length !== 1 ||
-      autoConditions.some((condition) => !isPowerRuleSource(condition.source)),
-    [autoConditions, autoRuleOperator],
+    () => !isLegacyPowerOnlyDraft(autoRule),
+    [autoRule],
   );
 
   const handleManualToggle = async (next: boolean) => {
@@ -325,38 +671,61 @@ export function DeviceForm({
     }
   };
 
-  const handleAddAutoCondition = () => {
-    setAutoConditions((prev) => [
-      ...prev,
-      createAutomationConditionDraft("provider_primary_power", autoPowerUnits[0] ?? "W"),
-    ]);
+  const handleAutoGroupOperatorChange = (
+    groupId: string,
+    operator: AutomationRuleGroupOperator,
+  ) => {
+    setAutoRule((prev) =>
+      updateGroupById(prev, groupId, (group) => ({
+        ...group,
+        operator,
+      })),
+    );
   };
 
-  const handleRemoveAutoCondition = (conditionId: string) => {
-    setAutoConditions((prev) =>
-      prev.filter((condition) => condition.id !== conditionId),
+  const handleAddAutoCondition = (groupId: string) => {
+    setAutoRule((prev) =>
+      updateGroupById(prev, groupId, (group) => ({
+        ...group,
+        items: [
+          ...group.items,
+          createAutomationConditionDraft(
+            "provider_primary_power",
+            autoPowerUnits[0] ?? "W",
+          ),
+        ],
+      })),
     );
+  };
+
+  const handleAddAutoGroup = (groupId: string) => {
+    setAutoRule((prev) =>
+      updateGroupById(prev, groupId, (group) => ({
+        ...group,
+        items: [...group.items, createAutomationGroupDraft("ALL")],
+      })),
+    );
+  };
+
+  const handleRemoveAutoRuleNode = (nodeId: string) => {
+    setAutoRule((prev) => removeNodeById(prev, nodeId));
   };
 
   const handleAutoConditionSourceChange = (
     conditionId: string,
     source: AutomationRuleSource,
   ) => {
-    setAutoConditions((prev) =>
-      prev.map((condition) =>
-        condition.id === conditionId
-          ? {
-              ...condition,
-              source,
-              comparator: "gte",
-              value: source === "provider_battery_soc" ? "30" : condition.value,
-              unit:
-                source === "provider_battery_soc"
-                  ? "%"
-                  : autoPowerUnits[0] ?? condition.unit,
-            }
-          : condition,
-      ),
+    setAutoRule((prev) =>
+      updateConditionById(prev, conditionId, (condition) => ({
+        ...condition,
+        source,
+        comparator: "gte",
+        value: source === "provider_battery_soc" ? "30" : condition.value,
+        unit:
+          source === "provider_battery_soc"
+            ? "%"
+            : autoPowerUnits[0] ?? condition.unit,
+      })),
     );
   };
 
@@ -364,12 +733,11 @@ export function DeviceForm({
     conditionId: string,
     comparator: AutomationRuleComparator,
   ) => {
-    setAutoConditions((prev) =>
-      prev.map((condition) =>
-        condition.id === conditionId
-          ? { ...condition, comparator }
-          : condition,
-      ),
+    setAutoRule((prev) =>
+      updateConditionById(prev, conditionId, (condition) => ({
+        ...condition,
+        comparator,
+      })),
     );
   };
 
@@ -382,12 +750,11 @@ export function DeviceForm({
       return;
     }
 
-    setAutoConditions((prev) =>
-      prev.map((condition) =>
-        condition.id === conditionId
-          ? { ...condition, value: nextValue }
-          : condition,
-      ),
+    setAutoRule((prev) =>
+      updateConditionById(prev, conditionId, (condition) => ({
+        ...condition,
+        value: nextValue,
+      })),
     );
   };
 
@@ -395,10 +762,11 @@ export function DeviceForm({
     conditionId: string,
     unit: string,
   ) => {
-    setAutoConditions((prev) =>
-      prev.map((condition) =>
-        condition.id === conditionId ? { ...condition, unit } : condition,
-      ),
+    setAutoRule((prev) =>
+      updateConditionById(prev, conditionId, (condition) => ({
+        ...condition,
+        unit,
+      })),
     );
   };
 
@@ -408,7 +776,7 @@ export function DeviceForm({
     setSubmitted(true);
     if (isAtCapacity) return;
     if (!name.trim()) return;
-    if (isAuto && (!autoConditionsValid || persistedAutoPowerCondition == null)) {
+    if (isAuto && !autoRuleValid) {
       return;
     }
     if (isSchedule && (schedulerId === "" || Number.isNaN(Number(schedulerId)))) {
@@ -416,6 +784,7 @@ export function DeviceForm({
     }
     if (deviceNumber == null || Number.isNaN(deviceNumber)) return;
     if (!isRatedPowerValid) return;
+    const autoRulePayload = isAuto ? buildAutoRulePayload(autoRule, autoPowerUnits) : null;
     setSubmitting(true);
     try {
       if (device?.id) {
@@ -426,6 +795,7 @@ export function DeviceForm({
           threshold_value: isAuto
             ? persistedAutoPowerCondition?.parsedValue ?? null
             : null,
+          auto_rule: isAuto ? autoRulePayload : null,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -437,6 +807,7 @@ export function DeviceForm({
           threshold_value: isAuto
             ? persistedAutoPowerCondition?.parsedValue ?? null
             : null,
+          auto_rule: isAuto ? autoRulePayload : null,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -447,6 +818,7 @@ export function DeviceForm({
         thresholdValue: isAuto
           ? persistedAutoPowerCondition?.parsedValue ?? null
           : null,
+        autoRule: isAuto ? autoRulePayload : null,
         schedulerId: isSchedule ? Number(schedulerId) : null,
       });
     } catch (err) {
@@ -598,16 +970,15 @@ export function DeviceForm({
               {tt("devices.form.autoPreviewWarning")}
             </Alert>
           )}
-          <AutomationRuleBuilder
+          <SchedulerRuleTreeBuilder
             title={tt("devices.form.autoLogicTitle")}
             description={tt("devices.form.autoLogicDescription")}
             enabled
-            hideToggle
-            operator={autoRuleOperator}
-            onOperatorChange={setAutoRuleOperator}
-            conditions={autoConditions}
+            rule={autoRule}
+            onGroupOperatorChange={handleAutoGroupOperatorChange}
             onAddCondition={handleAddAutoCondition}
-            onRemoveCondition={handleRemoveAutoCondition}
+            onAddGroup={handleAddAutoGroup}
+            onRemoveNode={handleRemoveAutoRuleNode}
             onSourceChange={handleAutoConditionSourceChange}
             onComparatorChange={handleAutoConditionComparatorChange}
             onValueChange={handleAutoConditionValueChange}
@@ -615,17 +986,49 @@ export function DeviceForm({
             powerUnits={autoPowerUnits}
             canUseBatterySoc={Boolean(provider?.has_energy_storage)}
             disabled={!canUseForm}
+            showValidation={submitted}
+            validation={{
+              groupErrors: Object.fromEntries(
+                Object.entries(autoRuleValidation.groupErrors).map(
+                  ([groupId, code]) => [
+                    groupId,
+                    code === "empty"
+                      ? tt("automation.validation.groupEmpty")
+                      : undefined,
+                  ],
+                ),
+              ),
+              conditionErrors: Object.fromEntries(
+                Object.entries(autoRuleValidation.conditionErrors).map(
+                  ([conditionId, errors]) => [
+                    conditionId,
+                    {
+                      value:
+                        errors.value === "required"
+                          ? tt("errors.validation.required")
+                          : errors.value === "batteryRange"
+                            ? tt("automation.validation.batteryRange")
+                            : errors.value
+                              ? tt("automation.validation.valueInvalid")
+                              : undefined,
+                      unit:
+                        errors.unit === "required"
+                          ? tt("automation.validation.unitRequired")
+                          : errors.unit
+                            ? tt("automation.validation.unitInvalid")
+                            : undefined,
+                    },
+                  ],
+                ),
+              ),
+            }}
           />
           <Box sx={{ minHeight: 20 }}>
             <Typography
               variant="caption"
               color="error"
               sx={{
-                visibility:
-                  submitted &&
-                  (!autoConditionsValid || persistedAutoPowerCondition == null)
-                    ? "visible"
-                    : "hidden",
+                visibility: submitted && !autoRuleValid ? "visible" : "hidden",
               }}
             >
               {tt("devices.form.persistablePowerRequired")}

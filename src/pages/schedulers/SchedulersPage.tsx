@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Box,
   Button,
+  CircularProgress,
   Stack,
   Typography,
 } from "@mui/material";
@@ -194,8 +195,16 @@ export default function SchedulersPage() {
             <Button variant="outlined" onClick={closeDialog} disabled={saving}>
               {t("common.cancel")}
             </Button>
-            <Button type="submit" form="scheduler-form" variant="contained" disabled={saving}>
-              {t("common.save")}
+            <Button
+              type="submit"
+              form="scheduler-form"
+              variant="contained"
+              disabled={saving}
+              startIcon={
+                saving ? <CircularProgress size={16} color="inherit" /> : undefined
+              }
+            >
+              {saving ? t("common.loading") : t("common.save")}
             </Button>
           </>
         }

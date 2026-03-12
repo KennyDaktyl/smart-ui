@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
 import { ProviderResponse } from "@/features/providers/types/userProvider";
+import {
+  createInitialProviderMetrics,
+  parseProviderCurrentEnergy,
+  type ProviderLiveMetricMap,
+} from "@/features/providers/utils/providerLiveMetrics";
 
 // ============================================================
 // Config
@@ -19,10 +24,28 @@ type ProviderCurrentEnergyEvent = {
   entity_id: string;
   timestamp: string;
   data: {
-    value: number;
-    unit: string;
-    measured_at: string;
+    value?: number;
+    unit?: string;
+    measured_at?: string;
+    measured_value?: number;
+    measured_unit?: string;
+    battery_soc?: { value?: number; unit?: string | null } | null;
+    grid_power?: { value?: number; unit?: string | null } | null;
+    extra_metrics?: Array<{
+      key?: string;
+      metric_key?: string;
+      value?: number;
+      unit?: string | null;
+    }> | null;
   };
+  battery_soc?: { value?: number; unit?: string | null } | null;
+  grid_power?: { value?: number; unit?: string | null } | null;
+  extra_metrics?: Array<{
+    key?: string;
+    metric_key?: string;
+    value?: number;
+    unit?: string | null;
+  }> | null;
 };
 
 export type ProviderLiveState = {
@@ -36,6 +59,7 @@ export type ProviderLiveState = {
 
   power: number | null;
   unit: string | null;
+  metrics: ProviderLiveMetricMap;
 };
 
 type StateMap = Record<string, ProviderLiveState>;
@@ -136,7 +160,8 @@ export function useProvidersLive(
       const handler = (event: ProviderCurrentEnergyEvent) => {
         if (event.event_type !== "CURRENT_ENERGY") return;
 
-        const measuredAt = event.data.measured_at;
+        const parsed = parseProviderCurrentEnergy(event);
+        const measuredAt = parsed.measuredAt ?? new Date().toISOString();
 
         setState((prev) => ({
           ...prev,
@@ -147,8 +172,12 @@ export function useProvidersLive(
             timestamp: measuredAt,
             nextExpectedAt: null,
             countdownSec: null,
-            power: event.data.value,
-            unit: event.data.unit ?? provider.unit ?? null,
+            power: parsed.value,
+            unit: parsed.unit ?? provider.unit ?? null,
+            metrics:
+              Object.keys(parsed.metrics).length > 0
+                ? parsed.metrics
+                : createInitialProviderMetrics(null, provider.unit ?? null),
           },
         }));
 
@@ -177,6 +206,10 @@ export function useProvidersLive(
             unit: lastValue.measured_unit ?? provider.unit ?? null,
             countdownSec: null,
             nextExpectedAt: null,
+            metrics: createInitialProviderMetrics(
+              lastValue.measured_value,
+              lastValue.measured_unit ?? provider.unit ?? null
+            ),
           },
         }));
 

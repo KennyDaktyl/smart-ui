@@ -3,6 +3,7 @@ import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
 import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
 import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
+import { createInitialProviderMetrics } from "@/features/providers/utils/providerLiveMetrics";
 
 export type ProviderLiveEnergyProps = {
   provider: ProviderResponse;
@@ -19,6 +20,13 @@ export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyPro
     countdownSec: live.countdownSec,
     power: live.power,
     unit: live.unit ?? provider.unit ?? null,
+    metrics:
+      Object.keys(live.metrics).length > 0
+        ? live.metrics
+        : createInitialProviderMetrics(
+            provider.last_value?.measured_value ?? null,
+            provider.last_value?.measured_unit ?? provider.unit ?? null
+          ),
   });
 
   const props = {

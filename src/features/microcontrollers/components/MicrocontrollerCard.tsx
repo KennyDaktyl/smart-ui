@@ -8,6 +8,7 @@ import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/Micr
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DeviceSection } from "./DeviceSection";
 import { MicrocontrollerBox } from "./MicrocontrollerBox";
+import { UserMicrocontrollerFormModal } from "./UserMicrocontrollerFormModal";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
@@ -19,11 +20,18 @@ export function MicrocontrollerCard({
   layout = "stack",
 }: Props) {
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [devices, setDevices] = useState<Device[]>(microcontroller.devices ?? []);
+  const [currentMicrocontroller, setCurrentMicrocontroller] =
+    useState<MicrocontrollerResponse>(microcontroller);
 
   useEffect(() => {
     setDevices(microcontroller.devices ?? []);
   }, [microcontroller.devices]);
+
+  useEffect(() => {
+    setCurrentMicrocontroller(microcontroller);
+  }, [microcontroller]);
 
   const handleDevicesChange = useCallback((nextDevices: Device[]) => {
     setDevices(nextDevices);
@@ -31,17 +39,17 @@ export function MicrocontrollerCard({
 
   const microcontrollerWithDevices = useMemo(
     () => ({
-      ...microcontroller,
+      ...currentMicrocontroller,
       devices,
     }),
-    [devices, microcontroller]
+    [currentMicrocontroller, devices]
   );
 
-  const availableProviders = microcontroller.available_api_providers ?? [];
-  const powerProvider = microcontroller.power_provider ?? null;
+  const availableProviders = currentMicrocontroller.available_api_providers ?? [];
+  const powerProvider = currentMicrocontroller.power_provider ?? null;
 
   const initialProviderUuid =
-    powerProvider?.uuid ?? microcontroller.config?.provider?.uuid ?? "";
+    powerProvider?.uuid ?? currentMicrocontroller.config?.provider?.uuid ?? "";
 
   const currentProvider = useMemo(() => {
     if (powerProvider && powerProvider.uuid === initialProviderUuid) {
@@ -64,6 +72,7 @@ export function MicrocontrollerCard({
               devices.length >= microcontroller.max_devices
             }
             onAddDevice={() => setAddDeviceOpen(true)}
+            onEdit={() => setEditOpen(true)}
           />
         );
 
@@ -78,24 +87,43 @@ export function MicrocontrollerCard({
           />
         );
 
+        const editModal = (
+          <UserMicrocontrollerFormModal
+            open={editOpen}
+            microcontroller={microcontrollerWithDevices}
+            onClose={() => setEditOpen(false)}
+            onSuccess={(updatedMicrocontroller) => {
+              setCurrentMicrocontroller(updatedMicrocontroller);
+              setDevices(updatedMicrocontroller.devices ?? []);
+              setEditOpen(false);
+            }}
+          />
+        );
+
         if (layout === "split") {
           return (
-            <Grid container spacing={3} sx={{ width: "100%" }}>
-              <Grid size={{ xs: 12, md: 3 }}>
-                {left}
+            <>
+              <Grid container spacing={3} sx={{ width: "100%" }}>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  {left}
+                </Grid>
+                <Grid size={{ xs: 12, md: 9 }} sx={{ minWidth: 0, px: 2 }}>
+                  {right}
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 12, md: 9 }} sx={{ minWidth: 0, px: 2 }}>
-                {right}
-              </Grid>
-            </Grid>
+              {editModal}
+            </>
           );
         }
 
         return (
-          <Stack spacing={2}>
-            {left}
-            {right}
-          </Stack>
+          <>
+            <Stack spacing={2}>
+              {left}
+              {right}
+            </Stack>
+            {editModal}
+          </>
         );
       }}
     </MicrocontrollerLiveStatus>

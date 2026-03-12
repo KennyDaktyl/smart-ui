@@ -16,6 +16,7 @@ import type { Device } from "@/features/devices/types/devicesType";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import { CardShell } from "@/features/common/components/CardShell";
 import { StatusBadge } from "@/features/common/components/atoms/StatusBadge";
+import { formatDeviceAutoRuleSummary } from "@/features/devices/utils/autoRuleSummary";
 
 /**
  * UI optimistic override:
@@ -104,10 +105,8 @@ export function DeviceCard({
     : resolvedIsOn
       ? t("common.enabled")
       : t("common.disabled");
-  const thresholdLabel = isAuto
-    ? device.threshold_value != null
-      ? `${device.threshold_value} ${provider?.unit ?? ""}`.trim()
-      : t("common.notAvailable")
+  const autoLogicLabel = isAuto
+    ? formatDeviceAutoRuleSummary(device, t, provider?.unit) ?? t("common.notAvailable")
     : "—";
   const ratedPowerLabel =
     device.rated_power != null
@@ -244,27 +243,29 @@ export function DeviceCard({
           </Box>
         </Box>
 
-        {/* THRESHOLD */}
+        {/* AUTO LOGIC */}
         <Box sx={rowSx}>
           <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
-            {t("providers.card.range")}
+            {t("devices.form.autoLogicTitle")}
           </Typography>
           <Typography
             variant="body2"
             fontWeight={600}
             sx={{
               color:
-                isAuto && device.threshold_value != null
+                isAuto && autoLogicLabel !== t("common.notAvailable")
                   ? (theme) => theme.palette.warning.dark
                   : "text.secondary",
               minWidth: 0,
               textAlign: "right",
-              whiteSpace: "nowrap",
+              display: "-webkit-box",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 3,
             }}
           >
-            {thresholdLabel}
+            {autoLogicLabel}
           </Typography>
         </Box>
 

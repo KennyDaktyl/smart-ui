@@ -30,6 +30,9 @@ type Props = {
   defaultValues?: Partial<FormValues>;
   onSubmit: (data: FormValues) => void;
   isEdit?: boolean;
+  includeUserField?: boolean;
+  showMaxDevicesField?: boolean;
+  showEnabledField?: boolean;
 };
 
 const fieldSx = {
@@ -84,7 +87,14 @@ const fieldSx = {
 };
 
 
-export function AdminMicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Props) {
+export function AdminMicrocontrollerForm({
+  defaultValues,
+  onSubmit,
+  isEdit,
+  includeUserField = true,
+  showMaxDevicesField = true,
+  showEnabledField = true,
+}: Props) {
   const { t } = useTranslation();
 
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -96,12 +106,18 @@ export function AdminMicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Pr
   );
 
   useEffect(() => {
+    if (!includeUserField) {
+      setUsers([]);
+      setLoadingUsers(false);
+      return;
+    }
+
     setLoadingUsers(true);
     adminApi
       .getUsers()
       .then((res) => setUsers(res.data.items))
       .finally(() => setLoadingUsers(false));
-  }, []);
+  }, [includeUserField]);
 
   const { control, handleSubmit } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -140,30 +156,32 @@ export function AdminMicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Pr
       sx={{ pt: 1 }}
     >
       <Stack spacing={2}>
-        <Controller
-          name="user_id"
-          control={control}
-          render={({ field, fieldState }) => (
-            <Autocomplete
-              options={users}
-              loading={loadingUsers}
-              value={users.find((u) => u.id === field.value) ?? null}
-              onChange={(_, user) => field.onChange(user ? user.id : undefined)}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              getOptionLabel={(u) => u.email}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={t("microcontroller.form.user")}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  fullWidth
-                  sx={fieldSx}
-                />
-              )}
-            />
-          )}
-        />
+        {includeUserField && (
+          <Controller
+            name="user_id"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete
+                options={users}
+                loading={loadingUsers}
+                value={users.find((u) => u.id === field.value) ?? null}
+                onChange={(_, user) => field.onChange(user ? user.id : undefined)}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                getOptionLabel={(u) => u.email}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={t("microcontroller.form.user")}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    fullWidth
+                    sx={fieldSx}
+                  />
+                )}
+              />
+            )}
+          />
+        )}
 
         {/* NAME */}
         <Controller
@@ -267,29 +285,31 @@ export function AdminMicrocontrollerForm({ defaultValues, onSubmit, isEdit }: Pr
         />
 
         {/* MAX DEVICES ✅ konwersja string -> number */}
-        <Controller
-          name="max_devices"
-          control={control}
-          render={({ field, fieldState }) => (
-            <TextField
-              {...field}
-              type="number"
-              label={t("microcontroller.form.maxDevices")}
-              error={!!fieldState.error}
-              helperText={fieldState.error?.message}
-              inputProps={{ min: 1 }}
-              fullWidth
-              sx={fieldSx}
-              onChange={(e) => {
-                const value = e.target.value;
-                field.onChange(value === "" ? undefined : Number(value));
-              }}
-            />
-          )}
-        />
+        {showMaxDevicesField && (
+          <Controller
+            name="max_devices"
+            control={control}
+            render={({ field, fieldState }) => (
+              <TextField
+                {...field}
+                type="number"
+                label={t("microcontroller.form.maxDevices")}
+                error={!!fieldState.error}
+                helperText={fieldState.error?.message}
+                inputProps={{ min: 1 }}
+                fullWidth
+                sx={fieldSx}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  field.onChange(value === "" ? undefined : Number(value));
+                }}
+              />
+            )}
+          />
+        )}
 
         {/* ENABLED – tylko EDIT */}
-        {isEdit && (
+        {isEdit && showEnabledField && (
           <Controller
             name="enabled"
             control={control}

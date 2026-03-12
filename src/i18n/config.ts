@@ -409,6 +409,15 @@ const resources = {
           updatedAt: "Zaktualizowano",
           noData: "Brak danych na żywo",
           streaming: "Dane napływają w czasie rzeczywistym",
+          noMetrics: "Brak metryk providera do wyświetlenia",
+          metrics: {
+            primaryPower: "Moc główna",
+            providerPower: "Moc providera",
+            inverterPower: "Moc PV / inwertera",
+            meterPower: "Moc z licznika",
+            batterySoc: "Poziom naładowania baterii",
+            gridPower: "Moc sieci / licznika",
+          },
         },
         telemetry: {
           title: "Telemetria providera",
@@ -467,6 +476,7 @@ const resources = {
           providerLiveOff: "Brak live",
           providerLiveDisabled: "Wyłączony",
           providerLiveMissing: "Brak providera",
+          providerMetrics: "Metryki providera",
           providerCountdownOverdue: "po czasie",
           providerRefreshIn: "Następny odczyt za {{sec}}s",
           providerRefreshOverdue: "Brak nowego odczytu (po czasie)",
@@ -480,6 +490,11 @@ const resources = {
           microStatus: "Status mikrokontrolera",
           ratedPower: "Moc znamionowa",
           autoThreshold: "Próg automatyki",
+          autoLogic: "Logika AUTO",
+          autoLogicInfo: "Pokaż pełną logikę AUTO",
+          powerSwitch: "Sterowanie urządzeniem",
+          powerSwitchManualHint: "Tryb manualny jest aktywny",
+          powerSwitchAutoHint: "Przełączenie ustawi urządzenie w tryb manualny",
           manualSwitchConfirmTitle: "Przełączyć urządzenie do trybu manual?",
           manualSwitchConfirmDescription:
             "Akcja {{action}} ustawi urządzenie w tryb MANUAL. Czy chcesz kontynuować?",
@@ -499,9 +514,9 @@ const resources = {
           autoLogicDescription:
             "Zdefiniuj warunki mocy i baterii, które mają pozwolić na włączenie urządzenia.",
           autoPreviewWarning:
-            "Warunki baterii i logika ALL/ANY są na razie tylko preview w UI. Backend zapisuje obecnie pierwszy warunek mocy.",
+            "Pełna reguła AUTO jest zachowana w formularzu i payloadzie. Widoki urządzeń pokazują teraz skrót logiki AUTO, a legacy próg tylko jako pomocniczy fallback.",
           persistablePowerRequired:
-            "Do zapisu trybu AUTO nadal wymagany jest poprawny warunek mocy providera.",
+            "Popraw oznaczone warunki AUTO. Legacy próg mocy zostanie zapisany tylko wtedy, gdy reguła da się do niego zredukować.",
           noSchedulers:
             "Brak harmonogramów. Najpierw utwórz harmonogram w sekcji Harmonogramy.",
           submitError: "Nie udało się zapisać urządzenia: {{message}}",
@@ -517,6 +532,7 @@ const resources = {
             slot: "Slot",
             power: "Moc",
             threshold: "Próg",
+            autoLogic: "Logika AUTO",
             mode: "Tryb",
             state: "Stan",
             status: "Status",
@@ -558,6 +574,7 @@ const resources = {
             lastHeartbeat: "Ostatni heartbeat",
             microcontroller: "Status mikrokontrolera",
             providerPower: "Moc providera",
+            providerMetrics: "Metryki providera",
             noProvider: "Brak przypiętego providera",
             eventsMerged:
               "Wykres zawiera dane historyczne i live eventy urządzenia ({{count}} nowych eventów).",
@@ -599,6 +616,7 @@ const resources = {
           createTitle: "Nowy harmonogram",
           editTitle: "Edytuj harmonogram",
           name: "Nazwa harmonogramu",
+          nameRequired: "Podaj nazwę harmonogramu.",
           enableSlotPowerThreshold: "Włącz próg mocy dla tego przedziału",
           enableSlotConditions: "Włącz warunki uruchomienia w tym przedziale",
           slotRuleTitle: "Warunki uruchomienia",
@@ -609,9 +627,9 @@ const resources = {
           invalidThreshold: "Podaj poprawną wartość progu mocy (>= 0).",
           noUnitsAvailable: "Brak dostępnych jednostek mocy dla konta.",
           previewWarning:
-            "Warunki baterii oraz logika ALL/ANY są na razie preview w UI. Backend zapisuje obecnie tylko pierwszy warunek mocy w danym przedziale.",
+            "Podgląd listy harmonogramów pokazuje uproszczone podsumowanie. Pełna reguła AND/OR oraz warunki baterii są zachowane w formularzu i payloadzie.",
           persistablePowerRequired:
-            "Aby zapis był zgodny z obecnym backendem, przedział musi mieć poprawny warunek mocy providera.",
+            "Dodaj co najmniej jeden poprawny warunek uruchomienia dla tego przedziału.",
           timeBlocks: "Dni i zakresy godzin",
           start: "Od",
           end: "Do",
@@ -620,6 +638,9 @@ const resources = {
           invalidRange: "Godzina końcowa musi być późniejsza niż start.",
           overlapRange: "Przedziały czasu w tym dniu nie mogą się nakładać.",
           noDaySelected: "Wybierz przynajmniej jeden dzień tygodnia.",
+          invalidConditions: "Popraw oznaczone warunki uruchomienia.",
+          validationSummary:
+            "Formularz nie może zostać zapisany. Popraw oznaczone pola.",
         },
         days: {
           MONDAY: "Poniedziałek",
@@ -642,6 +663,10 @@ const resources = {
         matchAll: "Wszystkie (AND)",
         matchAny: "Dowolny (OR)",
         addCondition: "Dodaj warunek",
+        addGroup: "Dodaj grupę",
+        rootGroup: "Reguła główna",
+        groupLabel: "Grupa {{index}}",
+        emptyGroup: "Ta grupa nie ma jeszcze żadnych warunków.",
         conditionSource: "Źródło",
         comparator: "Porównanie",
         conditionValue: "Wartość",
@@ -653,6 +678,14 @@ const resources = {
         comparators: {
           gte: "Więcej lub równe",
           lte: "Mniej lub równe",
+        },
+        validation: {
+          valueInvalid: "Podaj poprawną liczbę nie mniejszą niż 0.",
+          batteryRange: "Podaj wartość od 0 do 100%.",
+          unitRequired: "Wybierz jednostkę.",
+          unitInvalid: "Wybrana jednostka nie jest dostępna.",
+          groupEmpty:
+            "Dodaj co najmniej jeden warunek albo usuń pustą grupę.",
         },
         sources: {
           provider_primary_power: "Moc bieżąca providera",
@@ -722,6 +755,7 @@ const resources = {
           dht22: "Sonda DHT22",
           bme280: "Czujnik BME280",
           bh1750: "Czujnik BH1750",
+          ds18b20: "Czujnik temperatury DS18B20",
         },
         notifications: {
           createSuccess: "Mikrokontroler został dodany.",
@@ -1193,6 +1227,15 @@ const resources = {
           updatedAt: "Updated at",
           noData: "No live data available",
           streaming: "Data is streaming in real time",
+          noMetrics: "No provider metrics to display",
+          metrics: {
+            primaryPower: "Primary power",
+            providerPower: "Provider power",
+            inverterPower: "PV / inverter power",
+            meterPower: "Meter power",
+            batterySoc: "Battery state of charge",
+            gridPower: "Grid / meter power",
+          },
         },
         telemetry: {
           title: "Provider telemetry",
@@ -1251,6 +1294,7 @@ const resources = {
           providerLiveOff: "No live",
           providerLiveDisabled: "Disabled",
           providerLiveMissing: "No provider",
+          providerMetrics: "Provider metrics",
           providerCountdownOverdue: "overdue",
           providerRefreshIn: "Next update in {{sec}}s",
           providerRefreshOverdue: "No new update (overdue)",
@@ -1264,6 +1308,11 @@ const resources = {
           microStatus: "Microcontroller status",
           ratedPower: "Rated power",
           autoThreshold: "Auto threshold",
+          autoLogic: "AUTO logic",
+          autoLogicInfo: "Show full AUTO logic",
+          powerSwitch: "Device control",
+          powerSwitchManualHint: "Manual mode is active",
+          powerSwitchAutoHint: "Switching will move the device to manual mode",
           manualSwitchConfirmTitle: "Switch device to manual mode?",
           manualSwitchConfirmDescription:
             "Action {{action}} will set this device to MANUAL mode. Do you want to continue?",
@@ -1283,9 +1332,9 @@ const resources = {
           autoLogicDescription:
             "Define power and battery conditions that allow the device to turn on.",
           autoPreviewWarning:
-            "Battery conditions and ALL/ANY logic are preview-only in UI for now. The backend currently saves only the first power condition.",
+            "The full AUTO rule is preserved in the form and payload. Device views now show a compact AUTO logic summary, with the legacy threshold kept only as a fallback.",
           persistablePowerRequired:
-            "AUTO mode still requires a valid provider power condition to be saved.",
+            "Fix the highlighted AUTO conditions. The legacy power threshold is saved only when the rule can be reduced to it.",
           noSchedulers:
             "No schedules found. Create one first in the Schedulers section.",
           submitError: "Failed to save device: {{message}}",
@@ -1301,6 +1350,7 @@ const resources = {
             slot: "Slot",
             power: "Power",
             threshold: "Threshold",
+            autoLogic: "AUTO logic",
             mode: "Mode",
             state: "State",
             status: "Status",
@@ -1342,6 +1392,7 @@ const resources = {
             lastHeartbeat: "Last heartbeat",
             microcontroller: "Microcontroller status",
             providerPower: "Provider power (live)",
+            providerMetrics: "Provider metrics",
             noProvider: "No provider assigned",
             eventsMerged:
               "Timeline combines historical data and live device events ({{count}} new events).",
@@ -1383,6 +1434,7 @@ const resources = {
           createTitle: "New schedule",
           editTitle: "Edit schedule",
           name: "Schedule name",
+          nameRequired: "Enter the schedule name.",
           enableSlotPowerThreshold: "Enable power threshold for this range",
           enableSlotConditions: "Enable start conditions for this range",
           slotRuleTitle: "Start conditions",
@@ -1393,9 +1445,9 @@ const resources = {
           invalidThreshold: "Enter a valid threshold value (>= 0).",
           noUnitsAvailable: "No power units available for this account.",
           previewWarning:
-            "Battery conditions and ALL/ANY logic are preview-only in UI for now. The backend currently saves only the first power condition per time range.",
+            "The schedules list shows a simplified summary only. Full AND/OR logic and battery conditions are preserved in the form and payload.",
           persistablePowerRequired:
-            "To stay compatible with the current backend, the range still needs a valid provider power condition.",
+            "Add at least one valid start condition for this time range.",
           timeBlocks: "Days and time ranges",
           start: "Start",
           end: "End",
@@ -1404,6 +1456,9 @@ const resources = {
           invalidRange: "End time must be later than start time.",
           overlapRange: "Time ranges on the same day cannot overlap.",
           noDaySelected: "Select at least one day of the week.",
+          invalidConditions: "Fix the highlighted start conditions.",
+          validationSummary:
+            "The form cannot be saved yet. Fix the highlighted fields.",
         },
         days: {
           MONDAY: "Monday",
@@ -1426,6 +1481,10 @@ const resources = {
         matchAll: "All (AND)",
         matchAny: "Any (OR)",
         addCondition: "Add condition",
+        addGroup: "Add group",
+        rootGroup: "Root rule",
+        groupLabel: "Group {{index}}",
+        emptyGroup: "This group has no conditions yet.",
         conditionSource: "Source",
         comparator: "Comparator",
         conditionValue: "Value",
@@ -1437,6 +1496,13 @@ const resources = {
         comparators: {
           gte: "Greater or equal",
           lte: "Less or equal",
+        },
+        validation: {
+          valueInvalid: "Enter a valid number that is not below 0.",
+          batteryRange: "Enter a value between 0 and 100%.",
+          unitRequired: "Select a unit.",
+          unitInvalid: "The selected unit is not available.",
+          groupEmpty: "Add at least one condition or remove the empty group.",
         },
         sources: {
           provider_primary_power: "Current provider power",
@@ -1506,6 +1572,7 @@ const resources = {
           dht22: "DHT22 sensor",
           bme280: "BME280 sensor",
           bh1750: "BH1750 sensor",
+          ds18b20: "DS18B20 temperature sensor",
         },
         notifications: {
           createSuccess: "Microcontroller has been added.",

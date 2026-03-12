@@ -2,12 +2,9 @@ import {
   Alert,
   Box,
   Button,
-  FormControl,
+  CircularProgress,
   FormControlLabel,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   Switch,
   TextField,
@@ -21,19 +18,27 @@ import { useTranslation } from "react-i18next";
 import { parseApiError } from "@/api/parseApiError";
 import { providersApi } from "@/api/providersApi";
 import { schedulersApi } from "@/api/schedulersApi";
-import { AutomationRuleBuilder } from "@/features/automation/components/AutomationRuleBuilder";
 import {
   createAutomationConditionDraft,
+  createAutomationGroupDraft,
   type AutomationRuleComparator,
   type AutomationRuleConditionDraft,
+  type AutomationRuleGroupDraft,
   type AutomationRuleGroupOperator,
+  type AutomationRuleGroupPayload,
+  type AutomationRuleNodeDraft,
+  type AutomationRuleNodePayload,
   type AutomationRuleSource,
+  isAutomationRuleGroupDraft,
+  isAutomationRuleGroupPayload,
   isBatteryRuleSource,
   isPowerRuleSource,
 } from "@/features/automation/types/rules";
 import { SCHEDULER_DAY_ORDER } from "@/features/schedulers/constants";
+import { SchedulerRuleTreeBuilder } from "@/features/schedulers/components/SchedulerRuleTreeBuilder";
 import type {
   Scheduler,
+  SchedulerActivationRule,
   SchedulerDayOfWeek,
   SchedulerPayload,
 } from "@/features/schedulers/types/scheduler";
@@ -47,8 +52,7 @@ type DaySlotState = {
   start: string;
   end: string;
   conditionsEnabled: boolean;
-  ruleOperator: AutomationRuleGroupOperator;
-  conditions: AutomationRuleConditionDraft[];
+  rule: AutomationRuleGroupDraft;
 };
 
 type DayValidation = {
@@ -57,9 +61,24 @@ type DayValidation = {
 };
 
 type SlotConditionValidation = {
-  valueValid: boolean;
-  unitValid: boolean;
   parsedValue: number | null;
+  errors: {
+    value?: "required" | "invalid" | "batteryRange";
+    unit?: "required" | "invalid";
+  };
+};
+
+type SlotRuleValidation = {
+  hasInvalidCondition: boolean;
+  hasEmptyGroup: boolean;
+  groupErrors: Record<string, "empty">;
+  conditionErrors: Record<
+    string,
+    {
+      value?: "required" | "invalid" | "batteryRange";
+      unit?: "required" | "invalid";
+    }
+  >;
 };
 
 type Props = {
@@ -176,16 +195,53 @@ function toUniqueUnits(units: Array<string | null | undefined>): string[] {
   ).sort((left, right) => left.localeCompare(right));
 }
 
+function createDefaultRule(defaultUnit = ""): AutomationRuleGroupDraft {
+  return createAutomationGroupDraft("ANY", [
+    createAutomationConditionDraft("provider_primary_power", defaultUnit),
+  ]);
+}
+
 function createDefaultSlot(defaultUnit = ""): DaySlotState {
   return {
     start: DEFAULT_START_TIME,
     end: DEFAULT_END_TIME,
     conditionsEnabled: false,
-    ruleOperator: "ANY",
-    conditions: [
-      createAutomationConditionDraft("provider_primary_power", defaultUnit),
-    ],
+    rule: createDefaultRule(defaultUnit),
   };
+}
+
+function updateRuleConditionsWithoutUnit(
+  group: AutomationRuleGroupDraft,
+  defaultUnit: string,
+): AutomationRuleGroupDraft {
+  let changed = false;
+
+  const nextItems = group.items.map((item) => {
+    if (isAutomationRuleGroupDraft(item)) {
+      const nextGroup = updateRuleConditionsWithoutUnit(item, defaultUnit);
+      if (nextGroup !== item) {
+        changed = true;
+      }
+      return nextGroup;
+    }
+
+    if (!isPowerRuleSource(item.source) || item.unit) {
+      return item;
+    }
+
+    changed = true;
+    return {
+      ...item,
+      unit: defaultUnit,
+    };
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
 }
 
 function withDefaultUnitForThresholdSlots(
@@ -198,25 +254,15 @@ function withDefaultUnitForThresholdSlots(
     (acc, day) => {
       const row = rows[day];
       const nextSlots = row.slots.map((slot) => {
-        let slotChanged = false;
-        const nextConditions = slot.conditions.map((condition) => {
-          if (!isPowerRuleSource(condition.source) || condition.unit) {
-            return condition;
-          }
+        const nextRule = updateRuleConditionsWithoutUnit(slot.rule, defaultUnit);
+        if (nextRule !== slot.rule) {
           changed = true;
-          slotChanged = true;
           return {
-            ...condition,
-            unit: defaultUnit,
+            ...slot,
+            rule: nextRule,
           };
-        });
-        if (!slotChanged) {
-          return slot;
         }
-        return {
-          ...slot,
-          conditions: nextConditions,
-        };
+        return slot;
       });
 
       acc[day] = {
@@ -229,6 +275,93 @@ function withDefaultUnitForThresholdSlots(
   );
 
   return changed ? next : rows;
+}
+
+function normalizeRulePayload(
+  rule: SchedulerActivationRule | null | undefined,
+): AutomationRuleGroupPayload | null {
+  if (!rule) {
+    return null;
+  }
+
+  const rawItems = rule.items ?? rule.conditions ?? [];
+  if (rawItems.length === 0) {
+    return null;
+  }
+
+  return {
+    operator: rule.operator,
+    items: rawItems.flatMap((item) => {
+      if (isAutomationRuleGroupPayload(item)) {
+        const normalizedGroup = normalizeRulePayload(item);
+        return normalizedGroup ? [normalizedGroup] : [];
+      }
+
+      return [item];
+    }),
+  };
+}
+
+function createDraftRuleFromPayload(
+  rule: AutomationRuleGroupPayload,
+): AutomationRuleGroupDraft {
+  return createAutomationGroupDraft(
+    rule.operator,
+    (rule.items ?? []).map((item): AutomationRuleNodeDraft => {
+      if (isAutomationRuleGroupPayload(item)) {
+        return createDraftRuleFromPayload(item);
+      }
+
+      return {
+        id: `${item.source}-${Math.random().toString(36).slice(2, 10)}`,
+        source: item.source,
+        comparator: item.comparator,
+        value: String(item.value),
+        unit: item.unit,
+      };
+    }),
+  );
+}
+
+function toEditableRule(
+  slot: Scheduler["slots"][number],
+): AutomationRuleGroupPayload | null {
+  return normalizeRulePayload(slot.activation_rule ?? slot.activation_rule_json);
+}
+
+function toDraftRule(
+  slot: Scheduler["slots"][number],
+): Pick<DaySlotState, "conditionsEnabled" | "rule"> {
+  const activationRule = toEditableRule(slot);
+  if (activationRule) {
+    return {
+      conditionsEnabled: true,
+      rule: createDraftRuleFromPayload(activationRule),
+    };
+  }
+
+  if (slot.use_power_threshold) {
+    return {
+      conditionsEnabled: true,
+      rule: createAutomationGroupDraft("ANY", [
+        {
+          id: `${slot.day_of_week}-${slot.start_time ?? slot.start_utc_time ?? "slot"}-power`,
+          source: "provider_primary_power",
+          comparator: "gte",
+          value:
+            slot.power_threshold_value != null
+              ? String(slot.power_threshold_value)
+              : "",
+          unit: slot.power_threshold_unit ?? "",
+        },
+      ]),
+    };
+  }
+
+  return {
+    conditionsEnabled: false,
+    rule: createDefaultRule(""),
+  };
 }
 
 function toInitialDayState(
@@ -259,22 +392,7 @@ function toInitialDayState(
     row.slots.push({
       start: resolveSlotLocalTime(slot, slot.day_of_week, "start"),
       end: resolveSlotLocalTime(slot, slot.day_of_week, "end"),
-      conditionsEnabled: Boolean(slot.use_power_threshold),
-      ruleOperator: "ANY",
-      conditions: slot.use_power_threshold
-        ? [
-            {
-              id: `${slot.day_of_week}-${slot.start_time ?? slot.start_utc_time ?? "slot"}-power`,
-              source: "provider_primary_power",
-              comparator: "gte",
-              value:
-                slot.power_threshold_value != null
-                  ? String(slot.power_threshold_value)
-                  : "",
-              unit: slot.power_threshold_unit ?? "",
-            },
-          ]
-        : [createAutomationConditionDraft("provider_primary_power", "")],
+      ...toDraftRule(slot),
     });
   });
 
@@ -341,78 +459,287 @@ function validateSlotCondition(
   if (isBatteryRuleSource(condition.source)) {
     const parsedValue = parseDecimalInput(condition.value);
     return {
-      valueValid:
-        parsedValue != null && parsedValue >= 0 && parsedValue <= 100,
-      unitValid: condition.unit === "%",
       parsedValue,
+      errors: {
+        value:
+          condition.value.trim() === ""
+            ? "required"
+            : parsedValue == null
+              ? "invalid"
+              : parsedValue < 0 || parsedValue > 100
+                ? "batteryRange"
+                : undefined,
+        unit: condition.unit === "%" ? undefined : "invalid",
+      },
     };
   }
 
   const parsedValue = parseDecimalInput(condition.value);
   return {
-    valueValid: parsedValue != null && parsedValue >= 0,
-    unitValid: condition.unit !== "" && availableUnits.includes(condition.unit),
     parsedValue,
+    errors: {
+      value:
+        condition.value.trim() === ""
+          ? "required"
+          : parsedValue == null || parsedValue < 0
+            ? "invalid"
+            : undefined,
+      unit:
+        condition.unit === ""
+          ? "required"
+          : availableUnits.includes(condition.unit)
+            ? undefined
+            : "invalid",
+    },
   };
 }
 
-function getPersistedPowerCondition(
-  slot: DaySlotState,
+function validateRuleDraft(
+  group: AutomationRuleGroupDraft,
   availableUnits: string[],
-) {
-  if (!slot.conditionsEnabled) {
-    return null;
-  }
-
-  const persistedCondition = slot.conditions.find((condition) =>
-    isPowerRuleSource(condition.source),
-  );
-  if (!persistedCondition) {
-    return null;
-  }
-
-  const validation = validateSlotCondition(persistedCondition, availableUnits);
-  if (!validation.valueValid || !validation.unitValid) {
-    return null;
-  }
-
-  return {
-    condition: persistedCondition,
-    parsedValue: validation.parsedValue,
-  };
-}
-
-function hasAdvancedPreviewConditions(slot: DaySlotState) {
-  if (!slot.conditionsEnabled) {
-    return false;
-  }
-
-  return (
-    slot.ruleOperator !== "ANY" ||
-    slot.conditions.length !== 1 ||
-    slot.conditions.some((condition) => !isPowerRuleSource(condition.source))
-  );
-}
-
-function validateSlotConditions(
-  slot: DaySlotState,
-  availableUnits: string[],
-) {
-  if (!slot.conditionsEnabled) {
+): SlotRuleValidation {
+  if (group.items.length === 0) {
     return {
       hasInvalidCondition: false,
-      hasPersistablePowerCondition: true,
+      hasEmptyGroup: true,
+      groupErrors: {
+        [group.id]: "empty",
+      },
+      conditionErrors: {},
     };
   }
 
+  return group.items.reduce(
+    (acc, item) => {
+      if (isAutomationRuleGroupDraft(item)) {
+        const nested = validateRuleDraft(item, availableUnits);
+        return {
+          hasInvalidCondition:
+            acc.hasInvalidCondition || nested.hasInvalidCondition,
+          hasEmptyGroup: acc.hasEmptyGroup || nested.hasEmptyGroup,
+          groupErrors: {
+            ...acc.groupErrors,
+            ...nested.groupErrors,
+          },
+          conditionErrors: {
+            ...acc.conditionErrors,
+            ...nested.conditionErrors,
+          },
+        };
+      }
+
+      const validation = validateSlotCondition(item, availableUnits);
+      const hasConditionError = Boolean(
+        validation.errors.value || validation.errors.unit,
+      );
+      return {
+        hasInvalidCondition: acc.hasInvalidCondition || hasConditionError,
+        hasEmptyGroup: acc.hasEmptyGroup,
+        groupErrors: acc.groupErrors,
+        conditionErrors: hasConditionError
+          ? {
+              ...acc.conditionErrors,
+              [item.id]: validation.errors,
+            }
+          : acc.conditionErrors,
+      };
+    },
+    {
+      hasInvalidCondition: false,
+      hasEmptyGroup: false,
+      groupErrors: {},
+      conditionErrors: {},
+    },
+  );
+}
+
+function buildActivationRule(
+  group: AutomationRuleGroupDraft,
+  availableUnits: string[],
+): AutomationRuleGroupPayload | null {
+  const items = group.items.flatMap((item): AutomationRuleNodePayload[] => {
+    if (isAutomationRuleGroupDraft(item)) {
+      const nested = buildActivationRule(item, availableUnits);
+      return nested ? [nested] : [];
+    }
+
+    const validation = validateSlotCondition(item, availableUnits);
+    if (
+      validation.errors.value ||
+      validation.errors.unit ||
+      validation.parsedValue == null
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        source: item.source,
+        comparator: item.comparator,
+        value: validation.parsedValue,
+        unit: item.unit,
+      },
+    ];
+  });
+
+  if (items.length === 0) {
+    return null;
+  }
+
   return {
-    hasInvalidCondition: slot.conditions.some((condition) => {
-      const validation = validateSlotCondition(condition, availableUnits);
-      return !validation.valueValid || !validation.unitValid;
-    }),
-    hasPersistablePowerCondition:
-      getPersistedPowerCondition(slot, availableUnits) != null,
+    operator: group.operator,
+    items,
   };
+}
+
+function isConditionPayload(
+  item: AutomationRuleNodePayload,
+): item is Exclude<AutomationRuleNodePayload, AutomationRuleGroupPayload> {
+  return "source" in item;
+}
+
+function isLegacyPowerOnlyRule(rule: AutomationRuleGroupPayload | null): boolean {
+  if (rule == null || rule.operator !== "ANY") {
+    return false;
+  }
+
+  const items = rule.items ?? [];
+  if (items.length !== 1) {
+    return false;
+  }
+
+  const [item] = items;
+  return (
+    isConditionPayload(item) &&
+    item.source === "provider_primary_power" &&
+    item.comparator === "gte"
+  );
+}
+
+function getPersistedPowerCondition(
+  group: AutomationRuleGroupDraft,
+  availableUnits: string[],
+) {
+  const activationRule = buildActivationRule(group, availableUnits);
+  if (!isLegacyPowerOnlyRule(activationRule)) {
+    return null;
+  }
+
+  const [condition] = activationRule.items ?? [];
+  if (!condition || !isConditionPayload(condition)) {
+    return null;
+  }
+
+  return {
+    condition,
+    parsedValue: condition.value,
+  };
+}
+
+function isLegacyPowerOnlyDraft(group: AutomationRuleGroupDraft): boolean {
+  if (group.operator !== "ANY" || group.items.length !== 1) {
+    return false;
+  }
+
+  const [item] = group.items;
+  return (
+    !isAutomationRuleGroupDraft(item) &&
+    item.source === "provider_primary_power" &&
+    item.comparator === "gte"
+  );
+}
+
+function updateGroupById(
+  group: AutomationRuleGroupDraft,
+  targetGroupId: string,
+  updater: (group: AutomationRuleGroupDraft) => AutomationRuleGroupDraft,
+): AutomationRuleGroupDraft {
+  if (group.id === targetGroupId) {
+    return updater(group);
+  }
+
+  let changed = false;
+  const nextItems = group.items.map((item) => {
+    if (!isAutomationRuleGroupDraft(item)) {
+      return item;
+    }
+
+    const nextGroup = updateGroupById(item, targetGroupId, updater);
+    if (nextGroup !== item) {
+      changed = true;
+    }
+    return nextGroup;
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
+}
+
+function updateConditionById(
+  group: AutomationRuleGroupDraft,
+  targetConditionId: string,
+  updater: (
+    condition: AutomationRuleConditionDraft,
+  ) => AutomationRuleConditionDraft,
+): AutomationRuleGroupDraft {
+  let changed = false;
+  const nextItems = group.items.map((item) => {
+    if (isAutomationRuleGroupDraft(item)) {
+      const nextGroup = updateConditionById(item, targetConditionId, updater);
+      if (nextGroup !== item) {
+        changed = true;
+      }
+      return nextGroup;
+    }
+
+    if (item.id !== targetConditionId) {
+      return item;
+    }
+
+    changed = true;
+    return updater(item);
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
+}
+
+function removeNodeById(
+  group: AutomationRuleGroupDraft,
+  targetNodeId: string,
+): AutomationRuleGroupDraft {
+  let changed = false;
+  const nextItems = group.items.flatMap((item) => {
+    if (item.id === targetNodeId) {
+      changed = true;
+      return [];
+    }
+
+    if (!isAutomationRuleGroupDraft(item)) {
+      return [item];
+    }
+
+    const nextGroup = removeNodeById(item, targetNodeId);
+    if (nextGroup !== item) {
+      changed = true;
+    }
+    return [nextGroup];
+  });
+
+  return changed
+    ? {
+        ...group,
+        items: nextItems,
+      }
+    : group;
 }
 
 export function SchedulerForm({
@@ -528,6 +855,20 @@ export function SchedulerForm({
     [rows],
   );
 
+  const slotRuleValidations = useMemo(
+    () =>
+      SCHEDULER_DAY_ORDER.reduce(
+        (acc, day) => {
+          acc[day] = rows[day].slots.map((slot) =>
+            validateRuleDraft(slot.rule, availableUnits),
+          );
+          return acc;
+        },
+        {} as Record<SchedulerDayOfWeek, SlotRuleValidation[]>,
+      ),
+    [availableUnits, rows],
+  );
+
   const dayValidations = useMemo(
     () =>
       SCHEDULER_DAY_ORDER.reduce(
@@ -552,31 +893,87 @@ export function SchedulerForm({
     [dayValidations],
   );
 
-  const hasInvalidPowerThreshold = useMemo(
+  const hasInvalidConditions = useMemo(
     () =>
       SCHEDULER_DAY_ORDER.some((day) =>
         rows[day].enabled
-          ? rows[day].slots.some((slot) => {
-              const validation = validateSlotConditions(slot, availableUnits);
-              return (
-                validation.hasInvalidCondition ||
-                (slot.conditionsEnabled && !validation.hasPersistablePowerCondition)
-              );
+          ? rows[day].slots.some((slot, slotIndex) => {
+              if (!slot.conditionsEnabled) {
+                return false;
+              }
+              const validation = slotRuleValidations[day][slotIndex];
+              return validation.hasInvalidCondition || validation.hasEmptyGroup;
             })
           : false,
       ),
-    [availableUnits, rows],
+    [rows, slotRuleValidations],
   );
 
   const hasAdvancedPreviewWarning = useMemo(
     () =>
       SCHEDULER_DAY_ORDER.some((day) =>
         rows[day].enabled
-          ? rows[day].slots.some((slot) => hasAdvancedPreviewConditions(slot))
+          ? rows[day].slots.some(
+              (slot) =>
+                slot.conditionsEnabled && !isLegacyPowerOnlyDraft(slot.rule),
+            )
           : false,
       ),
     [rows],
   );
+
+  const validationMessages = useMemo(() => {
+    if (!submitted) {
+      return [];
+    }
+
+    const messages: string[] = [];
+    if (!name.trim()) {
+      messages.push(t("schedulers.form.nameRequired"));
+    }
+    if (!hasAtLeastOneDay) {
+      messages.push(t("schedulers.form.noDaySelected"));
+    }
+    if (hasInvalidRange) {
+      messages.push(t("schedulers.form.invalidRange"));
+    }
+    if (hasOverlapRange) {
+      messages.push(t("schedulers.form.overlapRange"));
+    }
+    if (hasInvalidConditions) {
+      messages.push(t("schedulers.form.invalidConditions"));
+    }
+
+    return Array.from(new Set(messages));
+  }, [
+    hasAtLeastOneDay,
+    hasInvalidConditions,
+    hasInvalidRange,
+    hasOverlapRange,
+    name,
+    submitted,
+    t,
+  ]);
+
+  const getConditionFieldErrorText = (
+    code?: "required" | "invalid" | "batteryRange",
+  ) => {
+    if (!code) return undefined;
+    if (code === "required") {
+      return t("errors.validation.required");
+    }
+    if (code === "batteryRange") {
+      return t("automation.validation.batteryRange");
+    }
+    return t("automation.validation.valueInvalid");
+  };
+
+  const getUnitFieldErrorText = (code?: "required" | "invalid") => {
+    if (!code) return undefined;
+    return code === "required"
+      ? t("automation.validation.unitRequired")
+      : t("automation.validation.unitInvalid");
+  };
 
   const handleRowToggle = (day: SchedulerDayOfWeek, enabled: boolean) => {
     setRows((prev) => ({
@@ -648,48 +1045,20 @@ export function SchedulerForm({
           return {
             ...slot,
             conditionsEnabled: enabled,
-            conditions:
-              enabled && slot.conditions.length === 0
-                ? [
-                    createAutomationConditionDraft(
-                      "provider_primary_power",
-                      availableUnits[0] ?? "",
-                    ),
-                  ]
-                : slot.conditions,
+            rule:
+              enabled && slot.rule.items.length === 0
+                ? createDefaultRule(availableUnits[0] ?? "")
+                : slot.rule,
           };
         }),
       },
     }));
   };
 
-  const handleAddCondition = (day: SchedulerDayOfWeek, slotIndex: number) => {
-    setRows((prev) => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        slots: prev[day].slots.map((slot, index) =>
-          index === slotIndex
-            ? {
-                ...slot,
-                conditions: [
-                  ...slot.conditions,
-                  createAutomationConditionDraft(
-                    "provider_primary_power",
-                    availableUnits[0] ?? "",
-                  ),
-                ],
-              }
-            : slot,
-        ),
-      },
-    }));
-  };
-
-  const handleRemoveCondition = (
+  const handleAddCondition = (
     day: SchedulerDayOfWeek,
     slotIndex: number,
-    conditionId: string,
+    groupId: string,
   ) => {
     setRows((prev) => ({
       ...prev,
@@ -699,9 +1068,16 @@ export function SchedulerForm({
           index === slotIndex
             ? {
                 ...slot,
-                conditions: slot.conditions.filter(
-                  (condition) => condition.id !== conditionId,
-                ),
+                rule: updateGroupById(slot.rule, groupId, (group) => ({
+                  ...group,
+                  items: [
+                    ...group.items,
+                    createAutomationConditionDraft(
+                      "provider_primary_power",
+                      availableUnits[0] ?? "",
+                    ),
+                  ],
+                })),
               }
             : slot,
         ),
@@ -709,9 +1085,63 @@ export function SchedulerForm({
     }));
   };
 
-  const handleSlotOperatorChange = (
+  const handleAddGroup = (
     day: SchedulerDayOfWeek,
     slotIndex: number,
+    groupId: string,
+  ) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex
+            ? {
+                ...slot,
+                rule: updateGroupById(slot.rule, groupId, (group) => ({
+                  ...group,
+                  items: [
+                    ...group.items,
+                    createAutomationGroupDraft("ANY", [
+                      createAutomationConditionDraft(
+                        "provider_primary_power",
+                        availableUnits[0] ?? "",
+                      ),
+                    ]),
+                  ],
+                })),
+              }
+            : slot,
+        ),
+      },
+    }));
+  };
+
+  const handleRemoveRuleNode = (
+    day: SchedulerDayOfWeek,
+    slotIndex: number,
+    nodeId: string,
+  ) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex
+            ? {
+                ...slot,
+                rule: removeNodeById(slot.rule, nodeId),
+              }
+            : slot,
+        ),
+      },
+    }));
+  };
+
+  const handleGroupOperatorChange = (
+    day: SchedulerDayOfWeek,
+    slotIndex: number,
+    groupId: string,
     operator: AutomationRuleGroupOperator,
   ) => {
     setRows((prev) => ({
@@ -719,7 +1149,15 @@ export function SchedulerForm({
       [day]: {
         ...prev[day],
         slots: prev[day].slots.map((slot, index) =>
-          index === slotIndex ? { ...slot, ruleOperator: operator } : slot,
+          index === slotIndex
+            ? {
+                ...slot,
+                rule: updateGroupById(slot.rule, groupId, (group) => ({
+                  ...group,
+                  operator,
+                })),
+              }
+            : slot,
         ),
       },
     }));
@@ -739,23 +1177,19 @@ export function SchedulerForm({
           index === slotIndex
             ? {
                 ...slot,
-                conditions: slot.conditions.map((condition) =>
-                  condition.id === conditionId
-                    ? {
-                        ...condition,
-                        source,
-                        comparator: "gte",
-                        value:
-                          source === "provider_battery_soc"
-                            ? "30"
-                            : condition.value,
-                        unit:
-                          source === "provider_battery_soc"
-                            ? "%"
-                            : availableUnits[0] ?? condition.unit,
-                      }
-                    : condition,
-                ),
+                rule: updateConditionById(slot.rule, conditionId, (condition) => ({
+                  ...condition,
+                  source,
+                  comparator: "gte",
+                  value:
+                    source === "provider_battery_soc"
+                      ? "30"
+                      : condition.value,
+                  unit:
+                    source === "provider_battery_soc"
+                      ? "%"
+                      : availableUnits[0] ?? condition.unit,
+                })),
               }
             : slot,
         ),
@@ -777,11 +1211,10 @@ export function SchedulerForm({
           index === slotIndex
             ? {
                 ...slot,
-                conditions: slot.conditions.map((condition) =>
-                  condition.id === conditionId
-                    ? { ...condition, comparator }
-                    : condition,
-                ),
+                rule: updateConditionById(slot.rule, conditionId, (condition) => ({
+                  ...condition,
+                  comparator,
+                })),
               }
             : slot,
         ),
@@ -806,11 +1239,10 @@ export function SchedulerForm({
           index === slotIndex
             ? {
                 ...slot,
-                conditions: slot.conditions.map((condition) =>
-                  condition.id === conditionId
-                    ? { ...condition, value: nextValue }
-                    : condition,
-                ),
+                rule: updateConditionById(slot.rule, conditionId, (condition) => ({
+                  ...condition,
+                  value: nextValue,
+                })),
               }
             : slot,
         ),
@@ -832,11 +1264,10 @@ export function SchedulerForm({
           index === slotIndex
             ? {
                 ...slot,
-                conditions: slot.conditions.map((condition) =>
-                  condition.id === conditionId
-                    ? { ...condition, unit: value }
-                    : condition,
-                ),
+                rule: updateConditionById(slot.rule, conditionId, (condition) => ({
+                  ...condition,
+                  unit: value,
+                })),
               }
             : slot,
         ),
@@ -850,22 +1281,24 @@ export function SchedulerForm({
     if (!hasAtLeastOneDay) return;
     if (hasInvalidRange) return;
     if (hasOverlapRange) return;
-    if (hasInvalidPowerThreshold) return;
+    if (hasInvalidConditions) return;
 
     const slots = SCHEDULER_DAY_ORDER.flatMap((day) =>
       rows[day].enabled
         ? [...rows[day].slots]
             .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
             .map((slot) => {
-              const persistedPowerCondition = getPersistedPowerCondition(
-                slot,
-                availableUnits,
-              );
+              const activationRule = slot.conditionsEnabled
+                ? buildActivationRule(slot.rule, availableUnits)
+                : null;
+              const persistedPowerCondition = slot.conditionsEnabled
+                ? getPersistedPowerCondition(slot.rule, availableUnits)
+                : null;
               const startUtc = toUtcTimeForDay(day, slot.start);
               const endUtc = toUtcTimeForDay(day, slot.end);
+
               return {
                 day_of_week: day,
-                // Keep local + UTC representation so backend agents can execute correctly across time zones.
                 start_local_time: slot.start,
                 end_local_time: slot.end,
                 start_utc_time: startUtc,
@@ -875,6 +1308,7 @@ export function SchedulerForm({
                 use_power_threshold: persistedPowerCondition != null,
                 power_threshold_value: persistedPowerCondition?.parsedValue ?? null,
                 power_threshold_unit: persistedPowerCondition?.condition.unit ?? null,
+                activation_rule: activationRule,
               };
             })
         : [],
@@ -918,12 +1352,25 @@ export function SchedulerForm({
           }
         />
 
+        {validationMessages.length > 0 && (
+          <Alert severity="error">
+            <Stack spacing={0.25}>
+              <Typography variant="body2" fontWeight={600}>
+                {t("schedulers.form.validationSummary")}
+              </Typography>
+              {validationMessages.map((message) => (
+                <Typography key={message} variant="body2">
+                  {message}
+                </Typography>
+              ))}
+            </Stack>
+          </Alert>
+        )}
+
         {unitsLoadError && <Alert severity="warning">{unitsLoadError}</Alert>}
 
         {hasAdvancedPreviewWarning && (
-          <Alert severity="info">
-            {t("schedulers.form.previewWarning")}
-          </Alert>
+          <Alert severity="info">{t("schedulers.form.previewWarning")}</Alert>
         )}
 
         {!unitsLoading && availableUnits.length === 0 && (
@@ -1007,16 +1454,12 @@ export function SchedulerForm({
                             : t("schedulers.form.overlapRange")
                           : BLANK_HELPER;
 
-                      const slotConditionsValidation = validateSlotConditions(
-                        slot,
-                        availableUnits,
-                      );
-                      const powerError =
+                      const ruleValidation = slotRuleValidations[day][slotIndex];
+                      const conditionsError =
                         slot.conditionsEnabled &&
-                        (!slotConditionsValidation.hasPersistablePowerCondition ||
-                          slotConditionsValidation.hasInvalidCondition);
-
-                      const slotError = submitted && (rangeError || powerError);
+                        (ruleValidation.hasInvalidCondition ||
+                          ruleValidation.hasEmptyGroup);
+                      const slotError = submitted && (rangeError || conditionsError);
 
                       return (
                         <Box
@@ -1096,23 +1539,30 @@ export function SchedulerForm({
                               </Box>
                             </Box>
 
-                            <AutomationRuleBuilder
+                            <SchedulerRuleTreeBuilder
                               title={t("schedulers.form.slotRuleTitle")}
                               description={t("schedulers.form.slotRuleDescription")}
                               enabled={slot.conditionsEnabled}
                               onEnabledChange={(checked) =>
                                 handleSlotConditionsToggle(day, slotIndex, checked)
                               }
-                              operator={slot.ruleOperator}
-                              onOperatorChange={(nextOperator) =>
-                                handleSlotOperatorChange(day, slotIndex, nextOperator)
+                              rule={slot.rule}
+                              onGroupOperatorChange={(groupId, operator) =>
+                                handleGroupOperatorChange(
+                                  day,
+                                  slotIndex,
+                                  groupId,
+                                  operator,
+                                )
                               }
-                              conditions={slot.conditions}
-                              onAddCondition={() =>
-                                handleAddCondition(day, slotIndex)
+                              onAddCondition={(groupId) =>
+                                handleAddCondition(day, slotIndex, groupId)
                               }
-                              onRemoveCondition={(conditionId) =>
-                                handleRemoveCondition(day, slotIndex, conditionId)
+                              onAddGroup={(groupId) =>
+                                handleAddGroup(day, slotIndex, groupId)
+                              }
+                              onRemoveNode={(nodeId) =>
+                                handleRemoveRuleNode(day, slotIndex, nodeId)
                               }
                               onSourceChange={(conditionId, source) =>
                                 handleConditionSourceChange(
@@ -1149,23 +1599,42 @@ export function SchedulerForm({
                               powerUnits={availableUnits}
                               canUseBatterySoc={hasBatteryTelemetry}
                               disabled={loading || unitsLoading}
+                              showValidation={submitted && slot.conditionsEnabled}
+                              validation={{
+                                groupErrors: Object.fromEntries(
+                                  Object.entries(ruleValidation.groupErrors).map(
+                                    ([groupId, code]) => [
+                                      groupId,
+                                      code === "empty"
+                                        ? t("automation.validation.groupEmpty")
+                                        : undefined,
+                                    ],
+                                  ),
+                                ),
+                                conditionErrors: Object.fromEntries(
+                                  Object.entries(
+                                    ruleValidation.conditionErrors,
+                                  ).map(([conditionId, errors]) => [
+                                    conditionId,
+                                    {
+                                      value: getConditionFieldErrorText(
+                                        errors.value,
+                                      ),
+                                      unit: getUnitFieldErrorText(errors.unit),
+                                    },
+                                  ]),
+                                ),
+                              }}
                               toggleLabel={t(
                                 "schedulers.form.enableSlotConditions",
                               )}
                             />
 
-                            <Box sx={{ minHeight: 20 }}>
-                              <Typography
-                                variant="caption"
-                                color="error"
-                                sx={{
-                                  visibility:
-                                    submitted && powerError ? "visible" : "hidden",
-                                }}
-                              >
+                            {submitted && conditionsError && (
+                              <Alert severity="error" sx={{ py: 0.5 }}>
                                 {t("schedulers.form.persistablePowerRequired")}
-                              </Typography>
-                            </Box>
+                              </Alert>
+                            )}
                           </Stack>
                         </Box>
                       );
@@ -1187,23 +1656,22 @@ export function SchedulerForm({
           </Box>
         </Stack>
 
-        <Box sx={{ minHeight: 20 }}>
-          <Typography
-            variant="caption"
-            color="error"
-            sx={{ visibility: submitError ? "visible" : "hidden" }}
-          >
-            {submitError || BLANK_HELPER}
-          </Typography>
-        </Box>
+        {submitError && <Alert severity="error">{submitError}</Alert>}
 
         {!hideActions && (
           <Box display="flex" justifyContent="flex-end" gap={1}>
             <Button variant="outlined" onClick={onCancel} disabled={loading}>
               {t("common.cancel")}
             </Button>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {t("common.save")}
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              startIcon={
+                loading ? <CircularProgress size={16} color="inherit" /> : undefined
+              }
+            >
+              {loading ? t("common.loading") : t("common.save")}
             </Button>
           </Box>
         )}

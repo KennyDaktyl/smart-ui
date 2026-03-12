@@ -1,12 +1,15 @@
-import { Box, Stack, Typography } from "@mui/material";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
 import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   ProviderMetricSeries,
   TelemetryChartType,
 } from "@/features/providers/types/userProvider";
 
-const CHART_WIDTH = 960;
+const BASE_WIDTH = 960;
 const CHART_HEIGHT = 260;
 const Y_AXIS_WIDTH = 58;
 const PADDING_LEFT = 60;
@@ -17,6 +20,9 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const WARSAW_TZ = "Europe/Warsaw";
 const BATTERY_SOC_TICKS = [0, 25, 50, 75, 100];
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 6;
+const ZOOM_STEP = 0.5;
 
 type ChartPoint = {
   ts: number;
@@ -101,13 +107,31 @@ const buildTicks = (min: number, max: number) => {
   });
 };
 
+const resolveTickStepHours = (zoom: number) => {
+  if (zoom >= 3) return 1;
+  if (zoom >= 2) return 2;
+  return 4;
+};
+
+const buildHourTicks = (stepHours: number) => {
+  const ticks: number[] = [];
+  for (let hour = 0; hour <= 24; hour += stepHours) {
+    ticks.push(hour);
+  }
+  if (ticks[ticks.length - 1] !== 24) {
+    ticks.push(24);
+  }
+  return ticks;
+};
+
 const buildGeometry = (
+  width: number,
   dayStartMs: number,
   min: number,
   max: number,
   yTicksOverride?: number[]
 ) => {
-  const graphWidth = CHART_WIDTH - PADDING_LEFT - PADDING_RIGHT;
+  const graphWidth = width - PADDING_LEFT - PADDING_RIGHT;
   const graphHeight = CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
   const safeRange = Math.abs(max - min) < 1e-9 ? 1 : max - min;
 
@@ -177,13 +201,20 @@ export function ProviderMetricChart({
   series,
   noDataLabel,
 }: ProviderMetricChartProps) {
+  const { t } = useTranslation();
   const [tooltip, setTooltip] = useState<HoverTooltipState | null>(null);
+  const [zoom, setZoom] = useState(1);
   const unit = series?.unit ?? "";
   const isBatterySocChart =
     series?.metric_key === "battery_soc" || series?.unit === "%";
   const dayStartMs = useMemo(
     () => Date.parse(`${series?.date ?? "1970-01-01"}T00:00:00Z`),
     [series?.date]
+  );
+  const chartWidth = BASE_WIDTH * zoom;
+  const xTickHours = useMemo(
+    () => buildHourTicks(resolveTickStepHours(zoom)),
+    [zoom]
   );
 
   const chart = useMemo(() => {
@@ -193,7 +224,7 @@ export function ProviderMetricChart({
         points: [] as ChartPoint[],
         path: "",
         barWidth: 0,
-        geometry: buildGeometry(dayStartMs, 0, 1),
+        geometry: buildGeometry(chartWidth, dayStartMs, 0, 1),
       };
     }
 
@@ -227,7 +258,7 @@ export function ProviderMetricChart({
         points: [] as ChartPoint[],
         path: "",
         barWidth: 0,
-        geometry: buildGeometry(dayStartMs, 0, 1),
+        geometry: buildGeometry(chartWidth, dayStartMs, 0, 1),
       };
     }
 
@@ -252,7 +283,13 @@ export function ProviderMetricChart({
       max += delta;
     }
 
-    const geometry = buildGeometry(dayStartMs, min, max, yTicksOverride);
+    const geometry = buildGeometry(
+      chartWidth,
+      dayStartMs,
+      min,
+      max,
+      yTicksOverride
+    );
     const points = normalized.map((point) => ({
       ...point,
       x: geometry.xFor(point.ts),
@@ -265,11 +302,11 @@ export function ProviderMetricChart({
       path: buildLinePath(points),
       barWidth:
         series.chart_type === "bar"
-          ? Math.max(10, (CHART_WIDTH - PADDING_LEFT - PADDING_RIGHT) / 24 / 1.6)
+          ? Math.max(10, (chartWidth - PADDING_LEFT - PADDING_RIGHT) / 24 / 1.6)
           : 0,
       geometry,
     };
-  }, [dayStartMs, isBatterySocChart, series]);
+  }, [chartWidth, dayStartMs, isBatterySocChart, series]);
 
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
@@ -287,15 +324,46 @@ export function ProviderMetricChart({
 
   return (
     <Box sx={{ borderRadius: 2, border: "1px solid rgba(15,139,111,0.18)", p: 2 }}>
-      <Stack spacing={0.5} mb={1.5}>
-        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
-          {title}
-        </Typography>
-        {series?.unit ? (
-          <Typography variant="caption" color="text.secondary">
-            {series.unit}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        justifyContent="space-between"
+        mb={1.5}
+      >
+        <Stack spacing={0.5}>
+          <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+            {title}
           </Typography>
-        ) : null}
+          {series?.unit ? (
+            <Typography variant="caption" color="text.secondary">
+              {series.unit}
+            </Typography>
+          ) : null}
+        </Stack>
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="caption" color="primary">
+            {t("providers.telemetry.zoom")}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setZoom((value) => Math.max(value - ZOOM_STEP, MIN_ZOOM))}
+            disabled={zoom <= MIN_ZOOM}
+          >
+            <ZoomOutIcon fontSize="small" />
+          </IconButton>
+          <Typography color="primary" minWidth={40} textAlign="center">
+            {zoom.toFixed(1)}x
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setZoom((value) => Math.min(value + ZOOM_STEP, MAX_ZOOM))}
+            disabled={zoom >= MAX_ZOOM}
+          >
+            <ZoomInIcon fontSize="small" />
+          </IconButton>
+        </Stack>
       </Stack>
 
       <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
@@ -306,14 +374,14 @@ export function ProviderMetricChart({
           isPercentAxis={isBatterySocChart}
         />
         <Box sx={{ overflowX: "auto", flex: 1 }} onMouseLeave={() => setTooltip(null)}>
-          <svg width={CHART_WIDTH} height={CHART_HEIGHT} style={{ display: "block" }}>
+          <svg width={chartWidth} height={CHART_HEIGHT} style={{ display: "block" }}>
           {chart.geometry.yTicks.map((value, index) => {
             const y = chart.geometry.yFor(value);
             return (
               <line
                 key={`grid-${index}`}
                 x1={PADDING_LEFT}
-                x2={CHART_WIDTH - PADDING_RIGHT}
+                x2={chartWidth - PADDING_RIGHT}
                 y1={y}
                 y2={y}
                 stroke="#e5e7eb"
@@ -321,7 +389,7 @@ export function ProviderMetricChart({
             );
           })}
 
-          {Array.from({ length: 7 }, (_, index) => index * 4).map((hour) => {
+          {xTickHours.map((hour) => {
             const ts = dayStartMs + hour * HOUR_MS;
             const x = chart.geometry.xFor(ts);
             return (
@@ -350,7 +418,7 @@ export function ProviderMetricChart({
             <>
               <line
                 x1={PADDING_LEFT}
-                x2={CHART_WIDTH - PADDING_RIGHT}
+                x2={chartWidth - PADDING_RIGHT}
                 y1={chart.geometry.zeroY}
                 y2={chart.geometry.zeroY}
                 stroke="#94a3b8"

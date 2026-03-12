@@ -2,6 +2,7 @@ import axiosClient from "@/api/axiosClient";
 import type { Device } from "@/features/devices/types/devicesType";
 import type { DeviceEventsResponse } from "@/features/devices/types/deviceEvents";
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
+import type { AutomationRuleGroupPayload } from "@/features/automation/types/rules";
 
 export type DeviceCreatePayload = {
   name: string;
@@ -9,6 +10,7 @@ export type DeviceCreatePayload = {
   mode: DeviceMode;
   rated_power?: number | null;
   threshold_value?: number | null;
+  auto_rule?: AutomationRuleGroupPayload | null;
   scheduler_id?: number | null;
 };
 

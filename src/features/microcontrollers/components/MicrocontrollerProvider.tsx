@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import { microcontrollersApi } from "@/api/microcontrollerApi";
 import { ProviderLiveEnergy } from "@/features/providers/live/ProviderLiveEnergy";
+import { ProviderLiveMetricsPanel } from "@/features/providers/components/ProviderLiveMetricsPanel";
 
 type Props = {
   microcontroller: MicrocontrollerResponse;
@@ -105,10 +106,16 @@ export function MicrocontrollerProvider({
 
       {currentProvider && (
         <>
-          <ProviderLiveEnergy
-            key={currentProviderUuid}
-            provider={currentProvider}
-          />
+          <ProviderLiveEnergy key={currentProviderUuid} provider={currentProvider}>
+            {(live) => (
+              <ProviderLiveMetricsPanel
+                provider={currentProvider}
+                live={live}
+                compact
+                emptyLabel={String(t("providers.live.noMetrics"))}
+              />
+            )}
+          </ProviderLiveEnergy>
           <Typography variant="caption" color="text.secondary">
             {t("providers.title")}: {currentProvider.name}
           </Typography>

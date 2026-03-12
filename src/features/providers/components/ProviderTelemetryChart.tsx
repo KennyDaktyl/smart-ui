@@ -82,6 +82,12 @@ type ProviderTelemetryChartProps = {
   noEntriesLabel?: string;
 };
 
+type ZoomControlProps = {
+  zoom: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
+};
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -234,6 +240,31 @@ const deriveEnergyUnit = (measuredUnit?: string | null) => {
     : `${normalized}h`;
 };
 
+const ZoomControl = ({
+  zoom,
+  onDecrease,
+  onIncrease,
+}: ZoomControlProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography variant="caption" color="primary">
+        {t("providers.telemetry.zoom")}
+      </Typography>
+      <IconButton size="small" onClick={onDecrease} disabled={zoom <= MIN_ZOOM}>
+        <ZoomOutIcon fontSize="small" />
+      </IconButton>
+      <Typography color="primary" minWidth={40} textAlign="center">
+        {zoom.toFixed(1)}x
+      </Typography>
+      <IconButton size="small" onClick={onIncrease} disabled={zoom >= MAX_ZOOM}>
+        <ZoomInIcon fontSize="small" />
+      </IconButton>
+    </Stack>
+  );
+};
+
 export function ProviderTelemetryChart({
   day,
   points,
@@ -246,17 +277,23 @@ export function ProviderTelemetryChart({
 }: ProviderTelemetryChartProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "pl" ? "pl-PL" : "en-US";
-  const [zoom, setZoom] = useState(1);
+  const [barsZoom, setBarsZoom] = useState(1);
+  const [entriesZoom, setEntriesZoom] = useState(1);
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltipState | null>(
     null
   );
 
   const dayStartMs = useMemo(() => Date.parse(`${day.date}T00:00:00Z`), [day.date]);
 
-  const chartWidth = BASE_WIDTH * zoom;
-  const xTickHours = useMemo(
-    () => buildHourTicks(resolveTickStepHours(zoom)),
-    [zoom]
+  const barsChartWidth = BASE_WIDTH * barsZoom;
+  const entriesChartWidth = BASE_WIDTH * entriesZoom;
+  const barsXTickHours = useMemo(
+    () => buildHourTicks(resolveTickStepHours(barsZoom)),
+    [barsZoom]
+  );
+  const entriesXTickHours = useMemo(
+    () => buildHourTicks(resolveTickStepHours(entriesZoom)),
+    [entriesZoom]
   );
 
   const barsChart = useMemo(() => {
@@ -278,7 +315,7 @@ export function ProviderTelemetryChart({
       return {
         bars: [] as HourBar[],
         barWidth: 0,
-        geometry: buildGeometry(chartWidth, BAR_HEIGHT, 0, 1, dayStartMs),
+        geometry: buildGeometry(barsChartWidth, BAR_HEIGHT, 0, 1, dayStartMs),
       };
     }
 
@@ -291,7 +328,13 @@ export function ProviderTelemetryChart({
       min -= 1;
     }
 
-    const geometry = buildGeometry(chartWidth, BAR_HEIGHT, min, max, dayStartMs);
+    const geometry = buildGeometry(
+      barsChartWidth,
+      BAR_HEIGHT,
+      min,
+      max,
+      dayStartMs
+    );
     const barWidth = Math.max(8, (geometry.graphWidth / 24) * 0.66);
 
     const bars = hours.map((point) => {
@@ -315,7 +358,7 @@ export function ProviderTelemetryChart({
       barWidth,
       geometry,
     };
-  }, [chartWidth, day.hours, dayStartMs, locale]);
+  }, [barsChartWidth, day.hours, dayStartMs, locale]);
 
   const entriesChart = useMemo(() => {
     const configuredMin =
@@ -348,13 +391,13 @@ export function ProviderTelemetryChart({
         path: "",
         geometry: hasConfiguredRange
           ? buildGeometry(
-              chartWidth,
+              entriesChartWidth,
               LINE_HEIGHT,
               configuredMin,
               configuredMax,
               dayStartMs
             )
-          : buildGeometry(chartWidth, LINE_HEIGHT, 0, 1, dayStartMs),
+          : buildGeometry(entriesChartWidth, LINE_HEIGHT, 0, 1, dayStartMs),
       };
     }
 
@@ -378,7 +421,13 @@ export function ProviderTelemetryChart({
       }
     }
 
-    const geometry = buildGeometry(chartWidth, LINE_HEIGHT, min, max, dayStartMs);
+    const geometry = buildGeometry(
+      entriesChartWidth,
+      LINE_HEIGHT,
+      min,
+      max,
+      dayStartMs
+    );
     const linePoints = normalizedEntries.map((entry) => ({
       ...entry,
       x: geometry.xFor(entry.ts),
@@ -390,7 +439,7 @@ export function ProviderTelemetryChart({
       path: buildLinePath(linePoints),
       geometry,
     };
-  }, [chartWidth, dayStartMs, locale, points, yMax, yMin]);
+  }, [dayStartMs, entriesChartWidth, locale, points, yMax, yMin]);
 
   const measuredUnitLabel = measuredUnit ?? "kW";
   const energyUnitLabel = energyUnit ?? deriveEnergyUnit(measuredUnitLabel);
@@ -420,7 +469,6 @@ export function ProviderTelemetryChart({
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={1}
-        justifyContent="space-between"
         mb={1}
       >
         <Typography fontWeight={700} color="text.secondary">
@@ -431,29 +479,6 @@ export function ProviderTelemetryChart({
             timeZone: WARSAW_TZ,
           })}
         </Typography>
-
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="caption" color="primary">
-            {t("providers.telemetry.zoom")}
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => setZoom((value) => Math.max(value - ZOOM_STEP, MIN_ZOOM))}
-            disabled={zoom <= MIN_ZOOM}
-          >
-            <ZoomOutIcon fontSize="small" />
-          </IconButton>
-          <Typography color="primary" minWidth={40} textAlign="center">
-            {zoom.toFixed(1)}x
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => setZoom((value) => Math.min(value + ZOOM_STEP, MAX_ZOOM))}
-            disabled={zoom >= MAX_ZOOM}
-          >
-            <ZoomInIcon fontSize="small" />
-          </IconButton>
-        </Stack>
       </Stack>
 
       <Stack direction="row" spacing={3} mb={1} flexWrap="wrap">
@@ -468,9 +493,26 @@ export function ProviderTelemetryChart({
         </Typography>
       </Stack>
 
-      <Typography variant="subtitle2" fontWeight={700} mb={1} color="text.secondary">
-        {t("providers.telemetry.hourlyChart")}
-      </Typography>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        justifyContent="space-between"
+        mb={1}
+      >
+        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+          {t("providers.telemetry.hourlyChart")}
+        </Typography>
+        <ZoomControl
+          zoom={barsZoom}
+          onDecrease={() =>
+            setBarsZoom((value) => Math.max(value - ZOOM_STEP, MIN_ZOOM))
+          }
+          onIncrease={() =>
+            setBarsZoom((value) => Math.min(value + ZOOM_STEP, MAX_ZOOM))
+          }
+        />
+      </Stack>
 
       <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
         <StickyYAxis
@@ -494,7 +536,7 @@ export function ProviderTelemetryChart({
               );
             })}
 
-            {xTickHours.map((hour) => {
+            {barsXTickHours.map((hour) => {
               const ts = dayStartMs + hour * HOUR_MS;
               const x = barsChart.geometry.xFor(ts);
               return (
@@ -567,15 +609,27 @@ export function ProviderTelemetryChart({
         </Typography>
       )}
 
-      <Typography
-        variant="subtitle2"
-        fontWeight={700}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        justifyContent="space-between"
         mt={2.5}
         mb={1}
-        color="text.secondary"
       >
-        {t("providers.telemetry.entriesChart")}
-      </Typography>
+        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+          {t("providers.telemetry.entriesChart")}
+        </Typography>
+        <ZoomControl
+          zoom={entriesZoom}
+          onDecrease={() =>
+            setEntriesZoom((value) => Math.max(value - ZOOM_STEP, MIN_ZOOM))
+          }
+          onIncrease={() =>
+            setEntriesZoom((value) => Math.min(value + ZOOM_STEP, MAX_ZOOM))
+          }
+        />
+      </Stack>
 
       <Box sx={{ display: "flex", borderRadius: 1, overflow: "hidden" }}>
         <StickyYAxis
@@ -599,7 +653,7 @@ export function ProviderTelemetryChart({
               );
             })}
 
-            {xTickHours.map((hour) => {
+            {entriesXTickHours.map((hour) => {
               const ts = dayStartMs + hour * HOUR_MS;
               const x = entriesChart.geometry.xFor(ts);
               return (
@@ -661,7 +715,7 @@ export function ProviderTelemetryChart({
                 <circle
                   cx={point.x}
                   cy={point.y}
-                  r={zoom >= 3 ? 2.2 : 1.8}
+                  r={entriesZoom >= 3 ? 2.2 : 1.8}
                   fill={point.isNullSample ? "#ef4444" : "#0f8b6f"}
                 />
               </g>

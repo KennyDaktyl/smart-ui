@@ -1,3 +1,7 @@
+import type {
+  AutomationRuleGroupPayload,
+} from "@/features/automation/types/rules";
+
 export type SchedulerDayOfWeek =
   | "MONDAY"
   | "TUESDAY"
@@ -6,6 +10,8 @@ export type SchedulerDayOfWeek =
   | "FRIDAY"
   | "SATURDAY"
   | "SUNDAY";
+
+export type SchedulerActivationRule = AutomationRuleGroupPayload;
 
 export type SchedulerSlot = {
   day_of_week: SchedulerDayOfWeek;
@@ -18,6 +24,8 @@ export type SchedulerSlot = {
   use_power_threshold?: boolean;
   power_threshold_value?: number | null;
   power_threshold_unit?: string | null;
+  activation_rule?: SchedulerActivationRule | null;
+  activation_rule_json?: SchedulerActivationRule | null;
 };
 
 export type Scheduler = {

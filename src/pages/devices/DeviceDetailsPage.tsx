@@ -43,6 +43,7 @@ import { DeviceInfoTile } from "@/features/devices/components/DeviceInfoTile";
 import { DeviceLiveStatus } from "@/features/devices/live/DeviceLiveStatus";
 import { MicrocontrollerLiveStatus } from "@/features/microcontrollers/live/MicrocontrollerLiveStatus";
 import { ProviderLiveEnergy } from "@/features/providers/live/ProviderLiveEnergy";
+import { ProviderLiveMetricsPanel } from "@/features/providers/components/ProviderLiveMetricsPanel";
 import { DeviceEventLiveWidget } from "@/features/live/widgets/DeviceEventLiveWidget";
 import { TelemetryDateNavigator } from "@/features/providers/telemetry/components/TelemetryDateNavigator";
 import {
@@ -566,14 +567,19 @@ export default function DeviceDetailsPage() {
 
                     <Grid size={{ xs: 12, md: 4 }}>
                       <DeviceInfoTile
-                        label={String(t("devices.details.live.providerPower"))}
+                        label={String(t("devices.details.live.providerMetrics"))}
                         value={
                           powerProvider ? (
                             <Stack spacing={0.5}>
-                              <ProviderLiveEnergy
-                                key={powerProvider.uuid}
-                                provider={powerProvider}
-                              />
+                              <ProviderLiveEnergy key={powerProvider.uuid} provider={powerProvider}>
+                                {(live) => (
+                                  <ProviderLiveMetricsPanel
+                                    provider={powerProvider}
+                                    live={live}
+                                    emptyLabel={String(t("providers.live.noMetrics"))}
+                                  />
+                                )}
+                              </ProviderLiveEnergy>
                               <Typography variant="caption" color="text.secondary">
                                 {powerProvider.name}
                               </Typography>
@@ -624,14 +630,19 @@ export default function DeviceDetailsPage() {
                   >
                     <Box>
                       <DeviceInfoTile
-                        label={String(t("devices.details.live.providerPower"))}
+                        label={String(t("devices.details.live.providerMetrics"))}
                         value={
                           powerProvider ? (
                             <Stack spacing={0.5}>
-                              <ProviderLiveEnergy
-                                key={powerProvider.uuid}
-                                provider={powerProvider}
-                              />
+                              <ProviderLiveEnergy key={powerProvider.uuid} provider={powerProvider}>
+                                {(live) => (
+                                  <ProviderLiveMetricsPanel
+                                    provider={powerProvider}
+                                    live={live}
+                                    emptyLabel={String(t("providers.live.noMetrics"))}
+                                  />
+                                )}
+                              </ProviderLiveEnergy>
                               <Typography variant="caption" color="text.secondary">
                                 {powerProvider.name}
                               </Typography>

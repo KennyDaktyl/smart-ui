@@ -15,6 +15,7 @@ type Props = {
   live: LiveState;
   isAtDeviceCapacity?: boolean;
   onAddDevice: () => void;
+  onEdit: () => void;
 };
 
 export function MicrocontrollerBox({
@@ -22,6 +23,7 @@ export function MicrocontrollerBox({
   live,
   isAtDeviceCapacity = false,
   onAddDevice,
+  onEdit,
 }: Props) {
   const { t } = useTranslation();
   const isOffline = live.status === "offline";
@@ -46,13 +48,19 @@ export function MicrocontrollerBox({
 
         <Divider />
 
-        <Button
-          variant="contained"
-          disabled={live.status !== "online" || isAtDeviceCapacity}
-          onClick={onAddDevice}
-        >
-          {t("common.add")}
-        </Button>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+          <Button variant="outlined" onClick={onEdit}>
+            {t("common.edit")}
+          </Button>
+
+          <Button
+            variant="contained"
+            disabled={live.status !== "online" || isAtDeviceCapacity}
+            onClick={onAddDevice}
+          >
+            {t("common.add")}
+          </Button>
+        </Stack>
       </Stack>
     </CardShell>
   );

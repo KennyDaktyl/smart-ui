@@ -45,6 +45,7 @@ export type MicrocontrollerConfig = {
   uuid?: string | null;
   device_max?: number;
   active_low?: boolean;
+  available_sensors?: string[];
   pins?: number[];
   provider?: MicrocontrollerProviderConfig;
 };

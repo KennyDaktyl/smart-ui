@@ -16,6 +16,7 @@ import {
 import Grid from "@mui/material/Grid2";
 import { alpha } from "@mui/material/styles";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,10 +29,19 @@ import { CardShell } from "@/features/common/components/CardShell";
 import { ProviderPowerGauge } from "@/features/dashboard/components/ProviderPowerGauge";
 import type { DeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
 import type { Device } from "@/features/devices/types/devicesType";
+import { formatDeviceAutoRuleSummary } from "@/features/devices/utils/autoRuleSummary";
 import type { MicrocontrollerOnlineState } from "@/features/microcontrollers/hooks/useMicrocontrollersOnlineStatus";
 import type { MicrocontrollerResponse } from "@/features/microcontrollers/types/microcontroller";
 import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
+import { ProviderLiveMetricsPanel } from "@/features/providers/components/ProviderLiveMetricsPanel";
 import type { ProviderResponse } from "@/features/providers/types/userProvider";
+import {
+  BATTERY_SOC_METRIC_KEY,
+  GRID_POWER_METRIC_KEY,
+  formatProviderMetricValue,
+  getPrimaryProviderMetricLabel,
+  resolveProviderDisplayMetrics,
+} from "@/features/providers/utils/providerLiveMetrics";
 
 type DashboardDeviceCardProps = {
   device: Device;
@@ -75,6 +85,20 @@ const resolveGaugeBounds = (
     min,
     max: Math.max(min + 1, observedPower, lastPower, thresholdValue, ratedValue, 10),
   };
+};
+
+const truncateAutoLogic = (value: string, maxLength = 88) => {
+  if (value.length <= maxLength) return value;
+
+  const sliced = value.slice(0, maxLength);
+  const lastSeparator = Math.max(
+    sliced.lastIndexOf(" OR "),
+    sliced.lastIndexOf(" AND "),
+    sliced.lastIndexOf(" ")
+  );
+  const cutoff = lastSeparator > 28 ? lastSeparator : maxLength;
+
+  return `${sliced.slice(0, cutoff).trim()}...`;
 };
 
 const resolveOnState = (
@@ -208,6 +232,7 @@ export function DashboardDeviceCard({
   const [pendingManualState, setPendingManualState] = useState<boolean | null>(
     null
   );
+  const [autoLogicDialogOpen, setAutoLogicDialogOpen] = useState(false);
 
   const mode = (modeOverride ?? device.mode ?? deviceLive?.mode ?? null) as
     | string
@@ -275,6 +300,48 @@ export function DashboardDeviceCard({
       ? `${thresholdValue} ${thresholdUnit}`.trim()
       : t("common.notAvailable")
     : "—";
+  const autoLogicDisplayLabel = isAutoMode
+    ? formatDeviceAutoRuleSummary(device, t, thresholdUnit) ?? t("common.notAvailable")
+    : "—";
+  const autoLogicPreviewLabel =
+    isAutoMode && autoLogicDisplayLabel !== t("common.notAvailable")
+      ? truncateAutoLogic(autoLogicDisplayLabel)
+      : autoLogicDisplayLabel;
+  const autoLogicHasMore =
+    autoLogicPreviewLabel !== autoLogicDisplayLabel &&
+    autoLogicDisplayLabel !== t("common.notAvailable");
+  const providerMetrics = useMemo(
+    () =>
+      provider
+        ? resolveProviderDisplayMetrics({
+            provider,
+            liveMetrics: providerLive?.metrics,
+            power: providerPower,
+            unit: providerUnit,
+            t,
+          })
+        : [],
+    [provider, providerLive?.metrics, providerPower, providerUnit, t]
+  );
+  const gaugeCenterMetrics = useMemo(
+    () =>
+      providerMetrics
+        .filter((metric) =>
+          metric.key === BATTERY_SOC_METRIC_KEY ||
+          metric.key === GRID_POWER_METRIC_KEY
+        )
+        .slice(0, 2)
+        .map((metric) => ({
+          key: metric.key,
+          label: metric.label,
+          value: formatProviderMetricValue(metric.value, metric.unit),
+          color:
+            metric.key === BATTERY_SOC_METRIC_KEY
+              ? "#1f8f63"
+              : "#375a7f",
+        })),
+    [providerMetrics]
+  );
 
   const gaugeBounds = useMemo(
     () =>
@@ -393,6 +460,13 @@ export function DashboardDeviceCard({
   const handleOpenMicrocontroller = () => {
     navigate("/microcontrollers");
   };
+  const handleOpenAutoLogicDialog = () => {
+    if (!autoLogicHasMore) return;
+    setAutoLogicDialogOpen(true);
+  };
+  const handleCloseAutoLogicDialog = () => {
+    setAutoLogicDialogOpen(false);
+  };
   const interactiveMetaSx = {
     alignItems: "flex-start",
     borderRadius: 1.5,
@@ -471,55 +545,62 @@ export function DashboardDeviceCard({
               />
             </span>
           </Tooltip>
-          <Stack
-            direction="row"
-            spacing={0.5}
-            alignItems="center"
-            justifyContent="flex-end"
-            sx={{ minHeight: 24 }}
-          >
-            <Typography variant="caption" color="text.secondary" noWrap>
-              {manualStateLabel}
-            </Typography>
-            <Switch
-              size="small"
-              checked={switchChecked}
-              onChange={handleManualSwitchChange}
-              disabled={manualSwitchDisabled}
-              sx={{
-                ml: 0.25,
-                "& .MuiSwitch-switchBase": {
-                  p: 0.4,
-                },
-                "& .MuiSwitch-thumb": {
-                  width: 14,
-                  height: 14,
-                },
-                "& .MuiSwitch-track": {
-                  borderRadius: 8,
-                },
-              }}
-            />
-          </Stack>
           {isAutoMode && (
-            <Stack spacing={0} alignItems="flex-end">
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {t("dashboard.cards.autoThreshold")}
-              </Typography>
+            <Stack spacing={0.35} alignItems="flex-end" sx={{ maxWidth: 188 }}>
+              <Stack direction="row" spacing={0.25} alignItems="center">
+                <Typography variant="caption" color="text.secondary">
+                  {t("dashboard.cards.autoLogic")}
+                </Typography>
+                {autoLogicHasMore ? (
+                  <Tooltip
+                    title={t("dashboard.cards.autoLogicInfo")}
+                    placement="left-start"
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label={t("dashboard.cards.autoLogicInfo")}
+                      onClick={handleOpenAutoLogicDialog}
+                      sx={{
+                        p: 0.2,
+                        color: "text.secondary",
+                        "&:hover": {
+                          color: "primary.main",
+                        },
+                      }}
+                    >
+                      <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </Stack>
               <Typography
                 variant="body2"
                 fontWeight={600}
-                noWrap
                 sx={{
-                  maxWidth: 132,
+                  maxWidth: 188,
+                  textAlign: "right",
+                  display: "-webkit-box",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: autoLogicHasMore ? 2 : 3,
                   color:
-                    thresholdValue != null
+                    autoLogicDisplayLabel !== t("common.notAvailable")
                       ? (theme) => theme.palette.warning.dark
                       : "text.primary",
                 }}
               >
-                {thresholdDisplayLabel}
+                {autoLogicPreviewLabel}
               </Typography>
+              {thresholdValue != null && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ maxWidth: 188, textAlign: "right" }}
+                >
+                  {`${t("dashboard.cards.autoThreshold")}: ${thresholdDisplayLabel}`}
+                </Typography>
+              )}
             </Stack>
           )}
           </Stack>
@@ -552,9 +633,79 @@ export function DashboardDeviceCard({
             offLabel={t("dashboard.cards.stateOff")}
             pendingLabel="--"
             noDataLabel={t("dashboard.cards.noPowerData")}
-            providerPowerLabel={t("devices.details.live.providerPower")}
+            providerPowerLabel={
+              provider
+                ? getPrimaryProviderMetricLabel(provider, t)
+                : t("providers.live.metrics.providerPower")
+            }
             ratedPowerLabel={t("dashboard.cards.ratedPower")}
+            centerMetrics={gaugeCenterMetrics}
           />
+        </Stack>
+
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{
+            px: 1,
+            py: 0.85,
+            minHeight: 52,
+            borderRadius: 2,
+            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.045),
+          }}
+        >
+          <Stack spacing={0.2} sx={{ minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {t("dashboard.cards.powerSwitch")}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.primary"
+              sx={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isManualMode
+                ? t("dashboard.cards.powerSwitchManualHint")
+                : t("dashboard.cards.powerSwitchAutoHint")}
+            </Typography>
+          </Stack>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            justifyContent="flex-end"
+            sx={{ flexShrink: 0 }}
+          >
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {manualStateLabel}
+            </Typography>
+            <Switch
+              size="small"
+              checked={switchChecked}
+              onChange={handleManualSwitchChange}
+              disabled={manualSwitchDisabled}
+              sx={{
+                ml: 0.25,
+                "& .MuiSwitch-switchBase": {
+                  p: 0.4,
+                },
+                "& .MuiSwitch-thumb": {
+                  width: 14,
+                  height: 14,
+                },
+                "& .MuiSwitch-track": {
+                  borderRadius: 8,
+                },
+              }}
+            />
+          </Stack>
         </Stack>
 
         <Stack
@@ -599,6 +750,28 @@ export function DashboardDeviceCard({
             </Typography>
           </Stack>
         </Stack>
+
+        {provider ? (
+          <Box
+            sx={{
+              px: 0.95,
+              py: 1,
+              borderRadius: 2.5,
+              border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+              background: (theme) =>
+                `linear-gradient(180deg, ${alpha(theme.palette.common.white, 0.92)} 0%, ${alpha(theme.palette.success.light, 0.08)} 100%)`,
+            }}
+          >
+            <ProviderLiveMetricsPanel
+              provider={provider}
+              live={providerLive}
+              compact
+              title={t("dashboard.cards.providerMetrics")}
+              emptyLabel={t("providers.live.noMetrics")}
+              metrics={providerMetrics}
+            />
+          </Box>
+        ) : null}
 
         <Grid container columnSpacing={1.25} rowSpacing={1}>
           <Grid size={{ xs: 6 }}>
@@ -741,6 +914,31 @@ export function DashboardDeviceCard({
         </Box>
       </Stack>
       </CardShell>
+
+      <Dialog
+        open={autoLogicDialogOpen}
+        onClose={handleCloseAutoLogicDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>{t("dashboard.cards.autoLogic")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            sx={{
+              color: "text.primary",
+              wordBreak: "break-word",
+              lineHeight: 1.55,
+            }}
+          >
+            {autoLogicDisplayLabel}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAutoLogicDialog}>
+            {t("common.cancel")}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={confirmManualOpen} onClose={handleCancelManualConfirm}>
         <DialogTitle>{t("dashboard.cards.manualSwitchConfirmTitle")}</DialogTitle>

@@ -30,8 +30,14 @@ import {
   formatDateForInput,
   isFutureDate,
 } from "@/features/providers/telemetry/utils/date";
+import {
+  BATTERY_SOC_METRIC_KEY,
+  GRID_POWER_METRIC_KEY,
+  getPrimaryProviderMetricLabel,
+} from "@/features/providers/utils/providerLiveMetrics";
 import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import type {
+  ProviderMetricSeries,
   ProviderTelemetryEntry,
   ProviderResponse,
 } from "@/features/providers/types/userProvider";
@@ -45,6 +51,10 @@ type ProviderLocationState = {
 };
 
 const MAX_LIVE_ENTRIES_PER_DAY = 1440;
+type LiveMetricEntriesByDate = Record<
+  string,
+  Record<string, TelemetryChartPoint[]>
+>;
 
 const normalizeEntry = (
   entry: ProviderTelemetryEntry | TelemetryChartPoint
@@ -82,6 +92,70 @@ const normalizeEntry = (
   };
 };
 
+const upsertTelemetryEntry = (
+  existingEntries: TelemetryChartPoint[],
+  nextEntry: TelemetryChartPoint
+) => {
+  const existingIndex = existingEntries.findIndex(
+    (entry) => entry.timestamp === nextEntry.timestamp
+  );
+
+  if (
+    existingIndex >= 0 &&
+    existingEntries[existingIndex]?.value === nextEntry.value &&
+    existingEntries[existingIndex]?.isNullSample === nextEntry.isNullSample
+  ) {
+    return existingEntries;
+  }
+
+  const nextEntries = [...existingEntries];
+
+  if (existingIndex >= 0) {
+    nextEntries[existingIndex] = nextEntry;
+  } else {
+    nextEntries.push(nextEntry);
+  }
+
+  nextEntries.sort(
+    (left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)
+  );
+
+  return nextEntries.length > MAX_LIVE_ENTRIES_PER_DAY
+    ? nextEntries.slice(nextEntries.length - MAX_LIVE_ENTRIES_PER_DAY)
+    : nextEntries;
+};
+
+const mergeSeriesWithLiveEntries = (
+  series: ProviderMetricSeries | null,
+  liveEntries: TelemetryChartPoint[],
+  liveUnit?: string | null
+): ProviderMetricSeries | null => {
+  if (!series || series.aggregation_mode === "hourly_integral" || liveEntries.length === 0) {
+    return series;
+  }
+
+  const mergedEntries = new Map<string, TelemetryChartPoint>();
+
+  series.entries
+    .map(normalizeEntry)
+    .filter((entry): entry is TelemetryChartPoint => entry != null)
+    .forEach((entry) => {
+      mergedEntries.set(entry.timestamp, entry);
+    });
+
+  liveEntries.forEach((entry) => {
+    mergedEntries.set(entry.timestamp, entry);
+  });
+
+  return {
+    ...series,
+    unit: series.unit ?? liveUnit ?? null,
+    entries: [...mergedEntries.values()].sort(
+      (left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)
+    ),
+  };
+};
+
 /* ============================================================
  * Page
  * ============================================================ */
@@ -106,6 +180,8 @@ export default function ProviderTelemetryPage() {
   const [liveEntriesByDate, setLiveEntriesByDate] = useState<
     Record<string, TelemetryChartPoint[]>
   >({});
+  const [liveMetricEntriesByDate, setLiveMetricEntriesByDate] =
+    useState<LiveMetricEntriesByDate>({});
 
   const { telemetry, loading, error } = useProviderTelemetry({
     providerUuid,
@@ -131,10 +207,9 @@ export default function ProviderTelemetryPage() {
     provider?.has_energy_storage && batterySocMetric
   );
   const shouldShowGridChart = Boolean(provider?.has_power_meter && gridPowerMetric);
-  const primaryPowerLabel =
-    provider?.power_source === "meter"
-      ? t("providers.powerSource.meter")
-      : t("providers.powerSource.inverter");
+  const primaryPowerLabel = provider
+    ? getPrimaryProviderMetricLabel(provider, t)
+    : t("providers.live.metrics.providerPower");
   const primaryPowerIcon =
     provider?.power_source === "meter" ? (
       <ElectricMeterIcon fontSize="small" />
@@ -144,6 +219,7 @@ export default function ProviderTelemetryPage() {
 
   useEffect(() => {
     setLiveEntriesByDate({});
+    setLiveMetricEntriesByDate({});
     setLiveUnit(null);
   }, [providerUuid]);
 
@@ -151,8 +227,6 @@ export default function ProviderTelemetryPage() {
     (live: ProviderLiveSnapshot) => {
       if (!providerUuid || !live.hasWs) return;
       if (!live.measuredAt) return;
-      if (live.power == null || Number.isNaN(live.power)) return;
-      const livePower = live.power;
 
       const measuredAtMs = Date.parse(live.measuredAt);
       if (!Number.isFinite(measuredAtMs)) return;
@@ -164,44 +238,61 @@ export default function ProviderTelemetryPage() {
       const normalizedTimestamp = new Date(measuredAtMs).toISOString();
       const dayKey = formatDateForInput(new Date(measuredAtMs));
 
-      setLiveEntriesByDate((prev) => {
-        const existingForDay = prev[dayKey] ?? [];
-        const existingIndex = existingForDay.findIndex(
-          (entry) => entry.timestamp === normalizedTimestamp
-        );
+      if (live.power != null && !Number.isNaN(live.power)) {
+        setLiveEntriesByDate((prev) => {
+          const existingForDay = prev[dayKey] ?? [];
+          const nextEntry: TelemetryChartPoint = {
+            timestamp: normalizedTimestamp,
+            value: live.power,
+          };
+          const nextForDay = upsertTelemetryEntry(existingForDay, nextEntry);
 
-        if (
-          existingIndex >= 0 &&
-          existingForDay[existingIndex]?.value === livePower
-        ) {
+          if (nextForDay === existingForDay) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [dayKey]: nextForDay,
+          };
+        });
+      }
+
+      setLiveMetricEntriesByDate((prev) => {
+        const nextMetrics = Object.entries(live.metrics).reduce<
+          Record<string, TelemetryChartPoint[]>
+        >((acc, [metricKey, metric]) => {
+          if (metric?.value == null || Number.isNaN(metric.value)) {
+            return acc;
+          }
+
+          const existingMetricEntries = prev[dayKey]?.[metricKey] ?? [];
+          const nextMetricEntry = {
+            timestamp: normalizedTimestamp,
+            value: metric.value,
+          } satisfies TelemetryChartPoint;
+          const nextMetricEntries = upsertTelemetryEntry(
+            existingMetricEntries,
+            nextMetricEntry
+          );
+
+          if (nextMetricEntries !== existingMetricEntries) {
+            acc[metricKey] = nextMetricEntries;
+          }
+
+          return acc;
+        }, {});
+
+        if (Object.keys(nextMetrics).length === 0) {
           return prev;
         }
 
-        const nextForDay = [...existingForDay];
-        const nextEntry: TelemetryChartPoint = {
-          timestamp: normalizedTimestamp,
-          value: livePower,
-        };
-
-        if (existingIndex >= 0) {
-          nextForDay[existingIndex] = nextEntry;
-        } else {
-          nextForDay.push(nextEntry);
-        }
-
-        nextForDay.sort(
-          (left, right) =>
-            Date.parse(left.timestamp) - Date.parse(right.timestamp)
-        );
-
-        const cappedEntries =
-          nextForDay.length > MAX_LIVE_ENTRIES_PER_DAY
-            ? nextForDay.slice(nextForDay.length - MAX_LIVE_ENTRIES_PER_DAY)
-            : nextForDay;
-
         return {
           ...prev,
-          [dayKey]: cappedEntries,
+          [dayKey]: {
+            ...(prev[dayKey] ?? {}),
+            ...nextMetrics,
+          },
         };
       });
     },
@@ -240,6 +331,31 @@ export default function ProviderTelemetryPage() {
       (left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)
     );
   }, [day, liveEntriesByDate]);
+
+  const selectedDayLiveMetricEntries = useMemo(
+    () => liveMetricEntriesByDate[selectedDate] ?? {},
+    [liveMetricEntriesByDate, selectedDate]
+  );
+
+  const batterySeriesWithLiveEntries = useMemo(
+    () =>
+      mergeSeriesWithLiveEntries(
+        batterySocMetric,
+        selectedDayLiveMetricEntries[BATTERY_SOC_METRIC_KEY] ?? [],
+        "%"
+      ),
+    [batterySocMetric, selectedDayLiveMetricEntries]
+  );
+
+  const gridSeriesWithLiveEntries = useMemo(
+    () =>
+      mergeSeriesWithLiveEntries(
+        gridPowerMetric,
+        selectedDayLiveMetricEntries[GRID_POWER_METRIC_KEY] ?? [],
+        gridPowerMetric?.unit
+      ),
+    [gridPowerMetric, selectedDayLiveMetricEntries]
+  );
 
   const nextDayDisabled = selectedDate >= today;
   const isTodaySelected = selectedDate === today;
@@ -403,10 +519,10 @@ export default function ProviderTelemetryPage() {
               <ProviderMetricChart
                 title={
                   <IconLabel icon={<BatteryChargingFullIcon fontSize="small" />}>
-                    {batterySocMetric?.label ?? "Battery SOC"}
+                    {t("providers.live.metrics.batterySoc")}
                   </IconLabel>
                 }
-                series={batterySocMetric}
+                series={batterySeriesWithLiveEntries}
                 noDataLabel={t("providers.telemetry.noData")}
               />
             </LoadingOverlay>
@@ -421,10 +537,10 @@ export default function ProviderTelemetryPage() {
               <ProviderMetricChart
                 title={
                   <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
-                    {gridPowerMetric?.label ?? "Grid power"}
+                    {t("providers.live.metrics.gridPower")}
                   </IconLabel>
                 }
-                series={gridPowerMetric}
+                series={gridSeriesWithLiveEntries}
                 noDataLabel={t("providers.telemetry.noData")}
               />
             </LoadingOverlay>

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { ProviderResponse } from "../types/userProvider";
 import { ProviderLiveState } from "../hooks/useProvidersLive";
 import LivePowerEmpty from "./LivePowerEmpty";
+import { ProviderLiveMetricsPanel } from "./ProviderLiveMetricsPanel";
 
 type Props = {
   provider: ProviderResponse;
@@ -37,6 +38,7 @@ export default function LivePowerStatus({
 
   const power = live?.power ?? 0;
   const isProducing = power > 0;
+  const powerUnit = live?.unit ?? provider.unit ?? "";
 
   return (
     <Box>
@@ -87,9 +89,7 @@ export default function LivePowerStatus({
               }
             >
               {power}
-              {provider.unit
-                ? ` ${provider.unit}`
-                : ""}
+              {powerUnit ? ` ${powerUnit}` : ""}
             </Typography>
 
             <Chip
@@ -99,6 +99,8 @@ export default function LivePowerStatus({
               variant="outlined"
             />
           </Stack>
+
+          <ProviderLiveMetricsPanel provider={provider} live={live} compact />
 
           {live?.timestamp && (
             <Stack
@@ -126,14 +128,17 @@ export default function LivePowerStatus({
 
       {/* ================= STALE ================= */}
       {viewState === "stale" && (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <AccessTimeIcon color="warning" />
-          <Typography
-            variant="body2"
-            color="warning.main"
-          >
-            {t("providers.data_not_fresh")}
-          </Typography>
+        <Stack spacing={0.75}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <AccessTimeIcon color="warning" />
+            <Typography
+              variant="body2"
+              color="warning.main"
+            >
+              {t("providers.data_not_fresh")}
+            </Typography>
+          </Stack>
+          <ProviderLiveMetricsPanel provider={provider} live={live} compact />
         </Stack>
       )}
 

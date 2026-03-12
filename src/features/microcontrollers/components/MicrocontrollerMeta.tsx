@@ -22,6 +22,7 @@ export function MicrocontrollerMeta({
 }: Props) {
   const { t } = useTranslation();
   const deviceCount = microcontroller.devices?.length ?? 0;
+  const assignedSensors = microcontroller.assigned_sensors ?? [];
 
   const backendMeasuredAt =
     microcontroller.power_provider?.last_value?.measured_at ?? null;
@@ -38,6 +39,18 @@ export function MicrocontrollerMeta({
       </Typography>
       <Typography variant="body2" color="text.secondary">
         {t("microcontroller.maxDevices")}: {deviceCount}/{microcontroller.max_devices}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {t("microcontroller.sensorsLabel")}:{" "}
+        {assignedSensors.length > 0
+          ? assignedSensors
+              .map((sensor) =>
+                t(`microcontroller.sensorOptions.${sensor}`, {
+                  defaultValue: sensor,
+                })
+              )
+              .join(", ")
+          : t("microcontroller.form.noSensors")}
       </Typography>
 
       {microcontroller.software_version && (

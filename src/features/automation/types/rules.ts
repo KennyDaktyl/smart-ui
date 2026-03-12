@@ -14,6 +14,33 @@ export type AutomationRuleConditionDraft = {
   unit: string;
 };
 
+export type AutomationRuleGroupDraft = {
+  id: string;
+  operator: AutomationRuleGroupOperator;
+  items: AutomationRuleNodeDraft[];
+};
+
+export type AutomationRuleNodeDraft =
+  | AutomationRuleConditionDraft
+  | AutomationRuleGroupDraft;
+
+export type AutomationRuleConditionPayload = {
+  source: AutomationRuleSource;
+  comparator: AutomationRuleComparator;
+  value: number;
+  unit: string;
+};
+
+export type AutomationRuleGroupPayload = {
+  operator: AutomationRuleGroupOperator;
+  items?: AutomationRuleNodePayload[];
+  conditions?: AutomationRuleConditionPayload[];
+};
+
+export type AutomationRuleNodePayload =
+  | AutomationRuleConditionPayload
+  | AutomationRuleGroupPayload;
+
 export const BATTERY_SOC_UNIT = "%";
 
 export const BATTERY_SOC_PRESET_VALUES = Array.from(
@@ -46,6 +73,29 @@ export function createAutomationConditionDraft(
     value: "",
     unit: powerUnit,
   };
+}
+
+export function createAutomationGroupDraft(
+  operator: AutomationRuleGroupOperator = "ANY",
+  items: AutomationRuleNodeDraft[] = [],
+): AutomationRuleGroupDraft {
+  return {
+    id: createDraftId(),
+    operator,
+    items,
+  };
+}
+
+export function isAutomationRuleGroupDraft(
+  value: AutomationRuleNodeDraft,
+): value is AutomationRuleGroupDraft {
+  return "items" in value;
+}
+
+export function isAutomationRuleGroupPayload(
+  value: AutomationRuleNodePayload,
+): value is AutomationRuleGroupPayload {
+  return "operator" in value && !("source" in value);
 }
 
 export function isBatteryRuleSource(source: AutomationRuleSource) {

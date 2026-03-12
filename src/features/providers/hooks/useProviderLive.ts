@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { wsManager } from "@/ws/WebSocketManager";
+import {
+  createInitialProviderMetrics,
+  parseProviderCurrentEnergy,
+  type ProviderLiveMetricMap,
+} from "@/features/providers/utils/providerLiveMetrics";
 
 const PROVIDER_EVENT = "provider_current_energy";
 const BUFFER_SEC = 5;
@@ -20,7 +25,23 @@ type ProviderCurrentEnergyEvent = {
     measured_at?: string;
     measured_value?: number;
     measured_unit?: string | null;
+    battery_soc?: { value?: number; unit?: string | null } | null;
+    grid_power?: { value?: number; unit?: string | null } | null;
+    extra_metrics?: Array<{
+      key?: string;
+      metric_key?: string;
+      value?: number;
+      unit?: string | null;
+    }> | null;
   };
+  battery_soc?: { value?: number; unit?: string | null } | null;
+  grid_power?: { value?: number; unit?: string | null } | null;
+  extra_metrics?: Array<{
+    key?: string;
+    metric_key?: string;
+    value?: number;
+    unit?: string | null;
+  }> | null;
 };
 
 export type ProviderLiveStatus = "pending" | "online" | "stale" | "offline";
@@ -35,6 +56,7 @@ export type ProviderLiveSnapshot = {
   countdownSec: number | null;
   power: number | null;
   unit: string | null;
+  metrics: ProviderLiveMetricMap;
 };
 
 type InternalProviderState = Omit<ProviderLiveSnapshot, "status">;
@@ -46,55 +68,6 @@ export type UseProviderLiveOptions = {
   initialPower?: number | null;
   initialUnit?: string | null;
   initialMeasuredAt?: string | null;
-};
-
-type ParsedProviderCurrentEnergy = {
-  measuredAt: string | null;
-  value: number | null;
-  unit: string | null;
-};
-
-const toFiniteNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-};
-
-const toNullableString = (value: unknown): string | null =>
-  typeof value === "string" && value.trim().length > 0 ? value : null;
-
-const parseProviderCurrentEnergy = (
-  event: ProviderCurrentEnergyEvent
-): ParsedProviderCurrentEnergy => {
-  const measuredAt =
-    toNullableString(event.data?.measured_at) ??
-    toNullableString(event.measured_at) ??
-    toNullableString(event.timestamp);
-
-  const value =
-    toFiniteNumber(event.data?.value) ??
-    toFiniteNumber(event.data?.measured_value) ??
-    toFiniteNumber(event.value) ??
-    toFiniteNumber(event.measured_value);
-
-  const unit =
-    toNullableString(event.data?.unit) ??
-    toNullableString(event.data?.measured_unit) ??
-    toNullableString(event.unit) ??
-    toNullableString(event.measured_unit);
-
-  return {
-    measuredAt,
-    value,
-    unit,
-  };
 };
 
 const resolveBaseTimestampMs = (measuredAt: string | null) => {
@@ -138,6 +111,7 @@ export function useProviderLive({
     countdownSec: null,
     power: initialPower,
     unit: initialUnit,
+    metrics: createInitialProviderMetrics(initialPower, initialUnit),
   });
 
   const timerRef = useRef<number | null>(null);
@@ -189,6 +163,7 @@ export function useProviderLive({
       countdownSec: null,
       power: initialPower,
       unit: initialUnit,
+      metrics: createInitialProviderMetrics(initialPower, initialUnit),
     };
 
     setState(bootstrapState);
@@ -219,6 +194,10 @@ export function useProviderLive({
         countdownSec: null,
         power: parsed.value ?? prev.power,
         unit: parsed.unit ?? prev.unit,
+        metrics:
+          Object.keys(parsed.metrics).length > 0
+            ? parsed.metrics
+            : prev.metrics,
       }));
 
       startCountdown(resolveBaseTimestampMs(parsed.measuredAt));

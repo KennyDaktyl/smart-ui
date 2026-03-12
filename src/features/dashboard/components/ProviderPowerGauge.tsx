@@ -36,6 +36,12 @@ type ProviderPowerGaugeProps = {
   pendingLabel: string;
   noDataLabel: string;
   rangeLabel?: string;
+  centerMetrics?: Array<{
+    key: string;
+    label: string;
+    value: string;
+    color?: string;
+  }>;
 };
 
 export function ProviderPowerGauge({
@@ -53,6 +59,7 @@ export function ProviderPowerGauge({
   pendingLabel,
   noDataLabel,
   rangeLabel,
+  centerMetrics = [],
 }: ProviderPowerGaugeProps) {
   const theme = useTheme();
 
@@ -187,6 +194,7 @@ export function ProviderPowerGauge({
     normalizedRatedPower == null
       ? noDataLabel
       : formatPowerCompact(normalizedRatedPower, unit);
+  const hasCenterMetrics = centerMetrics.length > 0;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.75 }}>
@@ -292,42 +300,100 @@ export function ProviderPowerGauge({
         <Box
           sx={{
             position: "absolute",
-            inset: 34,
+            inset: hasCenterMetrics ? 28 : 34,
             borderRadius: "50%",
-            background: stateBackground,
-            border: `1px solid ${alpha(stateColor, 0.35)}`,
+            background: `linear-gradient(180deg, ${alpha(theme.palette.common.white, 0.94)} 0%, ${alpha(theme.palette.success.light, 0.2)} 100%)`,
+            border: `1px solid ${alpha(stateColor, hasCenterMetrics ? 0.26 : 0.35)}`,
+            boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.common.white, 0.55)}`,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             textAlign: "center",
-            px: 1,
+            px: hasCenterMetrics ? 0.75 : 1,
+            py: hasCenterMetrics ? 0.85 : 0.4,
           }}
         >
-          <Typography variant="h5" fontWeight={800} sx={{ color: stateColor, lineHeight: 1 }}>
+          <Typography
+            variant={hasCenterMetrics ? "h6" : "h5"}
+            fontWeight={800}
+            sx={{ color: stateColor, lineHeight: 1 }}
+          >
             {stateLabel}
           </Typography>
           <Typography
             variant="caption"
-            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.58rem", mt: 0.45 }}
+            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.56rem", mt: 0.35 }}
           >
             {providerPowerLabel ?? "Moc providera"}
           </Typography>
           <Typography
             variant="caption"
-            sx={{ color: "text.secondary", fontSize: "0.72rem", fontWeight: 500, lineHeight: 1.2 }}
+            sx={{ color: "text.secondary", fontSize: hasCenterMetrics ? "0.68rem" : "0.72rem", fontWeight: 600, lineHeight: 1.2 }}
           >
             {providerValueText}
           </Typography>
+          {hasCenterMetrics ? (
+            <Box
+              sx={{
+                width: "100%",
+                mt: 0.45,
+                pt: 0.45,
+                borderTop: `1px solid ${alpha(theme.palette.success.main, 0.14)}`,
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.2,
+              }}
+            >
+              {centerMetrics.map((metric) => (
+                <Box
+                  key={metric.key}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 0.5,
+                    minWidth: 0,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: alpha(theme.palette.text.secondary, 0.86),
+                      fontSize: "0.54rem",
+                      lineHeight: 1.1,
+                      textAlign: "left",
+                      minWidth: 0,
+                    }}
+                  >
+                    {metric.label}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: metric.color ?? theme.palette.text.primary,
+                      fontSize: "0.58rem",
+                      fontWeight: 700,
+                      lineHeight: 1.1,
+                      textAlign: "right",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {metric.value}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : null}
           <Typography
             variant="caption"
-            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.58rem", mt: 0.25 }}
+            sx={{ color: alpha(theme.palette.text.secondary, 0.88), fontSize: "0.56rem", mt: hasCenterMetrics ? 0.45 : 0.25 }}
           >
             {ratedPowerLabel ?? "Moc znamionowa"}
           </Typography>
           <Typography
             variant="caption"
-            sx={{ color: alpha(theme.palette.info.main, 0.96), fontSize: "0.7rem", fontWeight: 600, lineHeight: 1.2 }}
+            sx={{ color: alpha(theme.palette.info.main, 0.96), fontSize: hasCenterMetrics ? "0.66rem" : "0.7rem", fontWeight: 700, lineHeight: 1.2 }}
           >
             {ratedValueText}
           </Typography>

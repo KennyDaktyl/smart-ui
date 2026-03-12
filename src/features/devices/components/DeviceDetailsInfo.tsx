@@ -4,6 +4,7 @@ import { Typography } from "@mui/material";
 
 import { DeviceInfoTile } from "./DeviceInfoTile";
 import type { Device } from "@/features/devices/types/devicesType";
+import { formatDeviceAutoRuleSummary } from "@/features/devices/utils/autoRuleSummary";
 
 interface DeviceDetailsInfoProps {
   device: Device;
@@ -30,6 +31,9 @@ export function DeviceDetailsInfo({
 }: DeviceDetailsInfoProps) {
   const resolvedPowerUnit = powerUnit ?? null;
   const resolvedThresholdUnit = thresholdUnit ?? resolvedPowerUnit;
+  const autoLogicSummary = isAutoMode
+    ? formatDeviceAutoRuleSummary(device, t, resolvedThresholdUnit)
+    : null;
 
   return (
     <Grid container spacing={2}>
@@ -63,16 +67,20 @@ export function DeviceDetailsInfo({
       </Grid>
       <Grid xs={12} sm={6} md={4}>
         <DeviceInfoTile
-          label={String(t("devices.details.fields.threshold"))}
+          label={String(
+            isAutoMode
+              ? t("devices.details.fields.autoLogic")
+              : t("devices.details.fields.threshold"),
+          )}
           value={
-            isAutoMode && device.threshold_value != null && resolvedThresholdUnit
+            isAutoMode && autoLogicSummary
               ? (
                   <Typography
                     variant="subtitle1"
                     fontWeight={600}
                     sx={{ color: (theme) => theme.palette.warning.dark }}
                   >
-                    {`${device.threshold_value} ${resolvedThresholdUnit}`}
+                    {autoLogicSummary}
                   </Typography>
                 )
               : (

@@ -34,6 +34,7 @@ export function ProviderLiveWidget({
     live.power,
     live.status,
     live.unit,
+    JSON.stringify(live.metrics),
     onChange,
   ]);
 
