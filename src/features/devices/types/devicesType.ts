@@ -1,5 +1,6 @@
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
 import type { AutomationRuleGroupPayload } from "@/features/automation/types/rules";
+import type { DeviceDependencyRule } from "@/features/devices/types/dependency";
 
 export type Device = {
   id: number;
@@ -15,6 +16,7 @@ export type Device = {
   threshold_value?: number | null;
   auto_rule?: AutomationRuleGroupPayload | null;
   auto_rule_json?: AutomationRuleGroupPayload | null;
+  device_dependency_rule?: DeviceDependencyRule | null;
   scheduler_id?: number | null;
 
   provider_id?: number | null;

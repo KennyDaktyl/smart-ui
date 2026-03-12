@@ -219,6 +219,8 @@ export default function DashboardPage() {
                 microcontrollerLiveMap[editingItem.microcontroller.uuid]?.isOnline
               )
             }
+            assignedSensors={editingItem.microcontroller.assigned_sensors}
+            existingDevices={editingItem.microcontroller.devices}
             formId="dashboard-edit-device-form"
             hideActions
             onSubmit={async () => {

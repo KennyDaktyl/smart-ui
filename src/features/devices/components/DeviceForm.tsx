@@ -19,6 +19,10 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Device } from "@/features/devices/types/devicesType";
+import type {
+  DeviceDependencyAction,
+  DeviceDependencyRule,
+} from "@/features/devices/types/dependency";
 import {
   type AutomationRuleComparator,
   type AutomationRuleConditionDraft,
@@ -45,12 +49,19 @@ import { devicesApi } from "@/api/devicesApi";
 import { parseApiError } from "@/api/parseApiError";
 import { useToast } from "@/context/ToastContext";
 import { schedulersApi } from "@/api/schedulersApi";
+import {
+  getSlotDependencyRule,
+  hasTemperatureSensorCapability,
+  schedulerUsesDeviceDependency,
+  schedulerUsesTemperaturePolicy,
+} from "@/features/schedulers/utils/policy";
 
 export type DeviceFormValues = {
   name: string;
   mode: DeviceMode;
   thresholdValue?: number | null;
   autoRule?: AutomationRuleGroupPayload | null;
+  deviceDependencyRule?: DeviceDependencyRule | null;
   schedulerId?: number | null;
 };
 
@@ -66,6 +77,7 @@ type Props = {
   onCancel?: () => void;
   existingDevices?: Device[];
   maxDevices?: number;
+  assignedSensors?: string[];
 };
 
 const getNextDeviceNumber = (
@@ -86,6 +98,7 @@ const getNextDeviceNumber = (
 };
 const BLANK_HELPER = " ";
 const DECIMAL_INPUT_PATTERN = /^[0-9]*([.,][0-9]*)?$/;
+const DEPENDENCY_ACTION_OPTIONS: DeviceDependencyAction[] = ["NONE", "ON", "OFF"];
 
 const parseDecimalInput = (value: string): number | null => {
   const trimmed = value.trim();
@@ -157,6 +170,10 @@ const createInitialAutoRule = (
 
   return createDefaultAutoRule(powerUnit, thresholdValue);
 };
+
+const getEditableDependencyRule = (
+  device: Device | undefined,
+): DeviceDependencyRule | null => device?.device_dependency_rule ?? null;
 
 const validateAutoCondition = (
   condition: AutomationRuleConditionDraft,
@@ -490,6 +507,7 @@ export function DeviceForm({
   onCancel,
   existingDevices,
   maxDevices,
+  assignedSensors,
 }: Props) {
   const { t } = useTranslation();
   const tt = t as (key: string, options?: Record<string, unknown>) => string;
@@ -520,6 +538,17 @@ export function DeviceForm({
   const [schedulersLoadError, setSchedulersLoadError] = useState<string | null>(
     null,
   );
+  const [dependencyTargetId, setDependencyTargetId] = useState<number | "">(
+    getEditableDependencyRule(device)?.target_device_id ?? "",
+  );
+  const [dependencyWhenSourceOn, setDependencyWhenSourceOn] =
+    useState<DeviceDependencyAction>(
+      getEditableDependencyRule(device)?.when_source_on ?? "NONE",
+    );
+  const [dependencyWhenSourceOff, setDependencyWhenSourceOff] =
+    useState<DeviceDependencyAction>(
+      getEditableDependencyRule(device)?.when_source_off ?? "NONE",
+    );
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -568,6 +597,82 @@ export function DeviceForm({
     () => (thresholdUnit ? [thresholdUnit] : ["W"]),
     [thresholdUnit],
   );
+  const hasTemperatureSensor = useMemo(
+    () => hasTemperatureSensorCapability(assignedSensors),
+    [assignedSensors],
+  );
+  const unavailableInboundTargetIds = useMemo(() => {
+    const used = new Set<number>();
+    const otherDevices = (existingDevices ?? []).filter((entry) => entry.id !== device?.id);
+
+    otherDevices.forEach((entry) => {
+      const rule = entry.device_dependency_rule;
+      if (rule?.target_device_id != null) {
+        used.add(rule.target_device_id);
+      }
+
+      if (entry.mode === "SCHEDULE" && entry.scheduler_id != null) {
+        const scheduler = schedulers.find((item) => item.id === entry.scheduler_id);
+        scheduler?.slots?.forEach((slot) => {
+          const targetId = getSlotDependencyRule(slot)?.target_device_id;
+          if (targetId != null) {
+            used.add(targetId);
+          }
+        });
+      }
+    });
+
+    return used;
+  }, [device?.id, existingDevices, schedulers]);
+  const schedulerCompatibility = useMemo(
+    () =>
+      new Map(
+        schedulers.map((scheduler) => {
+          const requiresTemperatureSensor =
+            schedulerUsesTemperaturePolicy(scheduler);
+          const schedulerDependencyTargets = (scheduler.slots ?? [])
+            .map((slot) => getSlotDependencyRule(slot)?.target_device_id ?? null)
+            .filter((value): value is number => value != null);
+          const isSameMicrocontrollerTargetSetValid = schedulerDependencyTargets.every(
+            (targetId) => (existingDevices ?? []).some((entry) => entry.id === targetId),
+          );
+          const usesCurrentDeviceAsTarget =
+            device?.id != null && schedulerDependencyTargets.includes(device.id);
+          const hasInboundConflict = schedulerDependencyTargets.some((targetId) =>
+            unavailableInboundTargetIds.has(targetId),
+          );
+          return [
+            scheduler.id,
+            {
+              requiresTemperatureSensor,
+              requiresDeviceDependency: schedulerUsesDeviceDependency(scheduler),
+              compatible:
+                (!requiresTemperatureSensor || hasTemperatureSensor) &&
+                isSameMicrocontrollerTargetSetValid &&
+                !usesCurrentDeviceAsTarget &&
+                !hasInboundConflict,
+            },
+          ] as const;
+        }),
+      ),
+    [device?.id, existingDevices, hasTemperatureSensor, schedulers, unavailableInboundTargetIds],
+  );
+  const selectedSchedulerCompatibility =
+    schedulerId === "" ? null : schedulerCompatibility.get(Number(schedulerId)) ?? null;
+  const dependencyTargetOptions = useMemo(
+    () =>
+      (existingDevices ?? []).filter(
+        (entry) =>
+          entry.id !== device?.id && !unavailableInboundTargetIds.has(entry.id),
+      ),
+    [device?.id, existingDevices, unavailableInboundTargetIds],
+  );
+  const dependencyRuleEnabled =
+    dependencyTargetId !== "" &&
+    (dependencyWhenSourceOn !== "NONE" || dependencyWhenSourceOff !== "NONE");
+  const selectedDependencyTargetUnavailable =
+    dependencyTargetId !== "" &&
+    !dependencyTargetOptions.some((entry) => entry.id === Number(dependencyTargetId));
   const [autoRule, setAutoRule] = useState<AutomationRuleGroupDraft>(
     createInitialAutoRule(
       device,
@@ -620,6 +725,13 @@ export function DeviceForm({
         autoPowerUnits[0] ?? "W",
         device?.threshold_value ?? provider?.value_min ?? 0,
       ),
+    );
+    setDependencyTargetId(getEditableDependencyRule(device)?.target_device_id ?? "");
+    setDependencyWhenSourceOn(
+      getEditableDependencyRule(device)?.when_source_on ?? "NONE",
+    );
+    setDependencyWhenSourceOff(
+      getEditableDependencyRule(device)?.when_source_off ?? "NONE",
     );
     setSchedulerId(device?.scheduler_id ?? "");
     setSubmitted(false);
@@ -782,9 +894,29 @@ export function DeviceForm({
     if (isSchedule && (schedulerId === "" || Number.isNaN(Number(schedulerId)))) {
       return;
     }
+    if (isSchedule && selectedSchedulerCompatibility?.compatible === false) {
+      setSubmitError(
+        selectedSchedulerCompatibility.requiresTemperatureSensor && !hasTemperatureSensor
+          ? tt("devices.form.schedulerTemperatureMissing")
+          : tt("devices.form.schedulerDependencyMissing"),
+      );
+      return;
+    }
+    if (isAuto && dependencyRuleEnabled && selectedDependencyTargetUnavailable) {
+      setSubmitError(tt("devices.form.dependencyConflict"));
+      return;
+    }
     if (deviceNumber == null || Number.isNaN(deviceNumber)) return;
     if (!isRatedPowerValid) return;
     const autoRulePayload = isAuto ? buildAutoRulePayload(autoRule, autoPowerUnits) : null;
+    const dependencyRulePayload =
+      isAuto && dependencyRuleEnabled
+        ? {
+            target_device_id: Number(dependencyTargetId),
+            when_source_on: dependencyWhenSourceOn,
+            when_source_off: dependencyWhenSourceOff,
+          }
+        : null;
     setSubmitting(true);
     try {
       if (device?.id) {
@@ -796,6 +928,7 @@ export function DeviceForm({
             ? persistedAutoPowerCondition?.parsedValue ?? null
             : null,
           auto_rule: isAuto ? autoRulePayload : null,
+          device_dependency_rule: dependencyRulePayload,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -808,6 +941,7 @@ export function DeviceForm({
             ? persistedAutoPowerCondition?.parsedValue ?? null
             : null,
           auto_rule: isAuto ? autoRulePayload : null,
+          device_dependency_rule: dependencyRulePayload,
           scheduler_id: isSchedule ? Number(schedulerId) : null,
           rated_power: ratedPowerNumber,
         });
@@ -819,6 +953,7 @@ export function DeviceForm({
           ? persistedAutoPowerCondition?.parsedValue ?? null
           : null,
         autoRule: isAuto ? autoRulePayload : null,
+        deviceDependencyRule: dependencyRulePayload,
         schedulerId: isSchedule ? Number(schedulerId) : null,
       });
     } catch (err) {
@@ -965,6 +1100,103 @@ export function DeviceForm({
         </Stack>
       ) : isAuto ? (
         <Stack spacing={2}>
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 1.5,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2" fontWeight={600}>
+                {tt("devices.form.dependencyTitle")}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {tt("devices.form.dependencyDescription")}
+              </Typography>
+
+              <FormControl
+                fullWidth
+                size="small"
+                sx={fieldSx}
+                error={submitted && dependencyRuleEnabled && selectedDependencyTargetUnavailable}
+              >
+                <InputLabel>{tt("devices.form.dependencyTarget")}</InputLabel>
+                <Select
+                  label={tt("devices.form.dependencyTarget")}
+                  value={dependencyTargetId}
+                  onChange={(event) => {
+                    const nextValue = String(event.target.value);
+                    setDependencyTargetId(nextValue === "" ? "" : Number(nextValue));
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>{tt("common.selectPlaceholder")}</em>
+                  </MenuItem>
+                  {dependencyTargetOptions.map((entry) => (
+                    <MenuItem key={entry.id} value={entry.id}>
+                      {`${entry.name} (GPIO ${entry.device_number})`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                  },
+                  gap: 2,
+                }}
+              >
+                <FormControl fullWidth size="small" sx={fieldSx}>
+                  <InputLabel>{tt("devices.form.whenSourceOn")}</InputLabel>
+                  <Select
+                    label={tt("devices.form.whenSourceOn")}
+                    value={dependencyWhenSourceOn}
+                    onChange={(event) =>
+                      setDependencyWhenSourceOn(
+                        event.target.value as DeviceDependencyAction,
+                      )
+                    }
+                  >
+                    {DEPENDENCY_ACTION_OPTIONS.map((action) => (
+                      <MenuItem key={action} value={action}>
+                        {tt(`devices.form.dependencyActions.${action}`)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth size="small" sx={fieldSx}>
+                  <InputLabel>{tt("devices.form.whenSourceOff")}</InputLabel>
+                  <Select
+                    label={tt("devices.form.whenSourceOff")}
+                    value={dependencyWhenSourceOff}
+                    onChange={(event) =>
+                      setDependencyWhenSourceOff(
+                        event.target.value as DeviceDependencyAction,
+                      )
+                    }
+                  >
+                    {DEPENDENCY_ACTION_OPTIONS.map((action) => (
+                      <MenuItem key={action} value={action}>
+                        {tt(`devices.form.dependencyActions.${action}`)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {selectedDependencyTargetUnavailable && (
+                <Alert severity="warning">{tt("devices.form.dependencyConflict")}</Alert>
+              )}
+            </Stack>
+          </Box>
+
           {autoAdvancedPreviewWarning && (
             <Alert severity="info">
               {tt("devices.form.autoPreviewWarning")}
@@ -1045,7 +1277,11 @@ export function DeviceForm({
             error={
               submitted &&
               isSchedule &&
-              (schedulerId === "" || Number.isNaN(Number(schedulerId)))
+              (
+                schedulerId === "" ||
+                Number.isNaN(Number(schedulerId)) ||
+                selectedSchedulerCompatibility?.compatible === false
+              )
             }
           >
             <InputLabel>{tt("devices.form.scheduler")}</InputLabel>
@@ -1061,17 +1297,49 @@ export function DeviceForm({
               <MenuItem value="">
                 <em>{tt("common.selectPlaceholder")}</em>
               </MenuItem>
-              {schedulers.map((scheduler) => (
-                <MenuItem key={scheduler.id} value={scheduler.id}>
-                  {scheduler.name}
-                </MenuItem>
-              ))}
+              {schedulers.map((scheduler) => {
+                const compatibility = schedulerCompatibility.get(scheduler.id);
+                const incompatible =
+                  compatibility != null && !compatibility.compatible;
+
+                return (
+                  <MenuItem
+                    key={scheduler.id}
+                    value={scheduler.id}
+                    disabled={incompatible}
+                  >
+                    {incompatible
+                      ? tt("devices.form.schedulerOptionRequiresTemperature", {
+                          name: scheduler.name,
+                        })
+                      : scheduler.name}
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
 
           {schedulersLoadError && (
             <Alert severity="warning">{schedulersLoadError}</Alert>
           )}
+
+          {selectedSchedulerCompatibility?.requiresTemperatureSensor && (
+            <Alert
+              severity={
+                selectedSchedulerCompatibility.compatible ? "info" : "warning"
+              }
+            >
+              {selectedSchedulerCompatibility.compatible
+                ? tt("devices.form.schedulerTemperatureReady")
+                : tt("devices.form.schedulerTemperatureMissing")}
+            </Alert>
+          )}
+          {selectedSchedulerCompatibility?.requiresDeviceDependency &&
+            !selectedSchedulerCompatibility.compatible && (
+              <Alert severity="warning">
+                {tt("devices.form.schedulerDependencyMissing")}
+              </Alert>
+            )}
 
           {schedulers.length === 0 && !schedulersLoading && (
             <Typography variant="caption" color="text.secondary">

@@ -3,6 +3,7 @@ import type { Device } from "@/features/devices/types/devicesType";
 import type { DeviceEventsResponse } from "@/features/devices/types/deviceEvents";
 import type { DeviceMode } from "@/features/devices/enums/deviceMode";
 import type { AutomationRuleGroupPayload } from "@/features/automation/types/rules";
+import type { DeviceDependencyRule } from "@/features/devices/types/dependency";
 
 export type DeviceCreatePayload = {
   name: string;
@@ -11,10 +12,14 @@ export type DeviceCreatePayload = {
   rated_power?: number | null;
   threshold_value?: number | null;
   auto_rule?: AutomationRuleGroupPayload | null;
+  device_dependency_rule?: DeviceDependencyRule | null;
   scheduler_id?: number | null;
 };
 
 export const devicesApi = {
+  list: () => {
+    return axiosClient.get<Device[]>("/devices");
+  },
   createDevice: (microcontrollerUuid: string, payload: DeviceCreatePayload) => {
     return axiosClient.post<Device>(
       `/devices/microcontroller/${microcontrollerUuid}`,

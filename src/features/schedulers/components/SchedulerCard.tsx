@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { SCHEDULER_DAY_ORDER } from "@/features/schedulers/constants";
 import type { Scheduler } from "@/features/schedulers/types/scheduler";
+import { getSlotDependencyRule } from "@/features/schedulers/utils/policy";
 
 type Props = {
   scheduler: Scheduler;
@@ -78,6 +79,17 @@ export function SchedulerCard({ scheduler, onEdit, onDelete }: Props) {
                         })}
                       </Typography>
                     )}
+                  {slot.control_mode === "POLICY" &&
+                    slot.control_policy_json && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {`Policy: ${slot.control_policy_json.policy_type} sensor=${slot.control_policy_json.sensor_id} target=${slot.control_policy_json.target_temperature_c}C`}
+                      </Typography>
+                    )}
+                  {getSlotDependencyRule(slot) && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {`${t("schedulers.form.deviceDependencyTarget")}: #${getSlotDependencyRule(slot)?.target_device_number ?? getSlotDependencyRule(slot)?.target_device_id}`}
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
             ))}

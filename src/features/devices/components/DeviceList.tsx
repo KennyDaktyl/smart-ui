@@ -17,6 +17,7 @@ type Props = {
   isOnline: boolean;
   microcontrollerUuid: string;
   provider?: ProviderResponse | null;
+  assignedSensors?: string[];
   onReload?: () => void;
   onDeviceUpdate?: (device: Device) => void;
 };
@@ -27,6 +28,7 @@ export function DeviceList({
   isOnline,
   microcontrollerUuid,
   provider,
+  assignedSensors,
   onReload,
   onDeviceUpdate,
 }: Props) {
@@ -180,6 +182,8 @@ export function DeviceList({
             device={editingDevice}
             provider={provider}
             microcontrollerOnline={isOnline}
+            assignedSensors={assignedSensors}
+            existingDevices={devices}
             formId="edit-device-form"
             hideActions
             onSubmit={() => {

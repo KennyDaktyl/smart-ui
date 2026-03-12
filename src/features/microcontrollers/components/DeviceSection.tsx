@@ -79,6 +79,7 @@ export function DeviceSection({
         isOnline={live.status === "online"}
         microcontrollerUuid={microcontroller.uuid}
         provider={provider}
+        assignedSensors={microcontroller.assigned_sensors}
         onReload={reloadDevices}
         onDeviceUpdate={handleDeviceUpdate}
       />
@@ -103,6 +104,7 @@ export function DeviceSection({
           microcontrollerUuid={microcontroller.uuid}
           provider={provider}
           microcontrollerOnline={live.status === "online"}
+          assignedSensors={microcontroller.assigned_sensors}
           formId="create-device-form"
           hideActions
           existingDevices={devices}

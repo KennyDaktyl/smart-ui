@@ -1,6 +1,7 @@
 import type {
   AutomationRuleGroupPayload,
 } from "@/features/automation/types/rules";
+import type { DeviceDependencyRule } from "@/features/devices/types/dependency";
 
 export type SchedulerDayOfWeek =
   | "MONDAY"
@@ -12,6 +13,18 @@ export type SchedulerDayOfWeek =
   | "SUNDAY";
 
 export type SchedulerActivationRule = AutomationRuleGroupPayload;
+export type SchedulerControlMode = "DIRECT" | "POLICY";
+export type SchedulerPolicyEndBehavior = "KEEP_CURRENT_STATE" | "FORCE_OFF";
+
+export type SchedulerControlPolicy = {
+  policy_type: "TEMPERATURE_HYSTERESIS";
+  sensor_id: string;
+  target_temperature_c: number;
+  stop_above_target_delta_c: number;
+  start_below_target_delta_c: number;
+  heat_up_on_activate: boolean;
+  end_behavior: SchedulerPolicyEndBehavior;
+};
 
 export type SchedulerSlot = {
   day_of_week: SchedulerDayOfWeek;
@@ -24,6 +37,11 @@ export type SchedulerSlot = {
   use_power_threshold?: boolean;
   power_threshold_value?: number | null;
   power_threshold_unit?: string | null;
+  control_mode?: SchedulerControlMode;
+  control_policy?: SchedulerControlPolicy | null;
+  control_policy_json?: SchedulerControlPolicy | null;
+  device_dependency_rule?: DeviceDependencyRule | null;
+  device_dependency_rule_json?: DeviceDependencyRule | null;
   activation_rule?: SchedulerActivationRule | null;
   activation_rule_json?: SchedulerActivationRule | null;
 };

@@ -510,6 +510,27 @@ const resources = {
           gpio: "GPIO",
           threshold: "Próg mocy",
           scheduler: "Harmonogram",
+          schedulerTemperatureReady:
+            "Ten harmonogram używa sterowania temperaturą. Wybrany mikrokontroler ma czujnik temperatury, więc można go przypiąć do urządzenia.",
+          schedulerTemperatureMissing:
+            "Ten harmonogram wymaga czujnika temperatury, ale wybrany mikrokontroler nie ma takiego czujnika. Wybierz inny harmonogram albo mikrokontroler z czujnikiem temperatury.",
+          schedulerDependencyMissing:
+            "Ten harmonogram zawiera zależność do innego urządzenia, której nie da się poprawnie przypiąć do tego źródła na wybranym mikrokontrolerze.",
+          schedulerOptionRequiresTemperature:
+            "{{name}} (wymaga czujnika temperatury)",
+          dependencyTitle: "Zależność z innym urządzeniem",
+          dependencyDescription:
+            "To urządzenie jest źródłem. Możesz określić, jaki stan ma wymusić na innym urządzeniu z tego samego mikrokontrolera.",
+          dependencyTarget: "Urządzenie docelowe",
+          whenSourceOn: "Gdy to urządzenie jest ON",
+          whenSourceOff: "Gdy to urządzenie jest OFF",
+          dependencyConflict:
+            "Wybrane urządzenie docelowe jest już sterowane przez inne źródło na tym mikrokontrolerze albo nie jest dostępne dla tej konfiguracji.",
+          dependencyActions: {
+            NONE: "Brak akcji",
+            ON: "Włącz",
+            OFF: "Wyłącz",
+          },
           autoLogicTitle: "Logika AUTO",
           autoLogicDescription:
             "Zdefiniuj warunki mocy i baterii, które mają pozwolić na włączenie urządzenia.",
@@ -630,6 +651,29 @@ const resources = {
             "Podgląd listy harmonogramów pokazuje uproszczone podsumowanie. Pełna reguła AND/OR oraz warunki baterii są zachowane w formularzu i payloadzie.",
           persistablePowerRequired:
             "Dodaj co najmniej jeden poprawny warunek uruchomienia dla tego przedziału.",
+          controlTitle: "Sterowanie po aktywacji",
+          controlDescription:
+            "Reguły startowe AND/OR nadal decydują, kiedy ten przedział może się uruchomić. Ten wybór określa tylko, co scheduler wyśle do agenta po aktywacji przedziału.",
+          controlMode: "Tryb sterowania",
+          controlModeDirect: "Bezpośrednie ON/OFF przekaźnika",
+          controlModePolicy: "Lokalna polityka wykonywana przez agenta",
+          temperatureSensorDescription:
+            "Nie podajesz identyfikatora sensora ręcznie. Agent wybierze dostępny czujnik temperatury z mikrokontrolera urządzenia.",
+          requiredSensor: "Wymagany czujnik",
+          requiredSensorTemperature: "Czujnik temperatury",
+          deviceDependencyTitle: "Zależność urządzeń w tym przedziale",
+          deviceDependencyDescription:
+            "Źródłem jest urządzenie, do którego później przypiszesz ten harmonogram. Po aktywacji przedziału agent może wymuszać stan wybranego urządzenia docelowego.",
+          deviceDependencyTarget: "Urządzenie docelowe",
+          whenSourceOn: "Gdy źródło jest ON",
+          whenSourceOff: "Gdy źródło jest OFF",
+          targetTemperature: "Temperatura docelowa [C]",
+          stopDelta: "Delta wyłączenia [C]",
+          startDelta: "Delta ponownego startu [C]",
+          endBehavior: "Po zakończeniu przedziału",
+          endBehaviorForceOff: "Wymuś wyłączenie",
+          endBehaviorKeepState: "Zostaw bieżący stan",
+          heatUpOnActivate: "Dogrzej od razu po aktywacji",
           timeBlocks: "Dni i zakresy godzin",
           start: "Od",
           end: "Do",
@@ -1328,6 +1372,27 @@ const resources = {
           gpio: "GPIO",
           threshold: "Power threshold",
           scheduler: "Schedule",
+          schedulerTemperatureReady:
+            "This schedule uses temperature control. The selected microcontroller has a temperature sensor, so it can be attached to this device.",
+          schedulerTemperatureMissing:
+            "This schedule requires a temperature sensor, but the selected microcontroller does not provide one. Choose another schedule or a microcontroller with a temperature sensor.",
+          schedulerDependencyMissing:
+            "This schedule includes a dependency to another device that cannot be attached correctly to this source device on the selected microcontroller.",
+          schedulerOptionRequiresTemperature:
+            "{{name}} (requires temperature sensor)",
+          dependencyTitle: "Dependency on another device",
+          dependencyDescription:
+            "This device is the source. You can define which state it should force on another device from the same microcontroller.",
+          dependencyTarget: "Target device",
+          whenSourceOn: "When this device is ON",
+          whenSourceOff: "When this device is OFF",
+          dependencyConflict:
+            "The selected target device is already controlled by another source on this microcontroller or is not available for this configuration.",
+          dependencyActions: {
+            NONE: "No action",
+            ON: "Turn on",
+            OFF: "Turn off",
+          },
           autoLogicTitle: "AUTO logic",
           autoLogicDescription:
             "Define power and battery conditions that allow the device to turn on.",
@@ -1448,6 +1513,29 @@ const resources = {
             "The schedules list shows a simplified summary only. Full AND/OR logic and battery conditions are preserved in the form and payload.",
           persistablePowerRequired:
             "Add at least one valid start condition for this time range.",
+          controlTitle: "Control after activation",
+          controlDescription:
+            "AND/OR start rules still decide when this time range may become active. This choice only changes what the scheduler sends to the agent after activation.",
+          controlMode: "Control mode",
+          controlModeDirect: "Direct relay ON/OFF",
+          controlModePolicy: "Local policy executed by the agent",
+          temperatureSensorDescription:
+            "You do not enter a sensor ID manually. The agent will pick the available temperature sensor from the device microcontroller.",
+          requiredSensor: "Required sensor",
+          requiredSensorTemperature: "Temperature sensor",
+          deviceDependencyTitle: "Device dependency in this range",
+          deviceDependencyDescription:
+            "The source is the device that you will later attach this schedule to. Once the range is active, the agent may force the selected target device state.",
+          deviceDependencyTarget: "Target device",
+          whenSourceOn: "When source is ON",
+          whenSourceOff: "When source is OFF",
+          targetTemperature: "Target temperature [C]",
+          stopDelta: "Stop delta [C]",
+          startDelta: "Restart delta [C]",
+          endBehavior: "When the range ends",
+          endBehaviorForceOff: "Force off",
+          endBehaviorKeepState: "Keep current state",
+          heatUpOnActivate: "Heat up immediately on activation",
           timeBlocks: "Days and time ranges",
           start: "Start",
           end: "End",

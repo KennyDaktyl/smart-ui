@@ -3,8 +3,12 @@ import {
   Box,
   Button,
   CircularProgress,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Switch,
   TextField,
@@ -15,9 +19,12 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import { devicesApi } from "@/api/devicesApi";
 import { parseApiError } from "@/api/parseApiError";
 import { providersApi } from "@/api/providersApi";
 import { schedulersApi } from "@/api/schedulersApi";
+import type { Device } from "@/features/devices/types/devicesType";
+import type { DeviceDependencyAction } from "@/features/devices/types/dependency";
 import {
   createAutomationConditionDraft,
   createAutomationGroupDraft,
@@ -39,9 +46,15 @@ import { SchedulerRuleTreeBuilder } from "@/features/schedulers/components/Sched
 import type {
   Scheduler,
   SchedulerActivationRule,
+  SchedulerControlMode,
+  SchedulerControlPolicy,
   SchedulerDayOfWeek,
   SchedulerPayload,
 } from "@/features/schedulers/types/scheduler";
+import {
+  DEFAULT_TEMPERATURE_POLICY_SENSOR_ID,
+  getSlotDependencyRule,
+} from "@/features/schedulers/utils/policy";
 
 type DayRowState = {
   enabled: boolean;
@@ -53,6 +66,20 @@ type DaySlotState = {
   end: string;
   conditionsEnabled: boolean;
   rule: AutomationRuleGroupDraft;
+  controlMode: SchedulerControlMode;
+  controlPolicy: {
+    sensorId: string;
+    targetTemperatureC: string;
+    stopAboveTargetDeltaC: string;
+    startBelowTargetDeltaC: string;
+    heatUpOnActivate: boolean;
+    endBehavior: "KEEP_CURRENT_STATE" | "FORCE_OFF";
+  };
+  deviceDependencyRule: {
+    targetDeviceId: number | "";
+    whenSourceOn: DeviceDependencyAction;
+    whenSourceOff: DeviceDependencyAction;
+  };
 };
 
 type DayValidation = {
@@ -95,6 +122,7 @@ const DEFAULT_START_TIME = "09:00";
 const DEFAULT_END_TIME = "17:00";
 const BLANK_HELPER = " ";
 const DECIMAL_INPUT_PATTERN = /^[0-9]*([.,][0-9]*)?$/;
+const DEPENDENCY_ACTION_OPTIONS: DeviceDependencyAction[] = ["NONE", "ON", "OFF"];
 const DAY_TO_JS_INDEX: Record<SchedulerDayOfWeek, number> = {
   MONDAY: 1,
   TUESDAY: 2,
@@ -207,7 +235,27 @@ function createDefaultSlot(defaultUnit = ""): DaySlotState {
     end: DEFAULT_END_TIME,
     conditionsEnabled: false,
     rule: createDefaultRule(defaultUnit),
+    controlMode: "DIRECT",
+    controlPolicy: {
+      sensorId: DEFAULT_TEMPERATURE_POLICY_SENSOR_ID,
+      targetTemperatureC: "65",
+      stopAboveTargetDeltaC: "0",
+      startBelowTargetDeltaC: "10",
+      heatUpOnActivate: true,
+      endBehavior: "FORCE_OFF",
+    },
+    deviceDependencyRule: {
+      targetDeviceId: "",
+      whenSourceOn: "NONE",
+      whenSourceOff: "NONE",
+    },
   };
+}
+
+function toEditableControlPolicy(
+  slot: Scheduler["slots"][number],
+): SchedulerControlPolicy | null {
+  return slot.control_policy ?? slot.control_policy_json ?? null;
 }
 
 function updateRuleConditionsWithoutUnit(
@@ -392,6 +440,31 @@ function toInitialDayState(
     row.slots.push({
       start: resolveSlotLocalTime(slot, slot.day_of_week, "start"),
       end: resolveSlotLocalTime(slot, slot.day_of_week, "end"),
+      controlMode: slot.control_mode ?? "DIRECT",
+      controlPolicy: {
+        sensorId: toEditableControlPolicy(slot)?.sensor_id ?? "",
+        targetTemperatureC:
+          toEditableControlPolicy(slot)?.target_temperature_c != null
+            ? String(toEditableControlPolicy(slot)?.target_temperature_c)
+            : "65",
+        stopAboveTargetDeltaC:
+          toEditableControlPolicy(slot)?.stop_above_target_delta_c != null
+            ? String(toEditableControlPolicy(slot)?.stop_above_target_delta_c)
+            : "0",
+        startBelowTargetDeltaC:
+          toEditableControlPolicy(slot)?.start_below_target_delta_c != null
+            ? String(toEditableControlPolicy(slot)?.start_below_target_delta_c)
+            : "10",
+        heatUpOnActivate:
+          toEditableControlPolicy(slot)?.heat_up_on_activate ?? true,
+        endBehavior:
+          toEditableControlPolicy(slot)?.end_behavior ?? "FORCE_OFF",
+      },
+      deviceDependencyRule: {
+        targetDeviceId: getSlotDependencyRule(slot)?.target_device_id ?? "",
+        whenSourceOn: getSlotDependencyRule(slot)?.when_source_on ?? "NONE",
+        whenSourceOff: getSlotDependencyRule(slot)?.when_source_off ?? "NONE",
+      },
       ...toDraftRule(slot),
     });
   });
@@ -759,6 +832,9 @@ export function SchedulerForm({
   const [submitted, setSubmitted] = useState(false);
   const [availableUnits, setAvailableUnits] = useState<string[]>([]);
   const [hasBatteryTelemetry, setHasBatteryTelemetry] = useState(false);
+  const [availableDevices, setAvailableDevices] = useState<Device[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesLoadError, setDevicesLoadError] = useState<string | null>(null);
   const [unitsLoading, setUnitsLoading] = useState(true);
   const [unitsLoadError, setUnitsLoadError] = useState<string | null>(null);
   const browserTimezone =
@@ -845,6 +921,32 @@ export function SchedulerForm({
 
     void loadUnits();
 
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDevices = async () => {
+      setDevicesLoading(true);
+      setDevicesLoadError(null);
+      try {
+        const response = await devicesApi.list();
+        if (cancelled) return;
+        setAvailableDevices(response.data);
+      } catch (error) {
+        if (cancelled) return;
+        setDevicesLoadError(parseApiError(error).message || t("errors.api.generic"));
+      } finally {
+        if (!cancelled) {
+          setDevicesLoading(false);
+        }
+      }
+    };
+
+    void loadDevices();
     return () => {
       cancelled = true;
     };
@@ -1051,6 +1153,72 @@ export function SchedulerForm({
                 : slot.rule,
           };
         }),
+      },
+    }));
+  };
+
+  const handleSlotControlModeChange = (
+    day: SchedulerDayOfWeek,
+    slotIndex: number,
+    controlMode: SchedulerControlMode,
+  ) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex ? { ...slot, controlMode } : slot,
+        ),
+      },
+    }));
+  };
+
+  const handleSlotControlPolicyChange = (
+    day: SchedulerDayOfWeek,
+    slotIndex: number,
+    key: keyof DaySlotState["controlPolicy"],
+    value: string | boolean,
+  ) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex
+            ? {
+                ...slot,
+                controlPolicy: {
+                  ...slot.controlPolicy,
+                  [key]: value,
+                },
+              }
+            : slot,
+        ),
+      },
+    }));
+  };
+
+  const handleSlotDependencyRuleChange = (
+    day: SchedulerDayOfWeek,
+    slotIndex: number,
+    key: keyof DaySlotState["deviceDependencyRule"],
+    value: string | number,
+  ) => {
+    setRows((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        slots: prev[day].slots.map((slot, index) =>
+          index === slotIndex
+            ? {
+                ...slot,
+                deviceDependencyRule: {
+                  ...slot.deviceDependencyRule,
+                  [key]: value,
+                },
+              }
+            : slot,
+        ),
       },
     }));
   };
@@ -1296,6 +1464,37 @@ export function SchedulerForm({
                 : null;
               const startUtc = toUtcTimeForDay(day, slot.start);
               const endUtc = toUtcTimeForDay(day, slot.end);
+              const controlPolicy =
+                slot.controlMode === "POLICY"
+                  ? {
+                      policy_type: "TEMPERATURE_HYSTERESIS" as const,
+                      sensor_id:
+                        slot.controlPolicy.sensorId.trim() ||
+                        DEFAULT_TEMPERATURE_POLICY_SENSOR_ID,
+                      target_temperature_c:
+                        parseDecimalInput(slot.controlPolicy.targetTemperatureC) ?? 65,
+                      stop_above_target_delta_c:
+                        parseDecimalInput(
+                          slot.controlPolicy.stopAboveTargetDeltaC,
+                        ) ?? 0,
+                      start_below_target_delta_c:
+                        parseDecimalInput(
+                          slot.controlPolicy.startBelowTargetDeltaC,
+                        ) ?? 10,
+                      heat_up_on_activate: slot.controlPolicy.heatUpOnActivate,
+                      end_behavior: slot.controlPolicy.endBehavior,
+                    }
+                  : null;
+              const deviceDependencyRule =
+                slot.deviceDependencyRule.targetDeviceId !== "" &&
+                (slot.deviceDependencyRule.whenSourceOn !== "NONE" ||
+                  slot.deviceDependencyRule.whenSourceOff !== "NONE")
+                  ? {
+                      target_device_id: Number(slot.deviceDependencyRule.targetDeviceId),
+                      when_source_on: slot.deviceDependencyRule.whenSourceOn,
+                      when_source_off: slot.deviceDependencyRule.whenSourceOff,
+                    }
+                  : null;
 
               return {
                 day_of_week: day,
@@ -1308,6 +1507,9 @@ export function SchedulerForm({
                 use_power_threshold: persistedPowerCondition != null,
                 power_threshold_value: persistedPowerCondition?.parsedValue ?? null,
                 power_threshold_unit: persistedPowerCondition?.condition.unit ?? null,
+                control_mode: slot.controlMode,
+                control_policy: controlPolicy,
+                device_dependency_rule: deviceDependencyRule,
                 activation_rule: activationRule,
               };
             })
@@ -1635,6 +1837,262 @@ export function SchedulerForm({
                                 {t("schedulers.form.persistablePowerRequired")}
                               </Alert>
                             )}
+
+                            <Box
+                              sx={{
+                                p: 1,
+                                borderRadius: 1.5,
+                                border: "1px solid",
+                                borderColor: "divider",
+                              }}
+                            >
+                              <Stack spacing={1}>
+                                <Typography variant="subtitle2" fontWeight={600}>
+                                  {t("schedulers.form.controlTitle")}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {t("schedulers.form.controlDescription")}
+                                </Typography>
+
+                                <FormControl size="small" sx={textFieldSx}>
+                                  <InputLabel>
+                                    {t("schedulers.form.controlMode")}
+                                  </InputLabel>
+                                  <Select
+                                    label={t("schedulers.form.controlMode")}
+                                    value={slot.controlMode}
+                                    onChange={(event) =>
+                                      handleSlotControlModeChange(
+                                        day,
+                                        slotIndex,
+                                        event.target.value as SchedulerControlMode,
+                                      )
+                                    }
+                                    disabled={loading}
+                                  >
+                                    <MenuItem value="DIRECT">
+                                      {t("schedulers.form.controlModeDirect")}
+                                    </MenuItem>
+                                    <MenuItem value="POLICY">
+                                      {t("schedulers.form.controlModePolicy")}
+                                    </MenuItem>
+                                  </Select>
+                                </FormControl>
+
+                                {slot.controlMode === "POLICY" && (
+                                  <Stack spacing={1.25}>
+                                    <Alert severity="info" sx={{ py: 0.5 }}>
+                                      {t("schedulers.form.temperatureSensorDescription")}
+                                    </Alert>
+                                    <TextField
+                                      label={t("schedulers.form.requiredSensor")}
+                                      size="small"
+                                      value={t(
+                                        "schedulers.form.requiredSensorTemperature",
+                                      )}
+                                      InputProps={{ readOnly: true }}
+                                      sx={textFieldSx}
+                                    />
+                                    <Box
+                                      sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: {
+                                          xs: "1fr",
+                                          sm: "repeat(2, minmax(0, 1fr))",
+                                        },
+                                        gap: 1,
+                                      }}
+                                    >
+                                    <TextField
+                                      label={t("schedulers.form.targetTemperature")}
+                                      size="small"
+                                      value={slot.controlPolicy.targetTemperatureC}
+                                      onChange={(event) =>
+                                        handleSlotControlPolicyChange(
+                                          day,
+                                          slotIndex,
+                                          "targetTemperatureC",
+                                          event.target.value,
+                                        )
+                                      }
+                                      sx={textFieldSx}
+                                    />
+                                    <TextField
+                                      label={t("schedulers.form.stopDelta")}
+                                      size="small"
+                                      value={slot.controlPolicy.stopAboveTargetDeltaC}
+                                      onChange={(event) =>
+                                        handleSlotControlPolicyChange(
+                                          day,
+                                          slotIndex,
+                                          "stopAboveTargetDeltaC",
+                                          event.target.value,
+                                        )
+                                      }
+                                      sx={textFieldSx}
+                                    />
+                                    <TextField
+                                      label={t("schedulers.form.startDelta")}
+                                      size="small"
+                                      value={slot.controlPolicy.startBelowTargetDeltaC}
+                                      onChange={(event) =>
+                                        handleSlotControlPolicyChange(
+                                          day,
+                                          slotIndex,
+                                          "startBelowTargetDeltaC",
+                                          event.target.value,
+                                        )
+                                      }
+                                      sx={textFieldSx}
+                                    />
+                                    <FormControl size="small" sx={textFieldSx}>
+                                      <InputLabel>
+                                        {t("schedulers.form.endBehavior")}
+                                      </InputLabel>
+                                      <Select
+                                        label={t("schedulers.form.endBehavior")}
+                                        value={slot.controlPolicy.endBehavior}
+                                        onChange={(event) =>
+                                          handleSlotControlPolicyChange(
+                                            day,
+                                            slotIndex,
+                                            "endBehavior",
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        <MenuItem value="FORCE_OFF">
+                                          {t("schedulers.form.endBehaviorForceOff")}
+                                        </MenuItem>
+                                        <MenuItem value="KEEP_CURRENT_STATE">
+                                          {t("schedulers.form.endBehaviorKeepState")}
+                                        </MenuItem>
+                                      </Select>
+                                    </FormControl>
+                                    <FormControlLabel
+                                      control={
+                                        <Switch
+                                          checked={
+                                            slot.controlPolicy.heatUpOnActivate
+                                          }
+                                          onChange={(_, checked) =>
+                                            handleSlotControlPolicyChange(
+                                              day,
+                                              slotIndex,
+                                              "heatUpOnActivate",
+                                              checked,
+                                            )
+                                          }
+                                        />
+                                      }
+                                      label={t("schedulers.form.heatUpOnActivate")}
+                                    />
+                                    </Box>
+                                  </Stack>
+                                )}
+
+                                <Stack spacing={1.25}>
+                                  <Typography variant="subtitle2" fontWeight={600}>
+                                    {t("schedulers.form.deviceDependencyTitle")}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {t("schedulers.form.deviceDependencyDescription")}
+                                  </Typography>
+
+                                  <FormControl fullWidth size="small" sx={textFieldSx}>
+                                    <InputLabel>
+                                      {t("schedulers.form.deviceDependencyTarget")}
+                                    </InputLabel>
+                                    <Select
+                                      label={t("schedulers.form.deviceDependencyTarget")}
+                                      value={slot.deviceDependencyRule.targetDeviceId}
+                                      onChange={(event) => {
+                                        const nextValue = String(event.target.value);
+                                        handleSlotDependencyRuleChange(
+                                          day,
+                                          slotIndex,
+                                          "targetDeviceId",
+                                          nextValue === "" ? "" : Number(nextValue),
+                                        );
+                                      }}
+                                      disabled={devicesLoading}
+                                    >
+                                      <MenuItem value="">
+                                        <em>{t("common.selectPlaceholder")}</em>
+                                      </MenuItem>
+                                      {availableDevices.map((entry) => (
+                                        <MenuItem key={entry.id} value={entry.id}>
+                                          {`${entry.name} (GPIO ${entry.device_number})`}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+
+                                  <Box
+                                    sx={{
+                                      display: "grid",
+                                      gridTemplateColumns: {
+                                        xs: "1fr",
+                                        sm: "repeat(2, minmax(0, 1fr))",
+                                      },
+                                      gap: 1,
+                                    }}
+                                  >
+                                    <FormControl fullWidth size="small" sx={textFieldSx}>
+                                      <InputLabel>
+                                        {t("schedulers.form.whenSourceOn")}
+                                      </InputLabel>
+                                      <Select
+                                        label={t("schedulers.form.whenSourceOn")}
+                                        value={slot.deviceDependencyRule.whenSourceOn}
+                                        onChange={(event) =>
+                                          handleSlotDependencyRuleChange(
+                                            day,
+                                            slotIndex,
+                                            "whenSourceOn",
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        {DEPENDENCY_ACTION_OPTIONS.map((action) => (
+                                          <MenuItem key={action} value={action}>
+                                            {t(`devices.form.dependencyActions.${action}`)}
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+
+                                    <FormControl fullWidth size="small" sx={textFieldSx}>
+                                      <InputLabel>
+                                        {t("schedulers.form.whenSourceOff")}
+                                      </InputLabel>
+                                      <Select
+                                        label={t("schedulers.form.whenSourceOff")}
+                                        value={slot.deviceDependencyRule.whenSourceOff}
+                                        onChange={(event) =>
+                                          handleSlotDependencyRuleChange(
+                                            day,
+                                            slotIndex,
+                                            "whenSourceOff",
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        {DEPENDENCY_ACTION_OPTIONS.map((action) => (
+                                          <MenuItem key={action} value={action}>
+                                            {t(`devices.form.dependencyActions.${action}`)}
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  </Box>
+
+                                  {devicesLoadError && (
+                                    <Alert severity="warning">{devicesLoadError}</Alert>
+                                  )}
+                                </Stack>
+                              </Stack>
+                            </Box>
                           </Stack>
                         </Box>
                       );
