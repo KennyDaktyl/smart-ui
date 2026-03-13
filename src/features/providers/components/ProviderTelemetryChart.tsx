@@ -16,6 +16,7 @@ const BASE_WIDTH = 960;
 const BAR_HEIGHT = 280;
 const LINE_HEIGHT = 280;
 const Y_AXIS_WIDTH = 58;
+const SECONDARY_AXIS_WIDTH = 62;
 const TOOLTIP_OFFSET = 12;
 
 const PADDING_LEFT = 14;
@@ -34,6 +35,7 @@ export type TelemetryChartPoint = {
 type HourBar = {
   ts: number;
   value: number;
+  revenue: number | null;
   x: number;
   y: number;
   height: number;
@@ -66,9 +68,13 @@ type ChartGeometry = {
 type HoverTooltipState = {
   top: number;
   left: number;
-  value: number;
   dateTimeLabel: string;
-  unit: string;
+  lines: Array<{
+    label: string;
+    value: number;
+    unit: string;
+    color?: string;
+  }>;
 };
 
 type ProviderTelemetryChartProps = {
@@ -76,6 +82,7 @@ type ProviderTelemetryChartProps = {
   points: TelemetryChartPoint[];
   measuredUnit?: string | null;
   energyUnit?: string | null;
+  revenueCurrency?: string | null;
   yMin?: number | null;
   yMax?: number | null;
   noDataLabel: string;
@@ -175,7 +182,7 @@ const buildGeometry = (
   };
 };
 
-const buildLinePath = (points: EntryPoint[]) =>
+const buildLinePath = (points: Array<{ x: number; y: number }>) =>
   points
     .map((point, index) =>
       `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
@@ -186,34 +193,49 @@ type StickyYAxisProps = {
   ticks: number[];
   yFor: (value: number) => number;
   height: number;
+  align?: "left" | "right";
+  showBorder?: boolean;
 };
 
-const StickyYAxis = ({ ticks, yFor, height }: StickyYAxisProps) => (
+const StickyYAxis = ({
+  ticks,
+  yFor,
+  height,
+  align = "left",
+  showBorder = false,
+}: StickyYAxisProps) => (
   <Box
     sx={{
-      width: Y_AXIS_WIDTH,
-      minWidth: Y_AXIS_WIDTH,
+      width: align === "left" ? Y_AXIS_WIDTH : SECONDARY_AXIS_WIDTH,
+      minWidth: align === "left" ? Y_AXIS_WIDTH : SECONDARY_AXIS_WIDTH,
       flexShrink: 0,
-      borderRight: "1px solid #eef2f7",
+      ...(showBorder
+        ? align === "left"
+          ? { borderRight: "1px solid #eef2f7" }
+          : { borderLeft: "1px solid #eef2f7" }
+        : {}),
     }}
   >
-    <svg width={Y_AXIS_WIDTH} height={height}>
+    <svg
+      width={align === "left" ? Y_AXIS_WIDTH : SECONDARY_AXIS_WIDTH}
+      height={height}
+    >
       {ticks.map((value, index) => {
         const y = yFor(value);
         return (
           <g key={`axis-y-${index}`}>
             <line
-              x1={Y_AXIS_WIDTH - 6}
-              x2={Y_AXIS_WIDTH}
+              x1={align === "left" ? Y_AXIS_WIDTH - 6 : 0}
+              x2={align === "left" ? Y_AXIS_WIDTH : 6}
               y1={y}
               y2={y}
               stroke="#d1d5db"
             />
             <text
-              x={Y_AXIS_WIDTH - 10}
+              x={align === "left" ? Y_AXIS_WIDTH - 10 : 10}
               y={y + 4}
               fontSize={11}
-              textAnchor="end"
+              textAnchor={align === "left" ? "end" : "start"}
               fill="#6b7280"
             >
               {formatValue(value)}
@@ -270,6 +292,7 @@ export function ProviderTelemetryChart({
   points,
   measuredUnit,
   energyUnit,
+  revenueCurrency,
   yMin,
   yMax,
   noDataLabel,
@@ -304,6 +327,10 @@ export function ProviderTelemetryChart({
         return {
           ts: hourStartMs + HOUR_MS / 2,
           value: point.energy,
+          revenue:
+            typeof point.revenue === "number" && Number.isFinite(point.revenue)
+              ? point.revenue
+              : null,
           timeLabel: formatTimeWarsaw(hourStartMs, locale),
           dateTimeLabel: formatDateTimeWarsaw(hourStartMs, locale),
         };
@@ -359,6 +386,37 @@ export function ProviderTelemetryChart({
       geometry,
     };
   }, [barsChartWidth, day.hours, dayStartMs, locale]);
+
+  const revenueChart = useMemo(() => {
+    const pointsWithRevenue = barsChart.bars.filter(
+      (bar) => typeof bar.revenue === "number" && bar.revenue > 0
+    );
+
+    if (!pointsWithRevenue.length) {
+      return null;
+    }
+
+    const maxRevenue = Math.max(...pointsWithRevenue.map((bar) => bar.revenue ?? 0));
+    const geometry = buildGeometry(
+      barsChart.geometry.width,
+      BAR_HEIGHT,
+      0,
+      maxRevenue <= 0 ? 1 : maxRevenue * 1.1,
+      dayStartMs
+    );
+
+    const linePoints = pointsWithRevenue.map((bar) => ({
+      ...bar,
+      x: barsChart.geometry.xFor(bar.ts),
+      y: geometry.yFor(bar.revenue ?? 0),
+    }));
+
+    return {
+      geometry,
+      points: linePoints,
+      path: buildLinePath(linePoints),
+    };
+  }, [barsChart.bars, barsChart.geometry.width, dayStartMs]);
 
   const entriesChart = useMemo(() => {
     const configuredMin =
@@ -449,16 +507,14 @@ export function ProviderTelemetryChart({
 
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
-    value: number,
     dateTimeLabel: string,
-    unit: string
+    lines: HoverTooltipState["lines"]
   ) => {
     setHoverTooltip({
       top: Math.round(event.clientY + TOOLTIP_OFFSET),
       left: Math.round(event.clientX + TOOLTIP_OFFSET),
-      value,
       dateTimeLabel,
-      unit,
+      lines,
     });
   };
 
@@ -500,9 +556,43 @@ export function ProviderTelemetryChart({
         justifyContent="space-between"
         mb={1}
       >
-        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
-          {t("providers.telemetry.hourlyChart")}
-        </Typography>
+        <Stack spacing={0.25}>
+          <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+            {t("providers.telemetry.hourlyChart")}
+          </Typography>
+          {revenueChart ? (
+            <Stack direction="row" spacing={1.5} flexWrap="wrap">
+              <Typography variant="caption" color="text.secondary">
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-block",
+                    width: 10,
+                    height: 10,
+                    borderRadius: 0.5,
+                    bgcolor: "#22c55e",
+                    mr: 0.75,
+                  }}
+                />
+                {t("providers.telemetry.energyLabel")}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-block",
+                    width: 14,
+                    height: 2,
+                    bgcolor: "#f59e0b",
+                    verticalAlign: "middle",
+                    mr: 0.75,
+                  }}
+                />
+                {t("providers.telemetry.hourlyRevenueLine")}
+              </Typography>
+            </Stack>
+          ) : null}
+        </Stack>
         <ZoomControl
           zoom={barsZoom}
           onDecrease={() =>
@@ -581,10 +671,44 @@ export function ProviderTelemetryChart({
                   fill={bar.value >= 0 ? "#22c55e" : "#ef4444"}
                   style={{ cursor: "pointer" }}
                   onMouseEnter={(event) =>
-                    showTooltip(event, bar.value, bar.dateTimeLabel, energyUnitLabel)
+                    showTooltip(event, bar.dateTimeLabel, [
+                      {
+                        label: t("providers.telemetry.energyLabel"),
+                        value: bar.value,
+                        unit: energyUnitLabel,
+                        color: bar.value >= 0 ? "#22c55e" : "#ef4444",
+                      },
+                      ...(bar.revenue != null
+                        ? [
+                            {
+                              label: t("providers.telemetry.revenueLabel"),
+                              value: bar.revenue,
+                              unit: revenueCurrency ?? "PLN",
+                              color: "#f59e0b",
+                            },
+                          ]
+                        : []),
+                    ])
                   }
                   onMouseMove={(event) =>
-                    showTooltip(event, bar.value, bar.dateTimeLabel, energyUnitLabel)
+                    showTooltip(event, bar.dateTimeLabel, [
+                      {
+                        label: t("providers.telemetry.energyLabel"),
+                        value: bar.value,
+                        unit: energyUnitLabel,
+                        color: bar.value >= 0 ? "#22c55e" : "#ef4444",
+                      },
+                      ...(bar.revenue != null
+                        ? [
+                            {
+                              label: t("providers.telemetry.revenueLabel"),
+                              value: bar.revenue,
+                              unit: revenueCurrency ?? "PLN",
+                              color: "#f59e0b",
+                            },
+                          ]
+                        : []),
+                    ])
                   }
                   onMouseLeave={hideTooltip}
                 />
@@ -599,8 +723,59 @@ export function ProviderTelemetryChart({
                 </text>
               </g>
             ))}
+
+            {revenueChart?.points.length && revenueChart.points.length > 1 ? (
+              <path
+                d={revenueChart.path}
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeDasharray="4 3"
+              />
+            ) : null}
+
+            {revenueChart?.points.map((point, index) => (
+              <g
+                key={`revenue-point-${index}`}
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(event) =>
+                  showTooltip(event, point.dateTimeLabel, [
+                    {
+                      label: t("providers.telemetry.revenueLabel"),
+                      value: point.revenue ?? 0,
+                      unit: revenueCurrency ?? "PLN",
+                      color: "#f59e0b",
+                    },
+                  ])
+                }
+                onMouseMove={(event) =>
+                  showTooltip(event, point.dateTimeLabel, [
+                    {
+                      label: t("providers.telemetry.revenueLabel"),
+                      value: point.revenue ?? 0,
+                      unit: revenueCurrency ?? "PLN",
+                      color: "#f59e0b",
+                    },
+                  ])
+                }
+                onMouseLeave={hideTooltip}
+              >
+                <circle cx={point.x} cy={point.y} r={7} fill="transparent" />
+                <circle cx={point.x} cy={point.y} r={2.4} fill="#f59e0b" />
+              </g>
+            ))}
           </svg>
         </Box>
+        {revenueChart ? (
+          <StickyYAxis
+            ticks={revenueChart.geometry.yTicks}
+            yFor={revenueChart.geometry.yFor}
+            height={BAR_HEIGHT}
+            align="right"
+          />
+        ) : null}
       </Box>
 
       {!barsChart.bars.length && (
@@ -696,17 +871,29 @@ export function ProviderTelemetryChart({
                 onMouseEnter={(event) =>
                   showTooltip(
                     event,
-                    point.value,
                     point.dateTimeLabel,
-                    measuredUnitLabel
+                    [
+                      {
+                        label: t("providers.telemetry.energyLabel"),
+                        value: point.value,
+                        unit: measuredUnitLabel,
+                        color: point.isNullSample ? "#ef4444" : "#0f8b6f",
+                      },
+                    ]
                   )
                 }
                 onMouseMove={(event) =>
                   showTooltip(
                     event,
-                    point.value,
                     point.dateTimeLabel,
-                    measuredUnitLabel
+                    [
+                      {
+                        label: t("providers.telemetry.energyLabel"),
+                        value: point.value,
+                        unit: measuredUnitLabel,
+                        color: point.isNullSample ? "#ef4444" : "#0f8b6f",
+                      },
+                    ]
                   )
                 }
                 onMouseLeave={hideTooltip}
@@ -757,7 +944,15 @@ export function ProviderTelemetryChart({
             color="#000"
             display="block"
           >
-            {`${formatValue(hoverTooltip.value)} ${hoverTooltip.unit}`}
+            {hoverTooltip.lines.map((line) => (
+              <Box
+                key={`${line.label}-${line.unit}`}
+                component="span"
+                sx={{ display: "block", color: line.color ?? "#000" }}
+              >
+                {`${line.label}: ${formatValue(line.value)} ${line.unit}`}
+              </Box>
+            ))}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
             {hoverTooltip.dateTimeLabel}

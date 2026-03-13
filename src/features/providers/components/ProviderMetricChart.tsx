@@ -164,8 +164,6 @@ const StickyYAxis = ({
       width: Y_AXIS_WIDTH,
       minWidth: Y_AXIS_WIDTH,
       flexShrink: 0,
-      borderRight: "1px solid #eef2f7",
-      bgcolor: "background.paper",
     }}
   >
     <svg width={Y_AXIS_WIDTH} height={height} style={{ display: "block" }}>

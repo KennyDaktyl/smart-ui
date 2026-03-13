@@ -38,7 +38,9 @@ import {
 import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import type {
   ProviderMetricSeries,
+  ProviderMatchedRevenue,
   ProviderTelemetryEntry,
+  ProviderMarketPrice,
   ProviderResponse,
 } from "@/features/providers/types/userProvider";
 
@@ -156,6 +158,45 @@ const mergeSeriesWithLiveEntries = (
   };
 };
 
+const convertMarketPriceToKwh = (price: number, unit: string) => {
+  const normalizedUnit = unit.trim().toLowerCase();
+  if (normalizedUnit === "mwh") return price / 1000;
+  if (normalizedUnit === "wh") return price * 1000;
+  return price;
+};
+
+const buildMarketPriceSeries = (
+  price: ProviderMarketPrice | null
+): ProviderMetricSeries | null => {
+  if (!price || price.history.length === 0) {
+    return null;
+  }
+
+  const entries = price.history
+    .map((point) => ({
+      timestamp: point.interval_start,
+      value: convertMarketPriceToKwh(point.price, point.unit),
+    }))
+    .filter((entry) => Number.isFinite(Date.parse(entry.timestamp)));
+
+  const firstTimestamp = entries[0]?.timestamp;
+  if (!firstTimestamp) {
+    return null;
+  }
+
+  return {
+    metric_key: `market_${price.market.toLowerCase()}`,
+    label: price.label,
+    unit: "PLN/kWh",
+    source_unit: `${price.currency}/${price.unit}`,
+    chart_type: "line",
+    aggregation_mode: "raw",
+    date: new Date(firstTimestamp).toISOString().slice(0, 10),
+    entries,
+    hours: [],
+  };
+};
+
 /* ============================================================
  * Page
  * ============================================================ */
@@ -192,6 +233,9 @@ export default function ProviderTelemetryPage() {
   const day = telemetry?.day ?? null;
   const measuredUnit = telemetry?.measured_unit ?? null;
   const energyUnit = telemetry?.energy_unit ?? null;
+  const settlementPrice = telemetry?.settlement_price ?? null;
+  const forecastPrice = telemetry?.forecast_price ?? null;
+  const matchedRevenue = telemetry?.matched_revenue ?? null;
 
   const providerName =
     provider?.name ?? providerUuid ?? t("common.notAvailable");
@@ -361,6 +405,28 @@ export default function ProviderTelemetryPage() {
   const isTodaySelected = selectedDate === today;
   const liveSubscriptionEnabled = Boolean(providerUuid) && (provider?.enabled ?? true);
   const chartMeasuredUnit = measuredUnit ?? liveUnit ?? provider?.unit ?? null;
+  const precisePriceFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 6,
+      }),
+    [locale]
+  );
+
+  const formatPricePerEnergyUnitLabel = useCallback(
+    (price: number, currency: string, unit: string) =>
+      `${precisePriceFormatter.format(price)} ${currency}/${unit}`,
+    [precisePriceFormatter]
+  );
+  const marketSettlementSeries = useMemo(
+    () => buildMarketPriceSeries(settlementPrice),
+    [settlementPrice]
+  );
+  const marketForecastSeries = useMemo(
+    () => buildMarketPriceSeries(forecastPrice),
+    [forecastPrice]
+  );
 
   const handleDateChange = (nextDate: string) => {
     if (!nextDate) return;
@@ -486,7 +552,15 @@ export default function ProviderTelemetryPage() {
                 {t("providers.telemetry.noData")}
               </Typography>
             ) : (
-              <Stack spacing={1}>
+              <Stack spacing={1.5}>
+                <MarketPriceSummary
+                  settlementPrice={settlementPrice}
+                  forecastPrice={forecastPrice}
+                  matchedRevenue={matchedRevenue}
+                  locale={locale}
+                  t={t}
+                  formatPricePerEnergyUnitLabel={formatPricePerEnergyUnitLabel}
+                />
                 <Typography
                   variant="subtitle2"
                   fontWeight={700}
@@ -501,10 +575,21 @@ export default function ProviderTelemetryPage() {
                   points={dayWithLiveEntries}
                   measuredUnit={chartMeasuredUnit}
                   energyUnit={energyUnit}
+                  revenueCurrency={matchedRevenue?.currency ?? null}
                   yMin={provider?.value_min ?? null}
                   yMax={provider?.value_max ?? null}
                   noDataLabel={t("providers.telemetry.noDayData")}
                   noEntriesLabel={t("providers.telemetry.noEntriesData")}
+                />
+                <ProviderMetricChart
+                  title={t("providers.telemetry.rceSettlementChart")}
+                  series={marketSettlementSeries}
+                  noDataLabel={t("providers.telemetry.noData")}
+                />
+                <ProviderMetricChart
+                  title={t("providers.telemetry.rceForecastChart")}
+                  series={marketForecastSeries}
+                  noDataLabel={t("providers.telemetry.noData")}
                 />
               </Stack>
             )}
@@ -548,5 +633,166 @@ export default function ProviderTelemetryPage() {
         </Stack>
       </TelemetryPanel>
     </Stack>
+  );
+}
+
+type MarketPriceSummaryProps = {
+  settlementPrice: ProviderMarketPrice | null;
+  forecastPrice: ProviderMarketPrice | null;
+  matchedRevenue: ProviderMatchedRevenue | null;
+  locale: string;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  formatPricePerEnergyUnitLabel: (
+    price: number,
+    currency: string,
+    unit: string
+  ) => string;
+};
+
+function MarketPriceSummary({
+  settlementPrice,
+  forecastPrice,
+  matchedRevenue,
+  locale,
+  t,
+  formatPricePerEnergyUnitLabel,
+}: MarketPriceSummaryProps) {
+  if (!settlementPrice && !forecastPrice && !matchedRevenue) {
+    return null;
+  }
+
+  const formatInterval = (price: ProviderMarketPrice | null) => {
+    if (!price) return t("common.notAvailable");
+    return `${new Date(price.interval_start).toLocaleTimeString(
+      locale,
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    )} - ${new Date(price.interval_end).toLocaleTimeString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  };
+
+  const settlementIntervalLabel = formatInterval(settlementPrice);
+  const forecastIntervalLabel = formatInterval(forecastPrice);
+  const forecastUpdatedAtLabel = forecastPrice?.source_updated_at
+    ? new Date(forecastPrice.source_updated_at).toLocaleString(locale)
+    : null;
+  const settlementLabel =
+    settlementPrice != null
+      ? formatPricePerEnergyUnitLabel(
+          convertMarketPriceToKwh(settlementPrice.price, settlementPrice.unit),
+          settlementPrice.currency,
+          "kWh"
+        )
+      : t("common.notAvailable");
+  const forecastLabel =
+    forecastPrice != null
+      ? formatPricePerEnergyUnitLabel(
+          convertMarketPriceToKwh(forecastPrice.price, forecastPrice.unit),
+          forecastPrice.currency,
+          "kWh"
+        )
+      : t("common.notAvailable");
+  const compactFormatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
+  const matchedRevenueLabel =
+    matchedRevenue != null
+      ? `${compactFormatter.format(matchedRevenue.total_revenue)} ${
+          matchedRevenue.currency
+        }`
+      : t("common.notAvailable");
+  const matchedEnergyLabel =
+    matchedRevenue?.energy_unit
+      ? `${compactFormatter.format(matchedRevenue.total_export_energy)} ${
+          matchedRevenue.energy_unit
+        }`
+      : t("common.notAvailable");
+
+  return (
+    <Box
+      sx={{
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        p: 1.25,
+      }}
+    >
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={1}
+        useFlexGap
+        flexWrap="wrap"
+      >
+        <MarketPriceStat
+          label={t("providers.telemetry.rceSettlementPrice")}
+          value={settlementLabel}
+          caption={`${t("providers.telemetry.rceValidInterval")}: ${settlementIntervalLabel}`}
+        />
+        <MarketPriceStat
+          label={t("providers.telemetry.rceForecastPrice")}
+          value={forecastLabel}
+          caption={
+            forecastUpdatedAtLabel
+              ? `${t("providers.telemetry.rceForecastUpdatedAt", {
+                  value: forecastUpdatedAtLabel,
+                })} · ${t("providers.telemetry.rceValidInterval")}: ${forecastIntervalLabel}`
+              : `${t("providers.telemetry.rceValidInterval")}: ${forecastIntervalLabel}`
+          }
+        />
+        <MarketPriceStat
+          label={t("providers.telemetry.rceMatchedRevenue")}
+          value={matchedRevenueLabel}
+          caption={
+            matchedRevenue != null
+              ? t("providers.telemetry.rceMatchedRevenueHint", {
+                  energy: matchedEnergyLabel,
+                  count: matchedRevenue.matched_intervals,
+                })
+              : t("common.notAvailable")
+          }
+        />
+      </Stack>
+    </Box>
+  );
+}
+
+type MarketPriceStatProps = {
+  label: string;
+  value: string;
+  caption: string;
+};
+
+function MarketPriceStat({ label, value, caption }: MarketPriceStatProps) {
+  return (
+    <Box sx={{ minWidth: { xs: "100%", md: 150 }, flex: "1 1 0" }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mb: 0.25, lineHeight: 1.2 }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        variant="body1"
+        fontWeight={700}
+        color="text.primary"
+        sx={{ lineHeight: 1.2 }}
+      >
+        {value}
+      </Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mt: 0.25, lineHeight: 1.2 }}
+      >
+        {caption}
+      </Typography>
+    </Box>
   );
 }

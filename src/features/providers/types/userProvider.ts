@@ -73,6 +73,7 @@ export type ProviderMeasurementSeries = {
 export type HourlyEnergyPoint = {
   hour: string;
   energy: number;
+  revenue?: number | null;
 };
 
 export type LegacyEnergyEntryPoint = {
@@ -110,6 +111,43 @@ export type ProviderEnergySeries = {
   unit?: string | null;
 };
 
+export type MarketEnergyPricePoint = {
+  interval_start: string;
+  interval_end: string;
+  price: number;
+  currency: string;
+  unit: string;
+};
+
+export type ProviderMarketPrice = {
+  market: string;
+  label: string;
+  price: number;
+  currency: string;
+  unit: string;
+  interval_start: string;
+  interval_end: string;
+  source_updated_at?: string | null;
+  price_per_energy_unit?: number | null;
+  energy_unit?: string | null;
+  history: MarketEnergyPricePoint[];
+};
+
+export type ProviderMatchedRevenue = {
+  market: string;
+  label: string;
+  currency: string;
+  energy_unit?: string | null;
+  total_export_energy: number;
+  total_revenue: number;
+  matched_intervals: number;
+  hours: {
+    hour: string;
+    revenue: number;
+    export_energy: number;
+  }[];
+};
+
 export type ProviderTelemetryResponse = {
   provider: ProviderResponse;
   date: string;
@@ -117,6 +155,9 @@ export type ProviderTelemetryResponse = {
   energy_unit?: string | null;
   day: DayEnergy;
   metrics: ProviderMetricSeries[];
+  settlement_price?: ProviderMarketPrice | null;
+  forecast_price?: ProviderMarketPrice | null;
+  matched_revenue?: ProviderMatchedRevenue | null;
 };
 
 export interface ProviderResponse {
