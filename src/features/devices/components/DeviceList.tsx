@@ -164,7 +164,7 @@ export function DeviceList({
       <StickyDialog
         open={Boolean(editingDevice)}
         onClose={() => setEditingDevice(null)}
-        maxWidth="sm"
+        maxWidth="md"
         title={t("common.edit")}
         actions={
           <>

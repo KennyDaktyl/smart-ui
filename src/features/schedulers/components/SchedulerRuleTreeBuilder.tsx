@@ -198,7 +198,7 @@ function ConditionRow({
               md: isBattery ? "1.2fr 0.8fr 1fr auto" : "1.2fr 0.8fr 1fr 0.8fr auto",
             },
             gap: 1,
-            alignItems: "center",
+            alignItems: "start",
           }}
         >
           <FormControl fullWidth size="small" disabled={disabled}>
@@ -233,6 +233,7 @@ function ConditionRow({
                 </MenuItem>
               ))}
             </Select>
+            <FormHelperText>{BLANK_HELPER}</FormHelperText>
           </FormControl>
 
           <FormControl fullWidth size="small" disabled={disabled}>
@@ -250,6 +251,7 @@ function ConditionRow({
               <MenuItem value="gte">{t("automation.comparators.gte")}</MenuItem>
               <MenuItem value="lte">{t("automation.comparators.lte")}</MenuItem>
             </Select>
+            <FormHelperText>{BLANK_HELPER}</FormHelperText>
           </FormControl>
 
           {isBattery ? (

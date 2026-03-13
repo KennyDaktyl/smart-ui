@@ -62,7 +62,7 @@ export function CardShell({
               headerSx,
             ]}
           >
-            <Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
               {title && (
                 <Typography variant="h6" fontWeight={600} sx={titleSx}>
                   {title}

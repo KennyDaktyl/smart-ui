@@ -197,7 +197,7 @@ export default function DashboardPage() {
       <StickyDialog
         open={Boolean(editingItem)}
         onClose={() => setEditingDeviceId(null)}
-        maxWidth="sm"
+        maxWidth="md"
         title={t("common.edit")}
         actions={
           <>

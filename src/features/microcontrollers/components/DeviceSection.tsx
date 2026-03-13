@@ -87,7 +87,7 @@ export function DeviceSection({
       <StickyDialog
         open={openAddDialog}
         onClose={onCloseAddDialog}
-        maxWidth="sm"
+        maxWidth="md"
         title={t("common.add")}
         actions={
           <>

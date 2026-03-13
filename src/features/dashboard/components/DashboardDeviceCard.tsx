@@ -27,6 +27,7 @@ import { parseApiError } from "@/api/parseApiError";
 import { useToast } from "@/context/ToastContext";
 import { CardShell } from "@/features/common/components/CardShell";
 import { ProviderPowerGauge } from "@/features/dashboard/components/ProviderPowerGauge";
+import { useDeviceEventLive } from "@/features/devices/live/useDeviceEventLive";
 import type { DeviceLiveState } from "@/features/devices/live/useDeviceLiveState";
 import type { Device } from "@/features/devices/types/devicesType";
 import { formatDeviceAutoRuleSummary } from "@/features/devices/utils/autoRuleSummary";
@@ -61,6 +62,27 @@ const resolveModeLabel = (
   if (mode === "SCHEDULE") return t("devices.details.modes.schedule");
   if (mode === "MANUAL") return t("devices.details.modes.manual");
   return t("common.notAvailable");
+};
+
+const isDependencyTriggerReason = (value: string | null | undefined) =>
+  value === "DEVICE_DEPENDENCY_ON" || value === "DEVICE_DEPENDENCY_OFF";
+
+const resolveDependencyPresentation = (
+  triggerReason: string | null | undefined,
+  isOn: boolean | null,
+  t: (key: string) => string
+) => {
+  if (!isDependencyTriggerReason(triggerReason)) {
+    return null;
+  }
+
+  return {
+    modeLabel: t("dashboard.cards.dependencyMode"),
+    detailLabel:
+      isOn === false
+        ? t("dashboard.cards.dependencyForcedOff")
+        : t("dashboard.cards.dependencyForcedOn"),
+  };
 };
 
 const resolveGaugeBounds = (
@@ -233,11 +255,14 @@ export function DashboardDeviceCard({
     null
   );
   const [autoLogicDialogOpen, setAutoLogicDialogOpen] = useState(false);
+  const { lastEvent } = useDeviceEventLive({
+    deviceUuid: device.uuid,
+    enabled: true,
+  });
 
   const mode = (modeOverride ?? device.mode ?? deviceLive?.mode ?? null) as
     | string
     | null;
-  const modeLabel = resolveModeLabel(mode, t);
   const isAutoMode = mode === "AUTO";
   const isManualMode = mode === "MANUAL";
   const baseManualState =
@@ -276,6 +301,12 @@ export function DashboardDeviceCard({
   }, [device.mode, modeOverride]);
 
   const isOn = resolveOnState(effectiveDevice, deviceLive, mode);
+  const dependencyPresentation = resolveDependencyPresentation(
+    lastEvent?.trigger_reason,
+    isOn,
+    t
+  );
+  const modeLabel = dependencyPresentation?.modeLabel ?? resolveModeLabel(mode, t);
   const switchChecked = isManualMode
     ? resolvedManualState
     : isOn ?? resolvedManualState;
@@ -310,6 +341,25 @@ export function DashboardDeviceCard({
   const autoLogicHasMore =
     autoLogicPreviewLabel !== autoLogicDisplayLabel &&
     autoLogicDisplayLabel !== t("common.notAvailable");
+  const logicSectionTitle = dependencyPresentation
+    ? t("dashboard.cards.dependencyTitle")
+    : isAutoMode
+      ? t("dashboard.cards.autoLogic")
+      : t("dashboard.cards.modeSummary");
+  const logicSectionValue = dependencyPresentation
+    ? dependencyPresentation.detailLabel
+    : isAutoMode
+      ? autoLogicPreviewLabel
+      : modeLabel;
+  const logicSectionCaption =
+    dependencyPresentation || !isAutoMode || thresholdValue == null
+      ? null
+      : `${t("dashboard.cards.autoThreshold")}: ${thresholdDisplayLabel}`;
+  const logicSectionColor = dependencyPresentation
+    ? "info.main"
+    : autoLogicDisplayLabel !== t("common.notAvailable")
+      ? "warning.dark"
+      : "text.primary";
   const providerMetrics = useMemo(
     () =>
       provider
@@ -359,14 +409,22 @@ export function DashboardDeviceCard({
   const isDeviceOffline = microcontrollerLive?.isOnline === false;
 
   const stateLabel =
-    isOn == null
+    dependencyPresentation
+      ? dependencyPresentation.detailLabel
+      : isOn == null
       ? t("common.waitingForStatus")
       : isOn
         ? t("devices.details.stateOn")
         : t("devices.details.stateOff");
 
   const stateColor =
-    isOn == null ? "text.secondary" : isOn ? "success.main" : "error.main";
+    dependencyPresentation
+      ? "info.main"
+      : isOn == null
+        ? "text.secondary"
+        : isOn
+          ? "success.main"
+          : "error.main";
 
   const heartbeatLabel = deviceLive?.seenAt
     ? new Date(deviceLive.seenAt).toLocaleTimeString()
@@ -487,15 +545,18 @@ export function DashboardDeviceCard({
         title={device.name}
         subtitle={`${t("dashboard.cards.deviceNumber")} ${device.device_number}`}
         visualState={isDeviceOffline ? "offline" : "default"}
-        headerSx={{ minHeight: 94 }}
+        headerSx={{
+          minHeight: 108,
+          alignItems: "stretch",
+        }}
         titleSx={{
           display: "-webkit-box",
           overflow: "hidden",
           textOverflow: "ellipsis",
           WebkitBoxOrient: "vertical",
-          WebkitLineClamp: 2,
+          WebkitLineClamp: 3,
           lineHeight: 1.3,
-          minHeight: "2.6em",
+          minHeight: "3.9em",
           wordBreak: "break-word",
         }}
         subtitleSx={{
@@ -510,7 +571,14 @@ export function DashboardDeviceCard({
           <Stack
             spacing={0.5}
             alignItems="flex-end"
-            sx={{ minHeight: 62, justifyContent: "space-between", textAlign: "right" }}
+            sx={{
+              minHeight: 82,
+              width: 168,
+              maxWidth: 168,
+              justifyContent: "space-between",
+              textAlign: "right",
+              flexShrink: 0,
+            }}
           >
           <Tooltip
             title={
@@ -529,7 +597,8 @@ export function DashboardDeviceCard({
                 color="primary"
                 variant="outlined"
                 sx={{
-                  minWidth: 74,
+                  minWidth: 124,
+                  maxWidth: 168,
                   ...(canEditDevice
                     ? {
                         cursor: "pointer",
@@ -538,76 +607,83 @@ export function DashboardDeviceCard({
                           transform: "scale(1.04)",
                           backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
                         },
-                        "& .MuiChip-label": { px: 1.25 },
+                        "& .MuiChip-label": {
+                          px: 1.25,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        },
                       }
                     : {}),
                 }}
               />
             </span>
           </Tooltip>
-          {isAutoMode && (
-            <Stack spacing={0.35} alignItems="flex-end" sx={{ maxWidth: 188 }}>
-              <Stack direction="row" spacing={0.25} alignItems="center">
-                <Typography variant="caption" color="text.secondary">
-                  {t("dashboard.cards.autoLogic")}
-                </Typography>
-                {autoLogicHasMore ? (
-                  <Tooltip
-                    title={t("dashboard.cards.autoLogicInfo")}
-                    placement="left-start"
-                  >
-                    <IconButton
-                      size="small"
-                      aria-label={t("dashboard.cards.autoLogicInfo")}
-                      onClick={handleOpenAutoLogicDialog}
-                      sx={{
-                        p: 0.2,
-                        color: "text.secondary",
-                        "&:hover": {
-                          color: "primary.main",
-                        },
-                      }}
-                    >
-                      <InfoOutlinedIcon sx={{ fontSize: 15 }} />
-                    </IconButton>
-                  </Tooltip>
-                ) : null}
-              </Stack>
-              <Typography
-                variant="body2"
-                fontWeight={600}
-                sx={{
-                  maxWidth: 188,
-                  textAlign: "right",
-                  display: "-webkit-box",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  WebkitBoxOrient: "vertical",
-                  WebkitLineClamp: autoLogicHasMore ? 2 : 3,
-                  color:
-                    autoLogicDisplayLabel !== t("common.notAvailable")
-                      ? (theme) => theme.palette.warning.dark
-                      : "text.primary",
-                }}
-              >
-                {autoLogicPreviewLabel}
+          <Stack
+            spacing={0.35}
+            alignItems="flex-end"
+            sx={{ width: "100%", maxWidth: 168, minHeight: 64 }}
+          >
+            <Stack direction="row" spacing={0.25} alignItems="center">
+              <Typography variant="caption" color="text.secondary">
+                {logicSectionTitle}
               </Typography>
-              {thresholdValue != null && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ maxWidth: 188, textAlign: "right" }}
+              {isAutoMode && autoLogicHasMore && !dependencyPresentation ? (
+                <Tooltip
+                  title={t("dashboard.cards.autoLogicInfo")}
+                  placement="left-start"
                 >
-                  {`${t("dashboard.cards.autoThreshold")}: ${thresholdDisplayLabel}`}
-                </Typography>
-              )}
+                  <IconButton
+                    size="small"
+                    aria-label={t("dashboard.cards.autoLogicInfo")}
+                    onClick={handleOpenAutoLogicDialog}
+                    sx={{
+                      p: 0.2,
+                      color: "text.secondary",
+                      "&:hover": {
+                        color: "primary.main",
+                      },
+                    }}
+                  >
+                    <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
             </Stack>
-          )}
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              sx={{
+                width: "100%",
+                textAlign: "right",
+                display: "-webkit-box",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: dependencyPresentation ? 2 : autoLogicHasMore ? 2 : 3,
+                minHeight: "2.8em",
+                color: logicSectionColor,
+              }}
+            >
+              {logicSectionValue}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                width: "100%",
+                textAlign: "right",
+                minHeight: 18,
+                visibility: logicSectionCaption ? "visible" : "hidden",
+              }}
+            >
+              {logicSectionCaption ?? "."}
+            </Typography>
+          </Stack>
           </Stack>
         }
         sx={{
           width: "100%",
-          minHeight: 528,
+          minHeight: 760,
           height: "100%",
           borderColor: isDeviceOffline
             ? "rgba(100,116,139,0.55)"
@@ -620,7 +696,7 @@ export function DashboardDeviceCard({
         }}
       >
       <Stack spacing={1.8} sx={{ height: "100%" }}>
-        <Stack spacing={0.8} sx={{ minHeight: 246 }}>
+        <Stack spacing={0.8} sx={{ minHeight: 246, flexShrink: 0 }}>
           <ProviderPowerGauge
             power={providerPower}
             unit={providerUnit}
@@ -751,17 +827,18 @@ export function DashboardDeviceCard({
           </Stack>
         </Stack>
 
-        {provider ? (
-          <Box
-            sx={{
-              px: 0.95,
-              py: 1,
-              borderRadius: 2.5,
-              border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-              background: (theme) =>
-                `linear-gradient(180deg, ${alpha(theme.palette.common.white, 0.92)} 0%, ${alpha(theme.palette.success.light, 0.08)} 100%)`,
-            }}
-          >
+        <Box
+          sx={{
+            minHeight: 88,
+            px: 0.95,
+            py: 1,
+            borderRadius: 2.5,
+            border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+            background: (theme) =>
+              `linear-gradient(180deg, ${alpha(theme.palette.common.white, 0.92)} 0%, ${alpha(theme.palette.success.light, 0.08)} 100%)`,
+          }}
+        >
+          {provider ? (
             <ProviderLiveMetricsPanel
               provider={provider}
               live={providerLive}
@@ -770,10 +847,19 @@ export function DashboardDeviceCard({
               emptyLabel={t("providers.live.noMetrics")}
               metrics={providerMetrics}
             />
-          </Box>
-        ) : null}
+          ) : (
+            <Stack spacing={0.6}>
+              <Typography variant="caption" color="text.secondary">
+                {t("dashboard.cards.providerMetrics")}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t("dashboard.cards.providerMissing")}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
 
-        <Grid container columnSpacing={1.25} rowSpacing={1}>
+        <Grid container columnSpacing={1.25} rowSpacing={1} sx={{ minHeight: 144 }}>
           <Grid size={{ xs: 6 }}>
             <Stack sx={metaCellSx}>
               <Typography variant="caption" color="text.secondary" noWrap>
