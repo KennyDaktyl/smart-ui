@@ -38,6 +38,7 @@ import {
 } from "@/features/providers/utils/providerLiveMetrics";
 import LoadingOverlay from "@/features/common/components/LoadingOverlay";
 import type {
+  HourlyEnergyPoint,
   ProviderMetricSeries,
   ProviderMatchedRevenue,
   ProviderTelemetryEntry,
@@ -197,6 +198,32 @@ const buildMarketPriceSeries = (
     hours: [],
   };
 };
+
+const mergeHourlyRevenue = (
+  hours: ProviderMetricSeries["hours"],
+  matchedRevenue: ProviderMatchedRevenue | null
+): HourlyEnergyPoint[] => {
+  const revenueByHour = new Map(
+    (matchedRevenue?.hours ?? []).map((point) => [point.hour, point.revenue])
+  );
+
+  return hours.map((point) => ({
+    hour: point.hour,
+    energy: point.value,
+    revenue: revenueByHour.get(point.hour) ?? null,
+  }));
+};
+
+const summarizeHourlyEnergy = (hours: HourlyEnergyPoint[]) =>
+  hours.reduce(
+    (acc, point) => {
+      acc.totalEnergy += point.energy;
+      acc.exportEnergy += Math.max(0, point.energy);
+      acc.importEnergy += Math.max(0, -point.energy);
+      return acc;
+    },
+    { totalEnergy: 0, importEnergy: 0, exportEnergy: 0 }
+  );
 
 /* ============================================================
  * Page
@@ -392,16 +419,6 @@ export default function ProviderTelemetryPage() {
     [batterySocMetric, selectedDayLiveMetricEntries]
   );
 
-  const gridSeriesWithLiveEntries = useMemo(
-    () =>
-      mergeSeriesWithLiveEntries(
-        gridPowerMetric,
-        selectedDayLiveMetricEntries[GRID_POWER_METRIC_KEY] ?? [],
-        gridPowerMetric?.unit
-      ),
-    [gridPowerMetric, selectedDayLiveMetricEntries]
-  );
-
   const nextDayDisabled = selectedDate >= today;
   const isTodaySelected = selectedDate === today;
   const liveSubscriptionEnabled = Boolean(providerUuid) && (provider?.enabled ?? true);
@@ -428,6 +445,18 @@ export default function ProviderTelemetryPage() {
     () => buildMarketPriceSeries(forecastPrice),
     [forecastPrice]
   );
+  const gridHourlyPoints = useMemo(
+    () => mergeHourlyRevenue(gridPowerMetric?.hours ?? [], matchedRevenue),
+    [gridPowerMetric?.hours, matchedRevenue]
+  );
+  const gridSummary = useMemo(
+    () => summarizeHourlyEnergy(gridHourlyPoints),
+    [gridHourlyPoints]
+  );
+  const primaryTitle = provider?.has_power_meter
+    ? t("providers.live.metrics.gridPower")
+    : primaryPowerLabel;
+  const pvTitle = primaryPowerLabel;
 
   const handleDateChange = (nextDate: string) => {
     if (!nextDate) return;
@@ -565,36 +594,49 @@ export default function ProviderTelemetryPage() {
                   t={t}
                   formatPricePerEnergyUnitLabel={formatPricePerEnergyUnitLabel}
                 />
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={700}
-                  color="text.secondary"
-                >
-                  <IconLabel icon={primaryPowerIcon}>
-                    {primaryPowerLabel}
-                  </IconLabel>
-                </Typography>
-                <ProviderTelemetryChart
-                  day={day}
-                  points={dayWithLiveEntries}
-                  measuredUnit={chartMeasuredUnit}
-                  energyUnit={energyUnit}
-                  revenueCurrency={matchedRevenue?.currency ?? null}
-                  yMin={provider?.value_min ?? null}
-                  yMax={provider?.value_max ?? null}
-                  noDataLabel={t("providers.telemetry.noDayData")}
-                  noEntriesLabel={t("providers.telemetry.noEntriesData")}
-                />
-                <ProviderMetricChart
-                  title={t("providers.telemetry.rceSettlementChart")}
-                  series={marketSettlementSeries}
-                  noDataLabel={t("providers.telemetry.noData")}
-                />
-                <ProviderMetricChart
-                  title={t("providers.telemetry.rceForecastChart")}
-                  series={marketForecastSeries}
-                  noDataLabel={t("providers.telemetry.noData")}
-                />
+                {shouldShowGridChart ? (
+                  <ProviderTelemetryChart
+                    date={day.date}
+                    title={
+                      <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
+                        {primaryTitle}
+                      </IconLabel>
+                    }
+                    hourlyPoints={gridHourlyPoints}
+                    points={
+                      selectedDayLiveMetricEntries[GRID_POWER_METRIC_KEY] ?? []
+                    }
+                    totalEnergy={gridSummary.totalEnergy}
+                    importEnergy={gridSummary.importEnergy}
+                    exportEnergy={gridSummary.exportEnergy}
+                    measuredUnit={gridPowerMetric?.source_unit ?? gridPowerMetric?.unit}
+                    energyUnit={gridPowerMetric?.unit ?? energyUnit}
+                    revenueCurrency={matchedRevenue?.currency ?? null}
+                    noDataLabel={t("providers.telemetry.noDayData")}
+                    noEntriesLabel={t("providers.telemetry.noEntriesData")}
+                  />
+                ) : (
+                  <ProviderTelemetryChart
+                    date={day.date}
+                    title={
+                      <IconLabel icon={primaryPowerIcon}>
+                        {primaryTitle}
+                      </IconLabel>
+                    }
+                    hourlyPoints={day.hours ?? []}
+                    points={dayWithLiveEntries}
+                    totalEnergy={day.total_energy ?? 0}
+                    importEnergy={day.import_energy ?? 0}
+                    exportEnergy={day.export_energy ?? 0}
+                    measuredUnit={chartMeasuredUnit}
+                    energyUnit={energyUnit}
+                    revenueCurrency={matchedRevenue?.currency ?? null}
+                    yMin={provider?.value_min ?? null}
+                    yMax={provider?.value_max ?? null}
+                    noDataLabel={t("providers.telemetry.noDayData")}
+                    noEntriesLabel={t("providers.telemetry.noEntriesData")}
+                  />
+                )}
               </Stack>
             )}
           </LoadingOverlay>
@@ -621,19 +663,54 @@ export default function ProviderTelemetryPage() {
             <LoadingOverlay
               loading={loading}
               keepChildrenMounted
-              minHeight={180}
+              minHeight={240}
             >
-              <ProviderMetricChart
+              <ProviderTelemetryChart
+                date={day?.date ?? selectedDate}
                 title={
-                  <IconLabel icon={<ElectricMeterIcon fontSize="small" />}>
-                    {t("providers.live.metrics.gridPower")}
+                  <IconLabel icon={<SolarPowerIcon fontSize="small" />}>
+                    {pvTitle}
                   </IconLabel>
                 }
-                series={gridSeriesWithLiveEntries}
-                noDataLabel={t("providers.telemetry.noData")}
+                hourlyPoints={day?.hours ?? []}
+                points={dayWithLiveEntries}
+                totalEnergy={day?.total_energy ?? 0}
+                importEnergy={day?.import_energy ?? 0}
+                exportEnergy={day?.export_energy ?? 0}
+                measuredUnit={chartMeasuredUnit}
+                energyUnit={energyUnit}
+                yMin={provider?.value_min ?? null}
+                yMax={provider?.value_max ?? null}
+                revenueCurrency={null}
+                noDataLabel={t("providers.telemetry.noDayData")}
+                noEntriesLabel={t("providers.telemetry.noEntriesData")}
               />
             </LoadingOverlay>
           ) : null}
+
+          <LoadingOverlay
+            loading={loading}
+            keepChildrenMounted={Boolean(day)}
+            minHeight={180}
+          >
+            <ProviderMetricChart
+              title={t("providers.telemetry.rceSettlementChart")}
+              series={marketSettlementSeries}
+              noDataLabel={t("providers.telemetry.noData")}
+            />
+          </LoadingOverlay>
+
+          <LoadingOverlay
+            loading={loading}
+            keepChildrenMounted={Boolean(day)}
+            minHeight={180}
+          >
+            <ProviderMetricChart
+              title={t("providers.telemetry.rceForecastChart")}
+              series={marketForecastSeries}
+              noDataLabel={t("providers.telemetry.noData")}
+            />
+          </LoadingOverlay>
         </Stack>
       </TelemetryPanel>
     </Stack>

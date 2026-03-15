@@ -1,9 +1,10 @@
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { Box, IconButton, Stack, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 import { type MouseEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { DayEnergy } from "../types/userProvider";
+import type { HourlyEnergyPoint } from "../types/userProvider";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -78,8 +79,13 @@ type HoverTooltipState = {
 };
 
 type ProviderTelemetryChartProps = {
-  day: DayEnergy;
+  date: string;
+  title?: ReactNode;
+  hourlyPoints: HourlyEnergyPoint[];
   points: TelemetryChartPoint[];
+  totalEnergy: number;
+  importEnergy: number;
+  exportEnergy: number;
   measuredUnit?: string | null;
   energyUnit?: string | null;
   revenueCurrency?: string | null;
@@ -288,8 +294,13 @@ const ZoomControl = ({
 };
 
 export function ProviderTelemetryChart({
-  day,
+  date,
+  title,
+  hourlyPoints,
   points,
+  totalEnergy,
+  importEnergy,
+  exportEnergy,
   measuredUnit,
   energyUnit,
   revenueCurrency,
@@ -306,7 +317,7 @@ export function ProviderTelemetryChart({
     null
   );
 
-  const dayStartMs = useMemo(() => Date.parse(`${day.date}T00:00:00Z`), [day.date]);
+  const dayStartMs = useMemo(() => Date.parse(`${date}T00:00:00Z`), [date]);
 
   const barsChartWidth = BASE_WIDTH * barsZoom;
   const entriesChartWidth = BASE_WIDTH * entriesZoom;
@@ -320,7 +331,7 @@ export function ProviderTelemetryChart({
   );
 
   const barsChart = useMemo(() => {
-    const hours = (day.hours ?? [])
+    const hours = hourlyPoints
       .map((point) => {
         const hourStartMs = Date.parse(point.hour);
         if (Number.isNaN(hourStartMs)) return null;
@@ -385,7 +396,7 @@ export function ProviderTelemetryChart({
       barWidth,
       geometry,
     };
-  }, [barsChartWidth, day.hours, dayStartMs, locale]);
+  }, [barsChartWidth, dayStartMs, hourlyPoints, locale]);
 
   const revenueChart = useMemo(() => {
     const pointsWithRevenue = barsChart.bars.filter(
@@ -501,10 +512,6 @@ export function ProviderTelemetryChart({
 
   const measuredUnitLabel = measuredUnit ?? "kW";
   const energyUnitLabel = energyUnit ?? deriveEnergyUnit(measuredUnitLabel);
-  const totalEnergy = day.total_energy ?? 0;
-  const importEnergy = day.import_energy ?? 0;
-  const exportEnergy = day.export_energy ?? 0;
-
   const showTooltip = (
     event: MouseEvent<SVGGraphicsElement>,
     dateTimeLabel: string,
@@ -527,14 +534,21 @@ export function ProviderTelemetryChart({
         spacing={1}
         mb={1}
       >
-        <Typography fontWeight={700} color="text.secondary">
-          {new Date(`${day.date}T00:00:00Z`).toLocaleDateString(locale, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            timeZone: WARSAW_TZ,
-          })}
-        </Typography>
+        <Stack spacing={0.25}>
+          {title ? (
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+              {title}
+            </Typography>
+          ) : null}
+          <Typography fontWeight={700} color="text.secondary">
+            {new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              timeZone: WARSAW_TZ,
+            })}
+          </Typography>
+        </Stack>
       </Stack>
 
       <Stack direction="row" spacing={3} mb={1} flexWrap="wrap">
