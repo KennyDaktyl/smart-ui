@@ -58,6 +58,12 @@ export type ProviderDisplayMetric = {
   isPrimary: boolean;
 };
 
+type BootstrapMetricInput = {
+  metric_key?: string | null;
+  value?: number | null;
+  unit?: string | null;
+};
+
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 export const getPrimaryProviderMetricLabel = (
@@ -124,11 +130,7 @@ const humanizeMetricKey = (metricKey: string) =>
 export const createInitialProviderMetrics = (
   power: number | null | undefined,
   unit: string | null | undefined,
-  initialMetrics?: Array<{
-    metric_key?: string | null;
-    value?: number | null;
-    unit?: string | null;
-  }> | null
+  initialMetrics?: BootstrapMetricInput[] | null
 ): ProviderLiveMetricMap => {
   const metrics: ProviderLiveMetricMap = {};
   const value = toFiniteNumber(power);
@@ -155,6 +157,78 @@ export const createInitialProviderMetrics = (
   });
 
   return metrics;
+};
+
+const extractPowerflowMetric = (
+  provider: ProviderResponse,
+  metricKey: string
+): BootstrapMetricInput | null => {
+  const extraData = provider.last_value?.extra_data;
+  if (!extraData || typeof extraData !== "object") {
+    return null;
+  }
+
+  const powerflow =
+    "powerflow" in extraData &&
+    extraData.powerflow &&
+    typeof extraData.powerflow === "object"
+      ? (extraData.powerflow as Record<string, unknown>)
+      : null;
+
+  if (!powerflow) {
+    return null;
+  }
+
+  if (metricKey === BATTERY_SOC_METRIC_KEY) {
+    const value = toFiniteNumber(powerflow.soc);
+    return value == null
+      ? null
+      : {
+          metric_key: BATTERY_SOC_METRIC_KEY,
+          value,
+          unit: "%",
+        };
+  }
+
+  if (metricKey === GRID_POWER_METRIC_KEY) {
+    const value = toFiniteNumber(powerflow.grid_w);
+    return value == null
+      ? null
+      : {
+          metric_key: GRID_POWER_METRIC_KEY,
+          value,
+          unit: "W",
+        };
+  }
+
+  return null;
+};
+
+export const getProviderBootstrapMetrics = (
+  provider: ProviderResponse
+): BootstrapMetricInput[] => {
+  const explicitSnapshots = provider.last_metric_snapshots ?? [];
+  if (explicitSnapshots.length > 0) {
+    return explicitSnapshots;
+  }
+
+  const inferredMetrics: BootstrapMetricInput[] = [];
+
+  if (provider.has_energy_storage) {
+    const batteryMetric = extractPowerflowMetric(provider, BATTERY_SOC_METRIC_KEY);
+    if (batteryMetric) {
+      inferredMetrics.push(batteryMetric);
+    }
+  }
+
+  if (provider.has_power_meter) {
+    const gridMetric = extractPowerflowMetric(provider, GRID_POWER_METRIC_KEY);
+    if (gridMetric) {
+      inferredMetrics.push(gridMetric);
+    }
+  }
+
+  return inferredMetrics;
 };
 
 export const parseProviderCurrentEnergy = (
@@ -323,7 +397,7 @@ export const resolveProviderDisplayMetrics = ({
     power,
     unit
   );
-  const initialMetrics = provider.last_metric_snapshots ?? [];
+  const initialMetrics = getProviderBootstrapMetrics(provider);
 
   return Array.from(candidateKeys)
     .map((metricKey) => {

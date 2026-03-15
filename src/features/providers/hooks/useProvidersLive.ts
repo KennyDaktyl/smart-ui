@@ -3,6 +3,7 @@ import { wsManager } from "@/ws/WebSocketManager";
 import { ProviderResponse } from "@/features/providers/types/userProvider";
 import {
   createInitialProviderMetrics,
+  getProviderBootstrapMetrics,
   parseProviderCurrentEnergy,
   type ProviderLiveMetricMap,
 } from "@/features/providers/utils/providerLiveMetrics";
@@ -180,7 +181,7 @@ export function useProvidersLive(
                 : createInitialProviderMetrics(
                     null,
                     provider.unit ?? null,
-                    provider.last_metric_snapshots ?? []
+                    getProviderBootstrapMetrics(provider)
                   ),
           },
         }));
@@ -213,7 +214,7 @@ export function useProvidersLive(
             metrics: createInitialProviderMetrics(
               lastValue.measured_value,
               lastValue.measured_unit ?? provider.unit ?? null,
-              provider.last_metric_snapshots ?? []
+              getProviderBootstrapMetrics(provider)
             ),
           },
         }));

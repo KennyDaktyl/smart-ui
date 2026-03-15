@@ -33,6 +33,7 @@ import {
 import {
   BATTERY_SOC_METRIC_KEY,
   GRID_POWER_METRIC_KEY,
+  getProviderBootstrapMetrics,
   getPrimaryProviderMetricLabel,
 } from "@/features/providers/utils/providerLiveMetrics";
 import LoadingOverlay from "@/features/common/components/LoadingOverlay";
@@ -467,7 +468,9 @@ export default function ProviderTelemetryPage() {
               initialMeasuredAt={provider?.last_value?.measured_at ?? null}
               initialPower={provider?.last_value?.measured_value ?? null}
               initialUnit={provider?.last_value?.measured_unit ?? provider?.unit ?? null}
-              initialMetrics={provider?.last_metric_snapshots ?? []}
+              initialMetrics={
+                provider ? getProviderBootstrapMetrics(provider) : []
+              }
               onChange={handleProviderLiveChange}
             >
               {(live) => (

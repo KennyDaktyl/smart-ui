@@ -3,7 +3,10 @@ import type { ProviderResponse } from "@/features/providers/types/userProvider";
 import type { ProviderLiveState } from "@/features/providers/hooks/useProvidersLive";
 import type { ProviderLiveSnapshot } from "@/features/providers/hooks/useProviderLive";
 import { ProviderLiveWidget } from "@/features/live/widgets/ProviderLiveWidget";
-import { createInitialProviderMetrics } from "@/features/providers/utils/providerLiveMetrics";
+import {
+  createInitialProviderMetrics,
+  getProviderBootstrapMetrics,
+} from "@/features/providers/utils/providerLiveMetrics";
 
 export type ProviderLiveEnergyProps = {
   provider: ProviderResponse;
@@ -26,7 +29,7 @@ export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyPro
         : createInitialProviderMetrics(
             provider.last_value?.measured_value ?? null,
             provider.last_value?.measured_unit ?? provider.unit ?? null,
-            provider.last_metric_snapshots ?? []
+            getProviderBootstrapMetrics(provider)
           ),
   });
 
@@ -37,7 +40,7 @@ export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyPro
     initialMeasuredAt: provider.last_value?.measured_at ?? null,
     initialPower: provider.last_value?.measured_value ?? null,
     initialUnit: provider.last_value?.measured_unit ?? provider.unit ?? null,
-    initialMetrics: provider.last_metric_snapshots ?? [],
+    initialMetrics: getProviderBootstrapMetrics(provider),
   };
 
   if (children) {
