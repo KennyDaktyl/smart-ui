@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingDeviceId, setEditingDeviceId] = useState<number | null>(null);
+  const [editingDeviceSubmitting, setEditingDeviceSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +145,12 @@ export default function DashboardPage() {
     [dashboardDevices, editingDeviceId]
   );
 
+  useEffect(() => {
+    if (!editingItem) {
+      setEditingDeviceSubmitting(false);
+    }
+  }, [editingItem]);
+
   const reloadDashboardData = async () => {
     setLoading(true);
     setError(null);
@@ -201,11 +208,20 @@ export default function DashboardPage() {
         title={t("common.edit")}
         actions={
           <>
-            <Button variant="outlined" onClick={() => setEditingDeviceId(null)}>
+            <Button
+              variant="outlined"
+              onClick={() => setEditingDeviceId(null)}
+              disabled={editingDeviceSubmitting}
+            >
               {t("common.cancel")}
             </Button>
-            <Button type="submit" form="dashboard-edit-device-form" variant="contained">
-              {t("common.save")}
+            <Button
+              type="submit"
+              form="dashboard-edit-device-form"
+              variant="contained"
+              disabled={editingDeviceSubmitting}
+            >
+              {editingDeviceSubmitting ? t("common.loading") : t("common.save")}
             </Button>
           </>
         }
@@ -223,7 +239,9 @@ export default function DashboardPage() {
             existingDevices={editingItem.microcontroller.devices}
             formId="dashboard-edit-device-form"
             hideActions
+            onSubmittingChange={setEditingDeviceSubmitting}
             onSubmit={async () => {
+              setEditingDeviceSubmitting(false);
               setEditingDeviceId(null);
               await reloadDashboardData();
             }}

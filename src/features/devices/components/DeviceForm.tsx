@@ -70,6 +70,7 @@ type Props = {
   provider?: ProviderResponse | null;
   microcontrollerOnline: boolean;
   onSubmit?: (values: DeviceFormValues) => Promise<void> | void;
+  onSubmittingChange?: (submitting: boolean) => void;
   formId?: string;
   hideActions?: boolean;
   variant?: "panel" | "modal";
@@ -500,6 +501,7 @@ export function DeviceForm({
   provider,
   microcontrollerOnline,
   onSubmit,
+  onSubmittingChange,
   formId,
   hideActions = false,
   variant = "panel",
@@ -552,6 +554,10 @@ export function DeviceForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSubmittingChange?.(submitting);
+  }, [onSubmittingChange, submitting]);
 
   useEffect(() => {
     let cancelled = false;
