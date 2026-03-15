@@ -123,21 +123,38 @@ const humanizeMetricKey = (metricKey: string) =>
 
 export const createInitialProviderMetrics = (
   power: number | null | undefined,
-  unit: string | null | undefined
+  unit: string | null | undefined,
+  initialMetrics?: Array<{
+    metric_key?: string | null;
+    value?: number | null;
+    unit?: string | null;
+  }> | null
 ): ProviderLiveMetricMap => {
+  const metrics: ProviderLiveMetricMap = {};
   const value = toFiniteNumber(power);
   const normalizedUnit = toNullableString(unit);
 
-  if (value == null && normalizedUnit == null) {
-    return {};
-  }
-
-  return {
-    [PRIMARY_POWER_METRIC_KEY]: {
+  if (value != null || normalizedUnit != null) {
+    metrics[PRIMARY_POWER_METRIC_KEY] = {
       value,
       unit: normalizedUnit,
-    },
-  };
+    };
+  }
+
+  initialMetrics?.forEach((metric) => {
+    const metricKey = toNullableString(metric.metric_key);
+    if (!metricKey) return;
+
+    const snapshot = normalizeMetricSnapshot({
+      value: metric.value,
+      unit: metric.unit,
+    });
+    if (!snapshot) return;
+
+    metrics[metricKey] = snapshot;
+  });
+
+  return metrics;
 };
 
 export const parseProviderCurrentEnergy = (
@@ -306,19 +323,33 @@ export const resolveProviderDisplayMetrics = ({
     power,
     unit
   );
+  const initialMetrics = provider.last_metric_snapshots ?? [];
 
   return Array.from(candidateKeys)
     .map((metricKey) => {
       const snapshot =
         metricKey === PRIMARY_POWER_METRIC_KEY
           ? primaryMetric
-          : liveMetrics?.[metricKey] ?? {
-              value: null,
-              unit:
-                provider.telemetry_metrics.find(
-                  (metric) => metric.metric_key === metricKey
-                )?.unit ?? null,
-            };
+          : liveMetrics?.[metricKey] ??
+            (() => {
+              const initialMetric = initialMetrics.find(
+                (metric) => metric.metric_key === metricKey
+              );
+              if (initialMetric) {
+                return {
+                  value: initialMetric.value ?? null,
+                  unit: initialMetric.unit ?? null,
+                };
+              }
+
+              return {
+                value: null,
+                unit:
+                  provider.telemetry_metrics.find(
+                    (metric) => metric.metric_key === metricKey
+                  )?.unit ?? null,
+              };
+            })();
 
       if (
         metricKey !== PRIMARY_POWER_METRIC_KEY &&

@@ -65,6 +65,13 @@ export type ProviderMetricSeries = {
   hours: ProviderMetricHourlyPoint[];
 };
 
+export type ProviderMetricSnapshot = {
+  metric_key: string;
+  measured_at: string;
+  value: number | null;
+  unit?: string | null;
+};
+
 export type ProviderMeasurementSeries = {
   unit: string | null;
   entries: ProviderMeasurement[];
@@ -188,4 +195,5 @@ export interface ProviderResponse {
   created_at: string;
   updated_at: string;
   last_value?: ProviderMeasurement | null;
+  last_metric_snapshots?: ProviderMetricSnapshot[];
 }

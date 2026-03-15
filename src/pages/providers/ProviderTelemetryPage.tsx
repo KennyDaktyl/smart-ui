@@ -467,6 +467,7 @@ export default function ProviderTelemetryPage() {
               initialMeasuredAt={provider?.last_value?.measured_at ?? null}
               initialPower={provider?.last_value?.measured_value ?? null}
               initialUnit={provider?.last_value?.measured_unit ?? provider?.unit ?? null}
+              initialMetrics={provider?.last_metric_snapshots ?? []}
               onChange={handleProviderLiveChange}
             >
               {(live) => (

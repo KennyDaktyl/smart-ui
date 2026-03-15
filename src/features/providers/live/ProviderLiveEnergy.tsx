@@ -25,7 +25,8 @@ export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyPro
         ? live.metrics
         : createInitialProviderMetrics(
             provider.last_value?.measured_value ?? null,
-            provider.last_value?.measured_unit ?? provider.unit ?? null
+            provider.last_value?.measured_unit ?? provider.unit ?? null,
+            provider.last_metric_snapshots ?? []
           ),
   });
 
@@ -36,6 +37,7 @@ export function ProviderLiveEnergy({ provider, children }: ProviderLiveEnergyPro
     initialMeasuredAt: provider.last_value?.measured_at ?? null,
     initialPower: provider.last_value?.measured_value ?? null,
     initialUnit: provider.last_value?.measured_unit ?? provider.unit ?? null,
+    initialMetrics: provider.last_metric_snapshots ?? [],
   };
 
   if (children) {

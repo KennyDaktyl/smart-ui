@@ -177,7 +177,11 @@ export function useProvidersLive(
             metrics:
               Object.keys(parsed.metrics).length > 0
                 ? parsed.metrics
-                : createInitialProviderMetrics(null, provider.unit ?? null),
+                : createInitialProviderMetrics(
+                    null,
+                    provider.unit ?? null,
+                    provider.last_metric_snapshots ?? []
+                  ),
           },
         }));
 
@@ -208,7 +212,8 @@ export function useProvidersLive(
             nextExpectedAt: null,
             metrics: createInitialProviderMetrics(
               lastValue.measured_value,
-              lastValue.measured_unit ?? provider.unit ?? null
+              lastValue.measured_unit ?? provider.unit ?? null,
+              provider.last_metric_snapshots ?? []
             ),
           },
         }));

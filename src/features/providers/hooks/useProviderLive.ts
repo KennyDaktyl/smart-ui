@@ -68,6 +68,11 @@ export type UseProviderLiveOptions = {
   initialPower?: number | null;
   initialUnit?: string | null;
   initialMeasuredAt?: string | null;
+  initialMetrics?: Array<{
+    metric_key?: string | null;
+    value?: number | null;
+    unit?: string | null;
+  }> | null;
 };
 
 const resolveBaseTimestampMs = (measuredAt: string | null) => {
@@ -101,6 +106,7 @@ export function useProviderLive({
   initialPower = null,
   initialUnit = null,
   initialMeasuredAt = null,
+  initialMetrics = null,
 }: UseProviderLiveOptions): ProviderLiveSnapshot {
   const [state, setState] = useState<InternalProviderState>({
     loading: Boolean(uuid) && enabled && !initialMeasuredAt,
@@ -111,7 +117,7 @@ export function useProviderLive({
     countdownSec: null,
     power: initialPower,
     unit: initialUnit,
-    metrics: createInitialProviderMetrics(initialPower, initialUnit),
+    metrics: createInitialProviderMetrics(initialPower, initialUnit, initialMetrics),
   });
 
   const timerRef = useRef<number | null>(null);
@@ -163,7 +169,7 @@ export function useProviderLive({
       countdownSec: null,
       power: initialPower,
       unit: initialUnit,
-      metrics: createInitialProviderMetrics(initialPower, initialUnit),
+      metrics: createInitialProviderMetrics(initialPower, initialUnit, initialMetrics),
     };
 
     setState(bootstrapState);
@@ -220,6 +226,7 @@ export function useProviderLive({
     enabled,
     expectedIntervalSec,
     initialMeasuredAt,
+    initialMetrics,
     initialPower,
     initialUnit,
     uuid,

@@ -884,6 +884,7 @@ export function DeviceForm({
 
   const handleSubmit = async () => {
     if (!onSubmit) return;
+    if (submitting) return;
     setSubmitError(null);
     setSubmitted(true);
     if (isAtCapacity) return;
@@ -1367,7 +1368,7 @@ export function DeviceForm({
             {submitError && <Alert severity="error">{submitError}</Alert>}
             <Box display="flex" justifyContent="flex-end" gap={1}>
               {onCancel && (
-                <Button variant="outlined" onClick={onCancel}>
+                <Button variant="outlined" onClick={onCancel} disabled={submitting}>
                   {tt("common.cancel")}
                 </Button>
               )}
@@ -1376,7 +1377,7 @@ export function DeviceForm({
                 variant="contained"
                 disabled={submitting || isAtCapacity}
               >
-                {tt("common.save")}
+                {submitting ? tt("common.loading") : tt("common.save")}
               </Button>
             </Box>
           </Stack>
